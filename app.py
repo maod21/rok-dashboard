@@ -32,70 +32,255 @@ except Exception:
 # Constants
 # ─────────────────────────────────────────────────────────────────────────────
 
+THEME_GOLD   = "#f59e0b"
+THEME_ORANGE = "#ea580c"
+THEME_RED    = "#ef4444"
+THEME_GREEN  = "#22c55e"
+THEME_BLUE   = "#3b82f6"
+THEME_PURPLE = "#8b5cf6"
+
+TIER_COLORS = {
+    "T5": "#f59e0b",
+    "T4": "#ea580c",
+    "T3": "#8b5cf6",
+    "T2": "#3b82f6",
+    "T1": "#64748b",
+}
+
 DISPLAY_COLUMNS = [
     "rank", "username", "character_id", "power",
-    "t5_kills", "t4_kills", "t5_deaths", "t4_deaths",
-    "kill_points", "death_points", "combined_points",
-    "dkpi", "personal_dkpi",
+    "t5_kills", "t4_kills", "t3_kills", "t2_kills", "t1_kills",
+    "kill_points", "personal_dkpi", "kill_share",
 ]
 
 DISPLAY_NAMES: dict[str, str] = {
-    "rank": "Rank", "username": "Username", "character_id": "Character ID",
+    "rank": "#", "username": "Governor", "character_id": "ID",
     "power": "Power", "t5_kills": "T5 Kills", "t4_kills": "T4 Kills",
-    "t3_kills": "T3 Kills", "t5_deaths": "T5 Deaths", "t4_deaths": "T4 Deaths",
-    "t3_deaths": "T3 Deaths", "kill_points": "Kill Points",
-    "death_points": "Death Points", "combined_points": "Combined Points",
-    "dkpi": "DKPi", "personal_dkpi": "Personal DKPi",
-    "kill_share": "Kill Share %", "death_share": "Death Share %",
-    "combined_share": "Combined Share %", "power_band": "Power Band",
-    "target_dkpi": "Target DKPi", "target_points": "Target Points",
-    "progress_pct": "Progress %", "gap_to_goal": "Gap to Goal",
-    "over_goal_points": "Over Goal", "goal_status": "Status",
-    "death_kill_ratio": "Death/Kill Ratio", "activity_score": "Activity Score",
+    "t3_kills": "T3 Kills", "t2_kills": "T2 Kills", "t1_kills": "T1 Kills",
+    "kill_points": "Kill Points", "personal_dkpi": "KP/Power",
+    "kill_share": "Share %", "power_band": "Faixa",
+    "target_dkpi": "Target KP/Power", "target_points": "Meta KP",
+    "progress_pct": "Progresso", "gap_to_goal": "Gap",
+    "over_goal_points": "Acima da Meta", "goal_status": "Status",
+    "combined_points": "Kill Points", "combined_share": "Share %",
+    "dkpi": "KPi", "death_points": "—",
 }
-
-GOAL_COLUMNS = [
-    "username", "character_id", "power", "power_band",
-    "target_dkpi", "target_points", "combined_points",
-    "progress_pct", "gap_to_goal", "over_goal_points", "goal_status",
-]
 
 STATUS_ICON = {
     "Met": "🟢", "In Progress": "🟡",
     "No Points": "🔴", "No Target": "⚪", "Unassigned": "⚫",
 }
 
-THEME_KILL   = "#f59e0b"
-THEME_DEATH  = "#3b82f6"
-THEME_COMBO  = "#8b5cf6"
-THEME_GREEN  = "#22c55e"
-
 # ─────────────────────────────────────────────────────────────────────────────
-# App bootstrap
+# Page config & CSS
 # ─────────────────────────────────────────────────────────────────────────────
 
-st.set_page_config(page_title="RoK KP Dashboard", page_icon="⚔️", layout="wide")
+st.set_page_config(
+    page_title="K1602 · KP Dashboard",
+    page_icon="⚔️",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
+st.markdown("""
+<style>
+/* Base */
+html, body, [class*="css"] { font-family: 'Segoe UI', system-ui, sans-serif; }
+.main .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
+section[data-testid="stSidebar"] {
+    background: #0a1628 !important;
+    border-right: 1px solid #1e3a5f;
+}
+
+/* Metric cards */
+[data-testid="stMetric"] {
+    background: linear-gradient(135deg, #1e293b 0%, #162032 100%);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 18px 20px !important;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+[data-testid="stMetric"]:hover { border-color: #f59e0b55; }
+[data-testid="stMetric"]::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #f59e0b, #ea580c);
+}
+[data-testid="stMetricLabel"] {
+    color: #94a3b8 !important;
+    font-size: 0.72rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+}
+[data-testid="stMetricValue"] {
+    color: #f1f5f9 !important;
+    font-size: 1.55rem !important;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+/* Tabs */
+[data-testid="stTabs"] button {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #64748b !important;
+}
+[data-testid="stTabs"] button[aria-selected="true"] {
+    color: #f59e0b !important;
+    border-bottom-color: #f59e0b !important;
+}
+
+/* Dataframe */
+[data-testid="stDataFrame"] {
+    border: 1px solid #1e3a5f;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Divider */
+hr { border-color: #1e3a5f !important; margin: 1.2rem 0 !important; }
+
+/* Title banner */
+.title-banner {
+    background: linear-gradient(135deg, #1a2744 0%, #0f172a 100%);
+    border: 1px solid #1e3a5f;
+    border-left: 4px solid #f59e0b;
+    border-radius: 10px;
+    padding: 16px 24px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.title-banner h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: #f1f5f9; }
+.title-banner p  { margin: 4px 0 0; font-size: 0.78rem; color: #94a3b8; }
+
+/* Weight pills */
+.weight-pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 12px; }
+.pill {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+}
+.pill.t5 { border-color: #f59e0b55; color: #f59e0b; }
+.pill.t4 { border-color: #ea580c55; color: #ea580c; }
+.pill.t3 { border-color: #8b5cf655; color: #8b5cf6; }
+.pill.t2 { border-color: #3b82f655; color: #3b82f6; }
+.pill.t1 { border-color: #64748b55; color: #94a3b8; }
+
+/* Top 3 podium */
+.podium { display: flex; gap: 12px; margin: 12px 0; }
+.podium-card {
+    flex: 1;
+    background: linear-gradient(135deg, #1e293b, #162032);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.podium-card.gold   { border-color: #f59e0b88; }
+.podium-card.silver { border-color: #94a3b888; }
+.podium-card.bronze { border-color: #b4530988; }
+.podium-medal { font-size: 1.8rem; }
+.podium-name  { font-size: 0.9rem; font-weight: 700; color: #f1f5f9; margin: 6px 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.podium-kp   { font-size: 1.1rem; font-weight: 800; color: #f59e0b; }
+.podium-sub  { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+
+/* Stat row pills */
+.tier-row { display: flex; gap: 6px; margin: 4px 0; flex-wrap: wrap; }
+.tier-badge {
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+/* Section headers */
+.section-header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    border-bottom: 1px solid #1e3a5f;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+
+/* Password unlock box */
+.unlock-box {
+    background: linear-gradient(135deg, #1a2744, #0f172a);
+    border: 1px solid #1e3a5f;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    margin: 12px 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Storage
+# ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_resource
 def get_storage():
     return create_storage()
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Main
+# ─────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
     storage = get_storage()
 
-    st.title("⚔️ RoK KP Dashboard")
-    st.caption(
-        f"T4 Kills ×{POINT_WEIGHTS['t4_kills']} | "
-        f"T5 Kills ×{POINT_WEIGHTS['t5_kills']} | "
-        f"T4 Deaths ×{POINT_WEIGHTS['t4_deaths']} | "
-        f"T5 Deaths ×{POINT_WEIGHTS['t5_deaths']}"
-    )
+    # ── Title banner ──
+    st.markdown("""
+    <div class="title-banner">
+        <div style="font-size:2.2rem">⚔️</div>
+        <div>
+            <h1>K1602 · KP Dashboard</h1>
+            <p>Kingdom Kill Points Tracker — Rise of Kingdoms</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
+    # Weight pills
+    st.markdown("""
+    <div class="weight-pills">
+        <span class="pill t5">T5 × 20</span>
+        <span class="pill t4">T4 × 10</span>
+        <span class="pill t3">T3 × 4</span>
+        <span class="pill t2">T2 × 2</span>
+        <span class="pill t1">T1 × 0.2</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Sidebar ──
     with st.sidebar:
-        st.header("📂 Relatórios")
-        st.caption(f"Storage: {storage.label}")
+        st.markdown(f"""
+        <div style="padding:8px 0 16px">
+            <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:#475569;font-weight:700">Storage</div>
+            <div style="color:#f59e0b;font-size:0.85rem;font-weight:600">{'🟢 ' + storage.label}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="section-header">📂 Relatórios</div>', unsafe_allow_html=True)
         handle_upload(storage)
 
     imports = storage.list_imports()
@@ -105,7 +290,7 @@ def main() -> None:
 
     imports = prepare_imports(imports)
     selected = select_report(imports)
-    current = storage.load_stats(selected["id"])
+    current  = storage.load_stats(selected["id"])
     previous = load_previous_report(storage, imports, selected)
 
     basis_options = ["Totais do relatório"]
@@ -113,21 +298,28 @@ def main() -> None:
         basis_options.insert(0, "Delta do período")
 
     with st.sidebar:
+        st.divider()
+        st.markdown('<div class="section-header">⚙️ Filtros</div>', unsafe_allow_html=True)
         basis     = st.radio("Base das métricas", basis_options, index=0)
-        search    = st.text_input("🔍 Buscar jogador")
-        min_power = st.number_input("Power mínimo", min_value=0, value=0, step=1_000_000)
+        search    = st.text_input("🔍 Buscar governor")
+        min_power = st.number_input("Power mínimo", min_value=0, value=0, step=1_000_000,
+                                     format="%d")
 
     stats_basis = compute_period_deltas(current, previous) if basis == "Delta do período" else current
     filtered    = apply_filters(stats_basis, search=search, min_power=min_power)
     gp_default  = default_group_power(storage, imports)
 
     with st.sidebar:
+        st.divider()
+        st.markdown('<div class="section-header">📊 Configuração</div>', unsafe_allow_html=True)
         group_power = st.number_input(
             "Power inicial do grupo",
             min_value=1,
             value=max(1, int(gp_default)),
             step=1_000_000,
+            format="%d",
         )
+        st.divider()
         admin_enabled, is_admin = admin_panel()
 
     metrics = calculate_metrics(filtered, group_power=group_power)
@@ -139,40 +331,29 @@ def main() -> None:
         goal_bands         = default_goal_bands()
         goal_storage_error = str(exc)
 
+    # Caption bar
     n_import    = len(imports)
     delta_label = f" (+{n_import - 1} anterior{'es' if n_import > 2 else ''})" if n_import > 1 else ""
     st.caption(
-        f"📅 Relatório: **{selected['report_date']}** | "
-        f"Base: **{basis}** | "
-        f"Jogadores: **{len(metrics):,}** | "
-        f"Imports: **{n_import}**{delta_label}"
+        f"📅 **{selected['report_date']}** · Base: **{basis}** · "
+        f"Governors: **{len(metrics):,}** · Imports: **{n_import}**{delta_label}"
     )
 
     tabs = st.tabs([
-        "⚔️ KP Geral", "🎯 Metas",
-        "💀 Kill Points", "🛡️ Death Points", "📊 Combined",
-        "📈 Histórico", "👥 Jogadores", "📁 Imports", "❓ Como usar",
+        "🏆 Kill Points", "🎯 Metas", "📈 Histórico",
+        "👥 Governors", "📁 Imports", "❓ Ajuda",
     ])
 
-    with tabs[0]: show_kp_metrics(metrics, group_power)
+    with tabs[0]: show_kp_main(metrics, group_power)
     with tabs[1]: show_goals(
         metrics=metrics, goal_bands=goal_bands, storage=storage,
         is_admin=is_admin, admin_enabled=admin_enabled,
         storage_error=goal_storage_error,
     )
-    with tabs[2]: show_points_tab(
-        metrics, title="Kill Points", total_column="kill_points",
-        detail_columns=["t5_kills", "t4_kills", "kill_points", "kill_share"],
-    )
-    with tabs[3]: show_points_tab(
-        metrics, title="Death Points", total_column="death_points",
-        detail_columns=["t5_deaths", "t4_deaths", "death_points", "death_share"],
-    )
-    with tabs[4]: show_combined(metrics)
-    with tabs[5]: show_history(storage, imports, group_power)
-    with tabs[6]: show_players(metrics)
-    with tabs[7]: show_imports(imports, storage, is_admin=is_admin, admin_enabled=admin_enabled)
-    with tabs[8]: show_help()
+    with tabs[2]: show_history(storage, imports, group_power)
+    with tabs[3]: show_governors(metrics)
+    with tabs[4]: show_imports(imports, storage, is_admin=is_admin, admin_enabled=admin_enabled)
+    with tabs[5]: show_help()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -180,33 +361,61 @@ def main() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _empty_state() -> None:
-    st.info("📤 Faça upload do primeiro arquivo `statsExport` para começar.")
     st.markdown("""
-    **Como obter o statsExport:**
-    1. Abra Rise of Kingdoms
-    2. Vá em **More > Kingdom > Kingdom Overview > Stats**
-    3. Toque em **Export** e salve o arquivo `.xlsx`
-    4. Faça upload aqui na barra lateral ←
-    """)
+    <div style="text-align:center;padding:60px 20px">
+        <div style="font-size:4rem">⚔️</div>
+        <h3 style="color:#f1f5f9;margin:12px 0 8px">Nenhum relatório ainda</h3>
+        <p style="color:#64748b">Faça upload do primeiro statsExport para começar a rastrear os KPs do reino.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.info("👈 Use o painel lateral para fazer upload do arquivo `.xlsx` exportado do jogo.")
 
 
 def handle_upload(storage) -> None:
+    pwd = get_secret("ADMIN_PASSWORD")
+
+    # Check if already authenticated for upload this session
+    if "upload_auth" not in st.session_state:
+        st.session_state.upload_auth = False
+
+    if not st.session_state.upload_auth:
+        st.markdown('<div class="unlock-box">', unsafe_allow_html=True)
+        st.markdown("🔒 **Área restrita**\n\nInsira a senha para fazer upload de relatórios.")
+        upload_pwd = st.text_input("Senha", type="password", key="upload_pwd_input",
+                                    placeholder="Digite a senha...")
+        if st.button("🔓 Desbloquear", use_container_width=True):
+            if pwd and is_admin_authenticated(pwd, upload_pwd):
+                st.session_state.upload_auth = True
+                st.rerun()
+            elif not pwd:
+                st.session_state.upload_auth = True
+                st.rerun()
+            else:
+                st.error("❌ Senha incorreta")
+        st.markdown('</div>', unsafe_allow_html=True)
+        return
+
+    # Unlocked — show upload
+    st.success("✅ Upload desbloqueado")
+    if st.button("🔒 Bloquear", use_container_width=True, type="secondary"):
+        st.session_state.upload_auth = False
+        st.rerun()
+
     uploaded = st.file_uploader("Upload statsExport", type=["xlsx", "xls"])
     if uploaded is None:
         return
 
-    # Sanitize filename to prevent path traversal
     safe_name    = re.sub(r"[^\w.\-]", "_", uploaded.name)
     report_guess = extract_report_date_from_name(safe_name) or date.today()
     report_date  = st.date_input("Data do relatório", value=report_guess)
 
-    if not st.button("💾 Salvar relatório", type="primary"):
+    if not st.button("💾 Salvar relatório", type="primary", use_container_width=True):
         return
 
     with st.spinner("Processando..."):
         try:
             file_bytes = uploaded.getvalue()
-            if len(file_bytes) > 50 * 1024 * 1024:  # 50 MB guard
+            if len(file_bytes) > 50 * 1024 * 1024:
                 st.error("❌ Arquivo muito grande (limite 50 MB).")
                 return
             stats = load_stats_file(BytesIO(file_bytes), filename=safe_name)
@@ -221,9 +430,9 @@ def handle_upload(storage) -> None:
             return
 
     if created:
-        st.success(f"✅ {len(stats):,} jogadores salvos!")
+        st.success(f"✅ {len(stats):,} governors salvos!")
     else:
-        st.warning("⚠️ Este arquivo já foi importado.")
+        st.warning("⚠️ Arquivo já importado.")
     st.rerun()
 
 
@@ -241,16 +450,12 @@ def select_report(imports: pd.DataFrame) -> pd.Series:
     return imports.loc[imports["label"].eq(chosen)].iloc[0]
 
 
-def load_previous_report(storage, imports: pd.DataFrame, selected: pd.Series) -> pd.DataFrame | None:
-    # Sort by (report_date, imported_at) to handle ties correctly
-    ordered   = imports.sort_values(
-        ["report_date", "imported_at"], ascending=[True, True]
-    ).reset_index(drop=True)
+def load_previous_report(storage, imports: pd.DataFrame, selected: pd.Series):
+    ordered   = imports.sort_values(["report_date", "imported_at"], ascending=[True, True]).reset_index(drop=True)
     positions = ordered.index[ordered["id"].eq(selected["id"])].tolist()
     if not positions or positions[0] == 0:
         return None
     prev_id = ordered.loc[positions[0] - 1, "id"]
-    # Do not use the same import as previous (same-date edge case)
     if prev_id == selected["id"]:
         return None
     return storage.load_stats(prev_id)
@@ -282,22 +487,21 @@ def apply_filters(stats: pd.DataFrame, *, search: str, min_power: int) -> pd.Dat
 
 
 def admin_panel() -> tuple[bool, bool]:
-    st.divider()
-    st.header("🔒 Admin")
+    st.markdown('<div class="section-header">🔒 Admin</div>', unsafe_allow_html=True)
     pwd = get_secret("ADMIN_PASSWORD")
     if not pwd:
-        st.caption("Edição bloqueada. Configure ADMIN_PASSWORD nos Secrets para ativar.")
+        st.caption("Configure ADMIN_PASSWORD nos Secrets para ativar.")
         return False, False
-    entered = st.text_input("Senha admin", type="password")
+    entered = st.text_input("Senha admin", type="password", key="admin_pwd")
     if is_admin_authenticated(pwd, entered):
-        st.success("✅ Admin ativado")
+        st.success("✅ Admin ativo")
         return True, True
     if entered:
         st.error("❌ Senha incorreta")
     return True, False
 
 
-def get_secret(name: str) -> str | None:
+def get_secret(name: str):
     val = os.getenv(name)
     if val:
         return val
@@ -309,71 +513,145 @@ def get_secret(name: str) -> str | None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tab: KP Geral
+# Tab: Kill Points principal
 # ─────────────────────────────────────────────────────────────────────────────
 
-def show_kp_metrics(metrics: pd.DataFrame, group_power: int) -> None:
-    kill_total     = int(metrics["kill_points"].sum())
-    death_total    = int(metrics["death_points"].sum())
-    combined_total = int(metrics["combined_points"].sum())
-    group_dkpi     = combined_total / group_power if group_power else 0.0
-    active_players = int((metrics["combined_points"] > 0).sum())
-    participation  = active_players / len(metrics) if len(metrics) else 0.0
+def show_kp_main(metrics: pd.DataFrame, group_power: int) -> None:
+    kp_total     = int(metrics["kill_points"].sum())
+    active       = int((metrics["kill_points"] > 0).sum())
+    participation = active / len(metrics) if len(metrics) else 0
+    group_kpi    = kp_total / group_power if group_power else 0
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("DKPi do Grupo",    format_dkpi(group_dkpi))
-    c2.metric("Combined Points",  format_int(combined_total))
-    c3.metric("Kill Points",      format_int(kill_total))
-    c4.metric("Death Points",     format_int(death_total))
-    c5.metric("Jogadores Ativos", format_int(active_players))
-    c6.metric("Participação",     format_percent(participation))
-
-    ranked = add_rank(metrics, "combined_points")
-    _top3_medals(ranked)
+    # Top KPI bar
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("⚔️ Total Kill Points", fmt_int(kp_total))
+    c2.metric("📊 KPi do Reino",      fmt_dkpi(group_kpi))
+    c3.metric("👥 Governors Ativos",  fmt_int(active))
+    c4.metric("📈 Participação",      fmt_pct(participation))
+    c5.metric("🏰 Governors",        fmt_int(len(metrics)))
 
     st.divider()
 
-    if px is not None and (kill_total + death_total) > 0:
-        left, right = st.columns([1, 2])
+    # Tier breakdown
+    st.markdown('<div class="section-header">Contribuição por tier</div>', unsafe_allow_html=True)
+    tier_data = []
+    tier_config = [
+        ("t5_kills", "T5", POINT_WEIGHTS.get("t5_kills", 20), TIER_COLORS["T5"]),
+        ("t4_kills", "T4", POINT_WEIGHTS.get("t4_kills", 10), TIER_COLORS["T4"]),
+        ("t3_kills", "T3", POINT_WEIGHTS.get("t3_kills", 4),  TIER_COLORS["T3"]),
+        ("t2_kills", "T2", POINT_WEIGHTS.get("t2_kills", 2),  TIER_COLORS["T2"]),
+        ("t1_kills", "T1", POINT_WEIGHTS.get("t1_kills", 0.2),TIER_COLORS["T1"]),
+    ]
+    for col, label, weight, color in tier_config:
+        total_kills = int(metrics[col].sum()) if col in metrics else 0
+        tier_pts    = int(total_kills * weight)
+        tier_data.append({"Tier": label, "Kills": total_kills, "KP": tier_pts,
+                           "Peso": f"×{weight}", "color": color})
+
+    t_cols = st.columns(5)
+    for i, td in enumerate(tier_data):
+        with t_cols[i]:
+            st.markdown(f"""
+            <div style="background:#1e293b;border:1px solid #334155;border-top:3px solid {td['color']};
+                        border-radius:10px;padding:14px 16px;text-align:center">
+                <div style="font-size:0.7rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.08em">
+                    {td['Tier']} Kills <span style="color:{td['color']}">{td['Peso']}</span>
+                </div>
+                <div style="font-size:1.4rem;font-weight:800;color:#f1f5f9;margin:6px 0 2px">
+                    {fmt_int(td['Kills'])}
+                </div>
+                <div style="font-size:0.8rem;color:{td['color']};font-weight:700">
+                    {fmt_int(td['KP'])} KP
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # Podium Top 3
+    ranked = add_rank(metrics, "kill_points")
+    st.markdown('<div class="section-header">🏆 Top Governors</div>', unsafe_allow_html=True)
+
+    if len(ranked) >= 3:
+        podium_styles = [
+            ("gold",   "🥇", THEME_GOLD),
+            ("silver", "🥈", "#94a3b8"),
+            ("bronze", "🥉", "#b45309"),
+        ]
+        cols = st.columns(3)
+        for i, (style, medal, color) in enumerate(podium_styles):
+            row = ranked.iloc[i]
+            with cols[i]:
+                st.markdown(f"""
+                <div class="podium-card {style}">
+                    <div class="podium-medal">{medal}</div>
+                    <div class="podium-name">{row['username']}</div>
+                    <div class="podium-kp" style="color:{color}">{fmt_int(int(row['kill_points']))}</div>
+                    <div class="podium-sub">KP/Power: {fmt_dkpi(float(row['personal_dkpi']))}</div>
+                    <div class="podium-sub">Power: {fmt_int(int(row['power']))}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # Charts
+    if px is not None and not ranked.empty:
+        left, right = st.columns([3, 2])
         with left:
-            fig = px.pie(
-                values=[kill_total, death_total],
-                names=["Kill Points", "Death Points"],
-                hole=0.55,
-                color_discrete_sequence=[THEME_KILL, THEME_DEATH],
-                title="Composição dos pontos",
+            st.markdown('<div class="section-header">Top 20 — Kill Points</div>', unsafe_allow_html=True)
+            top20 = ranked.head(20).sort_values("kill_points", ascending=True)
+            fig = px.bar(
+                top20, x="kill_points", y="username", orientation="h",
+                color="kill_points", color_continuous_scale=["#1e3a5f", "#f59e0b"],
+                labels={"kill_points": "Kill Points", "username": ""},
             )
-            fig.update_traces(textposition="inside", textinfo="percent+label")
-            fig.update_layout(showlegend=False, margin=dict(t=40, b=0, l=0, r=0))
+            fig.update_layout(
+                plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                font_color="#94a3b8", showlegend=False,
+                coloraxis_showscale=False,
+                margin=dict(l=0, r=0, t=10, b=0),
+                xaxis=dict(gridcolor="#1e3a5f", color="#64748b"),
+                yaxis=dict(gridcolor="#1e3a5f", color="#e2e8f0"),
+            )
+            fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
+
         with right:
-            show_bar(ranked.head(20), "combined_points", "Top 20 — Combined Points")
-    else:
-        show_bar(ranked.head(20), "combined_points", "Top 20 — Combined Points")
+            st.markdown('<div class="section-header">Contribuição por tier</div>', unsafe_allow_html=True)
+            pie_data = [td for td in tier_data if td["KP"] > 0]
+            if pie_data:
+                fig2 = px.pie(
+                    values=[td["KP"] for td in pie_data],
+                    names=[td["Tier"] for td in pie_data],
+                    color=[td["Tier"] for td in pie_data],
+                    color_discrete_map={td["Tier"]: td["color"] for td in pie_data},
+                    hole=0.6,
+                )
+                fig2.update_layout(
+                    plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                    font_color="#94a3b8", showlegend=True,
+                    legend=dict(font=dict(color="#94a3b8")),
+                    margin=dict(l=0, r=0, t=10, b=0),
+                )
+                fig2.update_traces(textposition="inside", textinfo="percent+label",
+                                   textfont_color="white")
+                st.plotly_chart(fig2, use_container_width=True)
 
     st.divider()
-    st.subheader("Ranking completo")
 
-    # Pagination
-    page_size = st.selectbox("Jogadores por página", [25, 50, 100, 200], index=0, key="kp_page_size")
-    total_pages = max(1, -(-len(ranked) // page_size))  # ceiling division
-    page = st.number_input("Página", min_value=1, max_value=total_pages, value=1, key="kp_page")
+    # Full ranking table
+    st.markdown('<div class="section-header">Ranking completo</div>', unsafe_allow_html=True)
+    page_size = st.selectbox("Por página", [25, 50, 100], index=0, key="kp_ps")
+    total_pages = max(1, -(-len(ranked) // page_size))
+    page = st.number_input("Página", min_value=1, max_value=total_pages, value=1, key="kp_pg")
     start_i = (page - 1) * page_size
-    st.caption(f"Mostrando {start_i + 1}–{min(start_i + page_size, len(ranked))} de {len(ranked):,} jogadores")
-    st.dataframe(display_table(ranked.iloc[start_i: start_i + page_size]), use_container_width=True, hide_index=True)
+    st.caption(f"Mostrando {start_i+1}–{min(start_i+page_size, len(ranked))} de {len(ranked):,}")
+    st.dataframe(display_table(ranked.iloc[start_i: start_i + page_size]),
+                 use_container_width=True, hide_index=True)
 
-
-def _top3_medals(ranked: pd.DataFrame) -> None:
-    if ranked.empty:
-        return
-    medals = ["🥇", "🥈", "🥉"]
-    cols   = st.columns(3)
-    for i, (_, row) in enumerate(ranked.head(3).iterrows()):
-        cols[i].metric(
-            label=f"{medals[i]} {row['username']}",
-            value=format_int(int(row["combined_points"])),
-            help=f"Personal DKPi: {format_dkpi(float(row['personal_dkpi']))} | Power: {format_int(int(row['power']))}",
-        )
+    # Download
+    csv = ranked.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Exportar CSV", data=csv, file_name="kp_ranking.csv", mime="text/csv")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -382,175 +660,97 @@ def _top3_medals(ranked: pd.DataFrame) -> None:
 
 def show_goals(*, metrics, goal_bands, storage, is_admin, admin_enabled, storage_error) -> None:
     if storage_error:
-        st.error("Configuração de metas não pôde ser carregada. Rode o schema do Supabase atualizado.")
-        st.caption(storage_error)
+        st.error(f"Erro ao carregar metas: {storage_error}")
 
     gp      = calculate_goal_progress(metrics, goal_bands)
     summary = summarize_goal_bands(gp)
 
     t_pts = int(gp["target_points"].sum())  if not gp.empty else 0
-    c_pts = int(gp["combined_points"].sum()) if not gp.empty else 0
+    c_pts = int(gp["kill_points"].sum())    if not gp.empty and "kill_points" in gp else int(gp["combined_points"].sum()) if not gp.empty else 0
     gap   = int(gp["gap_to_goal"].sum())    if not gp.empty else 0
     met   = int((gp["goal_status"] == "Met").sum()) if not gp.empty else 0
     pct   = c_pts / t_pts if t_pts else 0.0
 
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Progresso Geral", format_percent(pct))
+    c1.metric("Progresso Geral", fmt_pct(pct))
     c2.metric("Cumpriram Meta",  f"{met}/{len(gp):,}")
-    c3.metric("Target Points",  format_int(t_pts))
-    c4.metric("Pontos Atuais",  format_int(c_pts))
-    c5.metric("Gap Total",      format_int(gap))
+    c3.metric("Meta Total KP",   fmt_int(t_pts))
+    c4.metric("KP Atual",        fmt_int(c_pts))
+    c5.metric("Gap Total",       fmt_int(gap))
 
     if not gp.empty and px is not None:
         left, right = st.columns(2)
         with left:
-            band_counts = (
-                gp.groupby("power_band")["character_id"].count()
-                .reset_index().rename(columns={"character_id": "players"})
-            )
-            fig = px.pie(band_counts, names="power_band", values="players",
-                         title="Jogadores por faixa de power", hole=0.45)
-            fig.update_traces(textposition="inside", textinfo="percent+label")
-            fig.update_layout(showlegend=False, margin=dict(t=40, b=0, l=0, r=0))
+            status_counts = (gp.groupby("goal_status")["character_id"].count()
+                             .reset_index().rename(columns={"character_id": "Governors"}))
+            color_map = {"Met": "#22c55e", "In Progress": "#eab308",
+                         "No Points": "#ef4444", "No Target": "#94a3b8", "Unassigned": "#64748b"}
+            fig = px.bar(status_counts, x="goal_status", y="Governors",
+                         color="goal_status", color_discrete_map=color_map,
+                         title="Governors por status")
+            fig.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                              font_color="#94a3b8", showlegend=False,
+                              xaxis_title="", yaxis=dict(gridcolor="#1e3a5f"))
             st.plotly_chart(fig, use_container_width=True)
         with right:
-            status_counts = (
-                gp.groupby("goal_status")["character_id"].count()
-                .reset_index().rename(columns={"character_id": "players"})
-            )
-            color_map = {
-                "Met": "#22c55e", "In Progress": "#eab308",
-                "No Points": "#ef4444", "No Target": "#94a3b8", "Unassigned": "#64748b",
-            }
-            fig2 = px.bar(
-                status_counts, x="goal_status", y="players",
-                color="goal_status", color_discrete_map=color_map,
-                title="Jogadores por status de meta",
-            )
-            fig2.update_layout(showlegend=False, xaxis_title="", yaxis_title="Jogadores")
+            band_counts = (gp.groupby("power_band")["character_id"].count()
+                           .reset_index().rename(columns={"character_id": "Governors"}))
+            fig2 = px.pie(band_counts, names="power_band", values="Governors",
+                          title="Governors por faixa de power", hole=0.5)
+            fig2.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                               font_color="#94a3b8")
             st.plotly_chart(fig2, use_container_width=True)
 
-    st.subheader("Resumo por faixa de power")
-    st.dataframe(format_goal_summary(summary), use_container_width=True, hide_index=True)
+    st.subheader("Resumo por faixa")
+    st.dataframe(summary.rename(columns={
+        "power_band": "Faixa", "players": "Governors", "met_goal": "Cumpriram",
+        "no_points": "Sem KP", "combined_points": "KP Atual",
+        "target_points": "Meta KP", "gap_to_goal": "Gap",
+        "progress_pct": "Progresso",
+    }), use_container_width=True, hide_index=True)
 
-    over_goal = gp.sort_values("over_goal_points", ascending=False).head(15)
-    needs_pts = gp[gp["gap_to_goal"].gt(0)].sort_values("gap_to_goal", ascending=False).head(15)
+    st.divider()
 
-    left2, right2 = st.columns(2)
-    with left2:
-        st.subheader("🏆 Mais acima da meta")
-        if over_goal.empty or int(over_goal["over_goal_points"].sum()) <= 0:
-            st.info("Nenhum jogador acima da meta ainda.")
-        else:
-            show_bar(over_goal, "over_goal_points", "Acima da meta")
-    with right2:
-        st.subheader("⚠️ Maiores gaps")
-        if needs_pts.empty:
-            st.success("Todos os jogadores visíveis cumpriram a meta! 🎉")
-        else:
-            show_bar(needs_pts, "gap_to_goal", "Gap até a meta")
+    # Filter by status
+    sf = st.selectbox("Filtrar", ["Todos", "Met", "In Progress", "No Points", "No Target"])
+    fgp = gp if sf == "Todos" else gp[gp["goal_status"] == sf]
 
-    st.subheader("Tabela de metas por jogador")
-    statuses    = ["Todos", "Met", "In Progress", "No Points", "No Target"]
-    sf          = st.selectbox("Filtrar por status", statuses, key="goal_sf")
-    filtered_gp = gp if sf == "Todos" else gp[gp["goal_status"] == sf]
-    st.dataframe(format_goal_table(filtered_gp), use_container_width=True, hide_index=True)
+    goal_cols = ["username", "character_id", "power", "power_band",
+                 "target_dkpi", "target_points", "combined_points",
+                 "progress_pct", "gap_to_goal", "over_goal_points", "goal_status"]
+    avail = [c for c in goal_cols if c in fgp.columns]
+    out   = fgp[avail].copy()
+    if "progress_pct" in out: out["progress_pct"] = out["progress_pct"].map(fmt_pct)
+    if "goal_status"  in out: out["goal_status"]  = out["goal_status"].map(lambda s: f"{STATUS_ICON.get(s,'')} {s}")
+    st.dataframe(out.rename(columns=DISPLAY_NAMES), use_container_width=True, hide_index=True)
 
-    # Export goal table
-    if not filtered_gp.empty:
-        csv = filtered_gp.to_csv(index=False).encode("utf-8")
-        st.download_button("⬇️ Exportar metas CSV", data=csv,
-                           file_name="rok_metas.csv", mime="text/csv")
+    csv = fgp.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Exportar CSV", data=csv, file_name="metas.csv", mime="text/csv")
 
     st.divider()
     st.subheader("🛠️ Configurar faixas de meta")
-    if not admin_enabled:
-        st.info("Edição bloqueada. Configure ADMIN_PASSWORD para habilitar.")
-        st.dataframe(format_band_table(goal_bands), use_container_width=True, hide_index=True)
-        return
-    if not is_admin:
-        st.info("Digite a senha admin na barra lateral para editar.")
-        st.dataframe(format_band_table(goal_bands), use_container_width=True, hide_index=True)
+    if not admin_enabled or not is_admin:
+        st.info("Digite a senha admin na barra lateral para editar as faixas.")
         return
 
-    edited = st.data_editor(
-        goal_bands, use_container_width=True, hide_index=True, num_rows="dynamic",
-        column_config={
-            "band_id":     st.column_config.TextColumn("Band ID", required=True),
-            "label":       st.column_config.TextColumn("Label", required=True),
-            "min_power":   st.column_config.NumberColumn("Min Power", min_value=0, step=1_000_000, required=True),
-            "max_power":   st.column_config.NumberColumn("Max Power", min_value=0, step=1_000_000),
-            "target_dkpi": st.column_config.NumberColumn("Target DKPi", min_value=0.0, step=0.001, format="%.4f"),
-            "sort_order":  st.column_config.NumberColumn("Ordem", min_value=0, step=1, required=True),
-        }, key="band_editor",
-    )
-    s1, s2 = st.columns([1, 3])
-    with s1:
-        if st.button("💾 Salvar metas", type="primary"):
+    edited = st.data_editor(goal_bands, use_container_width=True, hide_index=True,
+                             num_rows="dynamic", key="band_editor")
+    c1, c2 = st.columns([1, 3])
+    with c1:
+        if st.button("💾 Salvar", type="primary"):
             try:
                 storage.save_goal_bands(edited)
-                st.success("Metas salvas!")
+                st.success("Salvo!")
                 st.rerun()
-            except Exception as exc:
-                st.error(f"Erro ao salvar: {exc}")
-    with s2:
-        if st.button("🔄 Restaurar preset Balanceado"):
+            except Exception as e:
+                st.error(f"Erro: {e}")
+    with c2:
+        if st.button("🔄 Restaurar preset"):
             try:
                 storage.reset_goal_bands()
-                st.success("Preset Balanceado restaurado!")
                 st.rerun()
-            except Exception as exc:
-                st.error(f"Erro: {exc}")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Tab: Kill / Death Points
-# ─────────────────────────────────────────────────────────────────────────────
-
-def show_points_tab(metrics: pd.DataFrame, *, title: str, total_column: str, detail_columns: list[str]) -> None:
-    total = int(metrics[total_column].sum())
-    top   = metrics.sort_values(total_column, ascending=False).head(20)
-
-    c1, c2, c3 = st.columns(3)
-    c1.metric(title, format_int(total))
-    c2.metric("Top Player", top.iloc[0]["username"] if not top.empty else "—")
-    c3.metric("Top Score",  format_int(int(top.iloc[0][total_column])) if not top.empty else "0")
-
-    show_bar(top, total_column, f"Top 20 — {title}")
-    cols = ["username", "character_id", "power", *detail_columns]
-    st.dataframe(
-        metrics[[c for c in cols if c in metrics.columns]].rename(columns=DISPLAY_NAMES),
-        use_container_width=True, hide_index=True,
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Tab: Combined
-# ─────────────────────────────────────────────────────────────────────────────
-
-def show_combined(metrics: pd.DataFrame) -> None:
-    top = metrics.sort_values("combined_points", ascending=False).head(20)
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Combined Total", format_int(int(metrics["combined_points"].sum())))
-    c2.metric("De Kills",       format_int(int(metrics["kill_points"].sum())))
-    c3.metric("De Deaths",      format_int(int(metrics["death_points"].sum())))
-
-    if not top.empty and px is not None:
-        melted = top[["username", "kill_points", "death_points"]].melt(
-            id_vars="username", var_name="Tipo", value_name="Pontos"
-        )
-        melted["Tipo"] = melted["Tipo"].map({"kill_points": "Kill Points", "death_points": "Death Points"})
-        fig = px.bar(
-            melted, x="Pontos", y="username", color="Tipo", orientation="h",
-            title="Kill + Death por jogador (Top 20)",
-            color_discrete_map={"Kill Points": THEME_KILL, "Death Points": THEME_DEATH},
-        )
-        fig.update_layout(yaxis={"categoryorder": "total ascending"}, legend_title_text="")
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        show_bar(top, "combined_points", "Top 20 — Combined Points")
-
-    st.dataframe(display_table(add_rank(metrics, "combined_points")), use_container_width=True, hide_index=True)
+            except Exception as e:
+                st.error(f"Erro: {e}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -559,138 +759,131 @@ def show_combined(metrics: pd.DataFrame) -> None:
 
 def show_history(storage, imports: pd.DataFrame, group_power: int) -> None:
     st.subheader("📈 Evolução histórica do reino")
-
     if len(imports) < 2:
-        st.info("Importe pelo menos 2 relatórios para ver o histórico de evolução.")
+        st.info("Importe pelo menos 2 relatórios para ver a evolução.")
         return
 
     ordered = imports.sort_values(["report_date", "imported_at"], ascending=[True, True]).reset_index(drop=True)
-
-    # Build time series of kingdom-level aggregates
     rows = []
-    for _, imp in ordered.iterrows():
-        stats   = storage.load_stats(imp["id"])
-        metrics = calculate_metrics(stats, group_power=group_power)
-        rows.append({
-            "Data":            imp["report_date"],
-            "Import ID":       imp["id"],
-            "Jogadores":       len(metrics),
-            "Combined Points": int(metrics["combined_points"].sum()),
-            "Kill Points":     int(metrics["kill_points"].sum()),
-            "Death Points":    int(metrics["death_points"].sum()),
-            "DKPi":            metrics["combined_points"].sum() / group_power if group_power else 0,
-            "Ativos":          int((metrics["combined_points"] > 0).sum()),
-        })
+    with st.spinner("Carregando histórico..."):
+        for _, imp in ordered.iterrows():
+            stats   = storage.load_stats(imp["id"])
+            metrics = calculate_metrics(stats, group_power=group_power)
+            rows.append({
+                "Data":        imp["report_date"],
+                "KP Total":    int(metrics["kill_points"].sum()),
+                "KPi":         metrics["kill_points"].sum() / group_power if group_power else 0,
+                "Ativos":      int((metrics["kill_points"] > 0).sum()),
+                "Governors":   len(metrics),
+                "T5 Kills":    int(metrics["t5_kills"].sum()) if "t5_kills" in metrics else 0,
+                "T4 Kills":    int(metrics["t4_kills"].sum()) if "t4_kills" in metrics else 0,
+            })
 
     history = pd.DataFrame(rows)
 
     if px is not None:
-        col1, col2 = st.columns(2)
-        with col1:
-            fig = px.line(
-                history, x="Data", y="Combined Points",
-                title="Combined Points ao longo do tempo",
-                markers=True, color_discrete_sequence=[THEME_COMBO],
-            )
+        c1, c2 = st.columns(2)
+        with c1:
+            fig = px.line(history, x="Data", y="KP Total", title="Kill Points ao longo do tempo",
+                          markers=True, color_discrete_sequence=[THEME_GOLD])
+            fig.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                              font_color="#94a3b8", xaxis=dict(gridcolor="#1e3a5f"),
+                              yaxis=dict(gridcolor="#1e3a5f"))
             st.plotly_chart(fig, use_container_width=True)
-        with col2:
-            fig2 = px.line(
-                history, x="Data", y="DKPi",
-                title="DKPi do grupo ao longo do tempo",
-                markers=True, color_discrete_sequence=[THEME_GREEN],
-            )
+        with c2:
+            fig2 = px.line(history, x="Data", y="KPi", title="KPi do reino ao longo do tempo",
+                           markers=True, color_discrete_sequence=[THEME_GREEN])
+            fig2.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                               font_color="#94a3b8", xaxis=dict(gridcolor="#1e3a5f"),
+                               yaxis=dict(gridcolor="#1e3a5f"))
             st.plotly_chart(fig2, use_container_width=True)
 
-        col3, col4 = st.columns(2)
-        with col3:
-            melted = history[["Data", "Kill Points", "Death Points"]].melt(
-                id_vars="Data", var_name="Tipo", value_name="Pontos"
-            )
-            fig3 = px.bar(
-                melted, x="Data", y="Pontos", color="Tipo", barmode="stack",
-                title="Kill vs Death Points por período",
-                color_discrete_map={"Kill Points": THEME_KILL, "Death Points": THEME_DEATH},
-            )
+        c3, c4 = st.columns(2)
+        with c3:
+            melted = history[["Data", "T5 Kills", "T4 Kills"]].melt(
+                id_vars="Data", var_name="Tier", value_name="Kills")
+            fig3 = px.bar(melted, x="Data", y="Kills", color="Tier", barmode="stack",
+                          title="T5 vs T4 Kills por período",
+                          color_discrete_map={"T5 Kills": THEME_GOLD, "T4 Kills": THEME_ORANGE})
+            fig3.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                               font_color="#94a3b8", xaxis=dict(gridcolor="#1e3a5f"),
+                               yaxis=dict(gridcolor="#1e3a5f"))
             st.plotly_chart(fig3, use_container_width=True)
-        with col4:
-            fig4 = px.line(
-                history, x="Data", y="Ativos",
-                title="Jogadores ativos ao longo do tempo",
-                markers=True, color_discrete_sequence=[THEME_KILL],
-            )
+        with c4:
+            fig4 = px.line(history, x="Data", y="Ativos", title="Governors ativos por período",
+                           markers=True, color_discrete_sequence=[THEME_PURPLE])
+            fig4.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                               font_color="#94a3b8", xaxis=dict(gridcolor="#1e3a5f"),
+                               yaxis=dict(gridcolor="#1e3a5f"))
             st.plotly_chart(fig4, use_container_width=True)
 
-    st.subheader("Comparação entre dois relatórios")
-    labels  = ordered["label"].tolist()
-    c1, c2  = st.columns(2)
-    with c1:
-        label_a = st.selectbox("Relatório base", labels, index=0, key="hist_a")
-    with c2:
-        label_b = st.selectbox("Relatório comparado", labels, index=min(1, len(labels) - 1), key="hist_b")
+    st.divider()
+    st.subheader("Comparar dois relatórios")
+    labels = ordered["label"].tolist()
+    c1, c2 = st.columns(2)
+    with c1: label_a = st.selectbox("Base", labels, index=0, key="ha")
+    with c2: label_b = st.selectbox("Comparado", labels, index=min(1, len(labels)-1), key="hb")
 
     id_a = ordered.loc[ordered["label"].eq(label_a), "id"].iloc[0]
     id_b = ordered.loc[ordered["label"].eq(label_b), "id"].iloc[0]
 
     if id_a == id_b:
-        st.warning("Selecione dois relatórios diferentes para comparar.")
+        st.warning("Selecione dois relatórios diferentes.")
         return
 
     stats_a  = storage.load_stats(id_a)
     stats_b  = storage.load_stats(id_b)
     delta_df = compute_period_deltas(stats_b, stats_a)
     metrics  = calculate_metrics(delta_df, group_power=group_power)
+    top      = metrics.sort_values("kill_points", ascending=False).head(15)
 
-    top = metrics.sort_values("combined_points", ascending=False).head(15)
-    if not top.empty:
-        show_bar(top, "combined_points", f"Top 15 — Ganho no período ({label_a} → {label_b})")
-    st.dataframe(display_table(add_rank(metrics, "combined_points")), use_container_width=True, hide_index=True)
+    if not top.empty and px is not None:
+        fig = px.bar(top.sort_values("kill_points", ascending=True),
+                     x="kill_points", y="username", orientation="h",
+                     title=f"Top 15 — Ganho no período",
+                     color_discrete_sequence=[THEME_GOLD])
+        fig.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                          font_color="#94a3b8", xaxis=dict(gridcolor="#1e3a5f"),
+                          yaxis=dict(gridcolor="#1e3a5f"))
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.dataframe(display_table(add_rank(metrics, "kill_points")), use_container_width=True, hide_index=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tab: Jogadores
+# Tab: Governors
 # ─────────────────────────────────────────────────────────────────────────────
 
-def show_players(metrics: pd.DataFrame) -> None:
-    ranked = add_rank(metrics, "combined_points")
-
-    # Extra derived metric: death/kill ratio
-    kill_sum  = ranked["kill_points"].replace(0, pd.NA)
-    ranked["death_kill_ratio"] = (ranked["death_points"] / kill_sum).fillna(0.0).round(3)
+def show_governors(metrics: pd.DataFrame) -> None:
+    ranked = add_rank(metrics, "kill_points")
 
     if px is not None and not ranked.empty:
-        col1, col2 = st.columns(2)
-        with col1:
+        c1, c2 = st.columns(2)
+        with c1:
             fig = px.scatter(
-                ranked, x="power", y="combined_points",
-                hover_name="username",
-                color="personal_dkpi",
-                color_continuous_scale="Viridis",
-                title="Power vs Combined Points (cor = Personal DKPi)",
-                labels={"power": "Power", "combined_points": "Combined Points", "personal_dkpi": "Personal DKPi"},
+                ranked, x="power", y="kill_points", hover_name="username",
+                color="personal_dkpi", color_continuous_scale="YlOrRd",
+                title="Power vs Kill Points (cor = KP/Power)",
             )
+            fig.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                              font_color="#94a3b8", xaxis=dict(gridcolor="#1e3a5f"),
+                              yaxis=dict(gridcolor="#1e3a5f"))
             st.plotly_chart(fig, use_container_width=True)
-        with col2:
+        with c2:
             fig2 = px.scatter(
-                ranked, x="kill_points", y="death_points",
-                hover_name="username",
-                color="combined_points",
-                color_continuous_scale="Plasma",
-                title="Kill Points vs Death Points",
-                labels={"kill_points": "Kill Points", "death_points": "Death Points"},
+                ranked, x="t5_kills", y="t4_kills", hover_name="username",
+                color="kill_points", color_continuous_scale="Plasma",
+                title="T5 Kills vs T4 Kills",
             )
+            fig2.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
+                               font_color="#94a3b8", xaxis=dict(gridcolor="#1e3a5f"),
+                               yaxis=dict(gridcolor="#1e3a5f"))
             st.plotly_chart(fig2, use_container_width=True)
 
-    st.subheader("Tabela completa de jogadores")
-    cols_extra = DISPLAY_COLUMNS + ["death_kill_ratio"]
-    avail      = [c for c in cols_extra if c in ranked.columns]
-    st.dataframe(
-        ranked[avail].rename(columns=DISPLAY_NAMES),
-        use_container_width=True, hide_index=True,
-    )
-
-    csv = metrics.to_csv(index=False).encode("utf-8")
-    st.download_button("⬇️ Baixar CSV completo", data=csv,
-                       file_name="rok_kp_metrics.csv", mime="text/csv")
+    st.subheader("Tabela de governors")
+    st.dataframe(display_table(ranked), use_container_width=True, hide_index=True)
+    csv = ranked.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Baixar CSV", data=csv, file_name="governors.csv", mime="text/csv")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -702,7 +895,7 @@ def show_imports(imports: pd.DataFrame, storage, *, is_admin: bool, admin_enable
     st.dataframe(
         imports[["report_date", "filename", "row_count", "imported_at"]].rename(columns={
             "report_date": "Data", "filename": "Arquivo",
-            "row_count": "Jogadores", "imported_at": "Importado em",
+            "row_count": "Governors", "imported_at": "Importado em",
         }),
         use_container_width=True, hide_index=True,
     )
@@ -710,224 +903,83 @@ def show_imports(imports: pd.DataFrame, storage, *, is_admin: bool, admin_enable
     if admin_enabled and is_admin:
         st.divider()
         st.subheader("🗑️ Deletar import")
-        st.warning("⚠️ Irreversível — remove o import e todos os dados de jogadores associados.")
+        st.warning("⚠️ Irreversível — remove todos os dados associados.")
         labels = imports["label"].tolist()
-        to_del = st.selectbox("Selecionar import", ["— selecionar —", *labels], key="del_sel")
+        to_del = st.selectbox("Selecionar import", ["— selecionar —", *labels])
         if to_del != "— selecionar —":
             row = imports.loc[imports["label"].eq(to_del)].iloc[0]
-            col_confirm, _ = st.columns([1, 3])
-            with col_confirm:
-                if st.button("🗑️ Confirmar exclusão", type="secondary"):
-                    if storage.delete_import(row["id"]):
-                        st.success(f"Import deletado: {to_del}")
-                        st.rerun()
-                    else:
-                        st.error("Import não encontrado.")
+            if st.button("🗑️ Confirmar exclusão", type="secondary"):
+                if storage.delete_import(row["id"]):
+                    st.success(f"Deletado: {to_del}")
+                    st.rerun()
+                else:
+                    st.error("Não encontrado.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tab: Como usar
+# Tab: Ajuda
 # ─────────────────────────────────────────────────────────────────────────────
 
 def show_help() -> None:
-    st.header("❓ Como usar o dashboard")
-
+    st.header("❓ Como usar")
     st.markdown("""
-## 1. Obter o arquivo de export do RoK
+## Fórmula de Kill Points
 
-1. No jogo, vá em **More → Kingdom → Kingdom Overview → Stats**
-2. Toque em **Export** (ícone de download no canto superior)
-3. Salve o arquivo `.xlsx` ou `.xls` no seu celular/PC
+| Tier | Multiplicador | Exemplo |
+|------|--------------|---------|
+| T5   | × 20         | 1.000 T5 kills = 20.000 KP |
+| T4   | × 10         | 1.000 T4 kills = 10.000 KP |
+| T3   | × 4          | 1.000 T3 kills = 4.000 KP |
+| T2   | × 2          | 1.000 T2 kills = 2.000 KP |
+| T1   | × 0.2        | 1.000 T1 kills = 200 KP |
 
----
+## Como exportar do jogo
+1. **More → Kingdom → Kingdom Overview → Stats**
+2. Toque no ícone de **Export**
+3. Salve o arquivo `.xlsx`
 
-## 2. Fazer upload
+## Upload
+O upload exige senha — apenas a liderança pode inserir novos relatórios.
 
-- Na **barra lateral esquerda**, clique em **Upload statsExport**
-- Selecione o arquivo exportado
-- Confirme ou corrija a **data do relatório**
-- Clique em **Salvar relatório**
-
-> 💡 **Dica:** Faça uploads periódicos (ex: a cada KVK). O dashboard mantém histórico e permite comparar períodos.
-
----
-
-## 3. Entender as métricas
-
-| Métrica | Fórmula |
-|---|---|
-| Kill Points | T4 Kills × 5 + T5 Kills × 10 |
-| Death Points | T4 Deaths × 30 + T5 Deaths × 70 |
-| Combined Points | Kill Points + Death Points |
-| DKPi (grupo) | Combined Points / Power inicial do grupo |
-| Personal DKPi | Combined Points / Power próprio do jogador |
-| Death/Kill Ratio | Death Points / Kill Points |
-
----
-
-## 4. Delta do período
-
-Se você tiver **2 ou mais relatórios** importados, aparece a opção **"Delta do período"** na barra lateral.
-
-- **Totais do relatório:** mostra os valores acumulados do relatório selecionado
-- **Delta do período:** mostra apenas o que foi **ganho entre o relatório anterior e o atual** — ideal para medir desempenho de um KVK específico
-
----
-
-## 5. Aba Metas (Goals)
-
-- Cada jogador recebe uma **meta de pontos** baseada na sua faixa de power
-- A liderança pode **editar as faixas** (requer senha admin)
-- Status possíveis: 🟢 Met | 🟡 In Progress | 🔴 No Points | ⚪ No Target
-
----
-
-## 6. Aba Histórico
-
-- Visualize a **evolução do reino** ao longo de múltiplos KVKs
-- Compare dois relatórios específicos para ver o delta de qualquer período
-
----
-
-## 7. Filtros disponíveis
-
-| Filtro | Onde | Para quê |
-|---|---|---|
-| Buscar jogador | Sidebar | Encontrar um jogador específico |
-| Power mínimo | Sidebar | Excluir jogadores com pouco poder |
-| Power inicial do grupo | Sidebar | Ajustar o cálculo do DKPi |
-| Status de meta | Aba Metas | Focar em quem ainda não cumpriu |
-
----
-
-## 8. Para a liderança — configurar online (gratuito)
-
-### Passo 1 — GitHub
-1. Crie uma conta em [github.com](https://github.com) e crie um repositório **privado** chamado `rok-dashboard`
-2. Faça upload de todos os arquivos deste projeto
-
-### Passo 2 — Supabase (banco de dados online)
-1. Crie uma conta em [supabase.com](https://supabase.com) (gratuito)
-2. Crie um projeto → vá em **SQL Editor** → cole e execute `supabase_schema.sql`
-3. Copie a **Project URL** e a **service_role key**
-
-### Passo 3 — Streamlit Cloud
-1. Crie conta em [streamlit.io](https://streamlit.io) (login com GitHub)
-2. **New app** → selecione o repositório e `app.py`
-3. Em **Advanced settings → Secrets**, adicione:
-
-```toml
-SUPABASE_URL = "https://seu-projeto.supabase.co"
-SUPABASE_KEY = "sua-service-role-key"
-ADMIN_PASSWORD = "senha-forte-que-so-a-lideranca-sabe"
+## KPi (Kill Points index)
 ```
-
-4. **Deploy** — em 1-2 minutos o dashboard estará online!
-
----
-
-## 9. Rodando localmente
-
-```bash
-pip install -r requirements.txt
-streamlit run app.py
+KPi = Total Kill Points / Power inicial do grupo
 ```
+Mede o desempenho do reino em relação ao seu tamanho.
 
-Sem Supabase, os dados ficam em `data/rok_dashboard.sqlite`.
+## Personal KP/Power
+```
+KP/Power = Kill Points do governor / Power próprio
+```
+Mede o desempenho individual independente do tamanho do governor.
 
----
-
-> 🔒 **Segurança:** Nunca coloque a `SUPABASE_KEY` no GitHub. Use sempre os Secrets do Streamlit Cloud.
+## Delta do período
+Com 2+ relatórios importados, selecione **"Delta do período"** para ver apenas o que foi conquistado entre os dois relatórios — ideal para medir um KVK específico.
 """)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Chart helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
-def show_bar(frame: pd.DataFrame, value_column: str, title: str) -> None:
-    if frame.empty:
-        st.info("Sem dados para exibir.")
-        return
-    ordered = frame.sort_values(value_column, ascending=True)
-    if px is not None:
-        fig = px.bar(
-            ordered, x=value_column, y="username", orientation="h", title=title,
-            labels={value_column: DISPLAY_NAMES.get(value_column, value_column), "username": ""},
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.bar_chart(ordered.set_index("username")[value_column])
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Table formatters
+# Formatters & table helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
 def display_table(frame: pd.DataFrame) -> pd.DataFrame:
     avail = [c for c in DISPLAY_COLUMNS if c in frame.columns]
     out   = frame[avail].copy()
-    for col in ("dkpi", "personal_dkpi"):
-        if col in out:
-            out[col] = out[col].map(format_dkpi)
-    for col in ("kill_share", "death_share", "combined_share"):
-        if col in out:
-            out[col] = out[col].map(format_percent)
+    if "personal_dkpi" in out: out["personal_dkpi"] = out["personal_dkpi"].map(fmt_dkpi)
+    if "kill_share"    in out: out["kill_share"]     = out["kill_share"].map(fmt_pct)
     return out.rename(columns=DISPLAY_NAMES)
 
 
-def format_goal_table(frame: pd.DataFrame) -> pd.DataFrame:
-    avail = [c for c in GOAL_COLUMNS if c in frame.columns]
-    out   = frame[avail].copy()
-    if "target_dkpi" in out:
-        out["target_dkpi"] = out["target_dkpi"].map(lambda v: f"{float(v):.4f}")
-    if "progress_pct" in out:
-        out["progress_pct"] = out["progress_pct"].map(format_percent)
-    if "goal_status" in out:
-        out["goal_status"] = out["goal_status"].map(lambda s: f"{STATUS_ICON.get(s, '')} {s}")
-    return out.rename(columns=DISPLAY_NAMES)
+def fmt_int(v) -> str:
+    return f"{int(v):,}"
 
+def fmt_pct(v) -> str:
+    return f"{float(v)*100:.1f}%"
 
-def format_goal_summary(frame: pd.DataFrame) -> pd.DataFrame:
-    if frame.empty:
-        return frame
-    out = frame.copy()
-    if "progress_pct" in out:
-        out["progress_pct"] = out["progress_pct"].map(format_percent)
-    return out.rename(columns={
-        "power_band": "Faixa", "players": "Jogadores", "met_goal": "Cumpriram",
-        "no_points": "Sem Pontos", "combined_points": "Combined Points",
-        "target_points": "Target Points", "gap_to_goal": "Gap", "progress_pct": "Progresso",
-    })
-
-
-def format_band_table(frame: pd.DataFrame) -> pd.DataFrame:
-    out = frame.copy()
-    out["target_dkpi"] = out["target_dkpi"].map(lambda v: f"{float(v):.4f}")
-    return out.rename(columns={
-        "band_id": "ID", "label": "Label", "min_power": "Min Power",
-        "max_power": "Max Power", "target_dkpi": "Target DKPi", "sort_order": "Ordem",
-    })
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Formatting utilities
-# ─────────────────────────────────────────────────────────────────────────────
-
-def format_percent(value: int | float) -> str:
-    return f"{float(value) * 100:.1f}%"
-
-
-def format_int(value: int | float) -> str:
-    return f"{value:,.0f}"
-
-
-def format_dkpi(value: int | float) -> str:
-    f = float(value)
-    if f == 0.0:
-        return "0.0000"
-    if f < 0.0001:
-        return f"{f:.2e}"
+def fmt_dkpi(v) -> str:
+    f = float(v)
+    if f == 0: return "0.0000"
+    if f < 0.0001: return f"{f:.2e}"
     return f"{f:.6f}"
 
 
