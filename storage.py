@@ -17,7 +17,6 @@ from rok_metrics import OUTPUT_COLUMNS
 SQLITE_PATH = Path(os.getenv("ROK_SQLITE_PATH", "data/rok_dashboard.sqlite"))
 STATS_TABLE_COLUMNS = ["import_id", *OUTPUT_COLUMNS]
 
-# How many rows to send per batch when uploading to Supabase
 SUPABASE_BATCH_SIZE = 500
 
 
@@ -32,13 +31,9 @@ class SQLiteStorage:
         self.connection.execute("pragma journal_mode=wal")
         self.connection.execute("pragma synchronous=normal")
         self.connection.execute("pragma foreign_keys=on")
-        self.connection.execute("pragma cache_size=-8000")   # ~8 MB page cache
+        self.connection.execute("pragma cache_size=-8000")
         self.connection.execute("pragma temp_store=memory")
         self._init_schema()
-
-    # ------------------------------------------------------------------
-    # Imports
-    # ------------------------------------------------------------------
 
     def list_imports(self) -> pd.DataFrame:
         return pd.read_sql_query(
@@ -57,17 +52,9 @@ class SQLiteStorage:
             params=(import_id,),
         )
 
-    def save_import(
-        self,
-        *,
-        filename: str,
-        report_date: str,
-        file_hash: str,
-        stats: pd.DataFrame,
-    ) -> tuple[str, bool]:
+    def save_import(self, *, filename, report_date, file_hash, stats):
         existing = self.connection.execute(
-            "select id from rok_imports where file_hash = ?",
-            (file_hash,),
+            "select id from rok_imports where file_hash = ?", (file_hash,)
         ).fetchone()
         if existing:
             return str(existing["id"]), False
@@ -77,10 +64,7 @@ class SQLiteStorage:
 
         with self.connection:
             self.connection.execute(
-                """
-                insert into rok_imports (id, filename, report_date, imported_at, file_hash, row_count)
-                values (?, ?, ?, ?, ?, ?)
-                """,
+                "insert into rok_imports (id, filename, report_date, imported_at, file_hash, row_count) values (?, ?, ?, ?, ?, ?)",
                 (import_id, filename, report_date, imported_at, file_hash, len(stats)),
             )
             payload = stats[OUTPUT_COLUMNS].copy()
@@ -90,37 +74,19 @@ class SQLiteStorage:
         return import_id, True
 
     def delete_import(self, import_id: str) -> bool:
-        """Delete an import and all its stats (cascade).
-
-        Returns ``True`` if the row existed and was removed.
-        """
         with self.connection:
-            cursor = self.connection.execute(
-                "delete from rok_imports where id = ?", (import_id,)
-            )
+            cursor = self.connection.execute("delete from rok_imports where id = ?", (import_id,))
         return cursor.rowcount > 0
-
-    # ------------------------------------------------------------------
-    # Goal bands
-    # ------------------------------------------------------------------
 
     def load_goal_bands(self) -> pd.DataFrame:
         bands = pd.read_sql_query(
-            """
-            select band_id, label, min_power, max_power, target_dkpi, sort_order
-            from rok_goal_bands
-            order by sort_order, min_power
-            """,
+            "select band_id, label, min_power, max_power, target_dkpi, sort_order from rok_goal_bands order by sort_order, min_power",
             self.connection,
         )
         if bands.empty:
             self.reset_goal_bands()
             bands = pd.read_sql_query(
-                """
-                select band_id, label, min_power, max_power, target_dkpi, sort_order
-                from rok_goal_bands
-                order by sort_order, min_power
-                """,
+                "select band_id, label, min_power, max_power, target_dkpi, sort_order from rok_goal_bands order by sort_order, min_power",
                 self.connection,
             )
         return normalize_goal_bands(bands)
@@ -130,31 +96,19 @@ class SQLiteStorage:
         with self.connection:
             self.connection.execute("delete from rok_goal_bands")
             self.connection.executemany(
-                """
-                insert into rok_goal_bands
-                    (band_id, label, min_power, max_power, target_dkpi, sort_order)
-                values (:band_id, :label, :min_power, :max_power, :target_dkpi, :sort_order)
-                """,
+                "insert into rok_goal_bands (band_id, label, min_power, max_power, target_dkpi, sort_order) values (:band_id, :label, :min_power, :max_power, :target_dkpi, :sort_order)",
                 records,
             )
 
     def reset_goal_bands(self) -> None:
         self.save_goal_bands(default_goal_bands())
 
-    # ------------------------------------------------------------------
-    # Analytics helpers (SQLite-side aggregation for history tab)
-    # ------------------------------------------------------------------
-
     def aggregate_imports(self) -> pd.DataFrame:
-        """Return per-import aggregated stats for the history chart."""
         return pd.read_sql_query(
             """
-            select
-                i.id,
-                i.report_date,
-                i.filename,
-                count(s.character_id)                          as players,
-                coalesce(sum(s.t5_kills * 10 + s.t4_kills * 5), 0)  as kill_points,
+            select i.id, i.report_date, i.filename,
+                count(s.character_id) as players,
+                coalesce(sum(s.t5_kills * 10 + s.t4_kills * 5), 0) as kill_points,
                 coalesce(sum(s.t5_deaths * 70 + s.t4_deaths * 30), 0) as death_points
             from rok_imports i
             left join rok_stats s on s.import_id = i.id
@@ -164,70 +118,37 @@ class SQLiteStorage:
             self.connection,
         )
 
-    # ------------------------------------------------------------------
-    # Housekeeping
-    # ------------------------------------------------------------------
-
     def close(self) -> None:
         self.connection.close()
 
     def _init_schema(self) -> None:
         with self.connection:
-            self.connection.execute(
-                """
+            self.connection.execute("""
                 create table if not exists rok_imports (
-                    id          text primary key,
-                    filename    text not null,
-                    report_date text not null,
-                    imported_at text not null,
-                    file_hash   text not null unique,
-                    row_count   integer not null
+                    id text primary key, filename text not null, report_date text not null,
+                    imported_at text not null, file_hash text not null unique, row_count integer not null
                 )
-                """
-            )
-            self.connection.execute(
-                """
+            """)
+            self.connection.execute("""
                 create table if not exists rok_stats (
-                    import_id           text    not null,
-                    character_id        text    not null,
-                    username            text    not null,
-                    power               integer not null,
-                    highest_power       integer not null,
-                    t5_deaths           integer not null,
-                    t4_deaths           integer not null,
-                    t3_deaths           integer not null,
-                    t2_deaths           integer not null,
-                    t1_deaths           integer not null,
-                    total_kill_points   integer not null,
-                    t5_kills            integer not null,
-                    t4_kills            integer not null,
-                    t3_kills            integer not null,
-                    t2_kills            integer not null,
-                    t1_kills            integer not null,
-                    resources_gathered  integer not null,
+                    import_id text not null, character_id text not null, username text not null,
+                    power integer not null, highest_power integer not null,
+                    t5_deaths integer not null, t4_deaths integer not null, t3_deaths integer not null,
+                    t2_deaths integer not null, t1_deaths integer not null, total_kill_points integer not null,
+                    t5_kills integer not null, t4_kills integer not null, t3_kills integer not null,
+                    t2_kills integer not null, t1_kills integer not null, resources_gathered integer not null,
                     primary key (import_id, character_id),
                     foreign key (import_id) references rok_imports(id) on delete cascade
                 )
-                """
-            )
-            self.connection.execute(
-                "create index if not exists rok_stats_character_idx on rok_stats (character_id)"
-            )
-            self.connection.execute(
-                "create index if not exists rok_imports_date_idx on rok_imports (report_date desc)"
-            )
-            self.connection.execute(
-                """
+            """)
+            self.connection.execute("create index if not exists rok_stats_character_idx on rok_stats (character_id)")
+            self.connection.execute("create index if not exists rok_imports_date_idx on rok_imports (report_date desc)")
+            self.connection.execute("""
                 create table if not exists rok_goal_bands (
-                    band_id     text    primary key,
-                    label       text    not null,
-                    min_power   integer not null,
-                    max_power   integer,
-                    target_dkpi real    not null,
-                    sort_order  integer not null
+                    band_id text primary key, label text not null, min_power integer not null,
+                    max_power integer, target_dkpi real not null, sort_order integer not null
                 )
-                """
-            )
+            """)
 
 
 class SupabaseStorage:
@@ -236,61 +157,34 @@ class SupabaseStorage:
     def __init__(self, url: str, key: str) -> None:
         from supabase import create_client
         self.client = create_client(url, key)
-
-    # ------------------------------------------------------------------
-    # Imports
-    # ------------------------------------------------------------------
+        self._url = url
+        self._key = key
 
     def list_imports(self) -> pd.DataFrame:
-        data = self._select_all(
-            "rok_imports",
-            "id, filename, report_date, imported_at, file_hash, row_count",
-            order=("report_date", True),
-        )
+        data = self._select_all("rok_imports", "id, filename, report_date, imported_at, file_hash, row_count", order=("report_date", True))
         return _ensure_import_columns(pd.DataFrame(data))
 
     def load_stats(self, import_id: str) -> pd.DataFrame:
         data = self._select_all("rok_stats", "*", filters={"import_id": import_id})
         return _ensure_stat_columns(pd.DataFrame(data))
 
-    def save_import(
-        self,
-        *,
-        filename: str,
-        report_date: str,
-        file_hash: str,
-        stats: pd.DataFrame,
-    ) -> tuple[str, bool]:
-        existing = (
-            self.client.table("rok_imports")
-            .select("id")
-            .eq("file_hash", file_hash)
-            .limit(1)
-            .execute()
-            .data
-        )
+    def save_import(self, *, filename, report_date, file_hash, stats):
+        existing = self.client.table("rok_imports").select("id").eq("file_hash", file_hash).limit(1).execute().data
         if existing:
             return str(existing[0]["id"]), False
 
         import_id   = str(uuid.uuid4())
         imported_at = datetime.now(timezone.utc).isoformat()
         self.client.table("rok_imports").insert({
-            "id":          import_id,
-            "filename":    filename,
-            "report_date": report_date,
-            "imported_at": imported_at,
-            "file_hash":   file_hash,
-            "row_count":   len(stats),
+            "id": import_id, "filename": filename, "report_date": report_date,
+            "imported_at": imported_at, "file_hash": file_hash, "row_count": len(stats),
         }).execute()
 
         payload = stats[OUTPUT_COLUMNS].copy()
         payload.insert(0, "import_id", import_id)
         records = json.loads(payload.to_json(orient="records"))
-
         for start in range(0, len(records), SUPABASE_BATCH_SIZE):
-            self.client.table("rok_stats").insert(
-                records[start: start + SUPABASE_BATCH_SIZE]
-            ).execute()
+            self.client.table("rok_stats").insert(records[start: start + SUPABASE_BATCH_SIZE]).execute()
 
         return import_id, True
 
@@ -298,23 +192,11 @@ class SupabaseStorage:
         result = self.client.table("rok_imports").delete().eq("id", import_id).execute()
         return bool(result.data)
 
-    # ------------------------------------------------------------------
-    # Goal bands
-    # ------------------------------------------------------------------
-
     def load_goal_bands(self) -> pd.DataFrame:
-        data = self._select_all(
-            "rok_goal_bands",
-            "band_id, label, min_power, max_power, target_dkpi, sort_order",
-            order=("sort_order", False),
-        )
+        data = self._select_all("rok_goal_bands", "band_id, label, min_power, max_power, target_dkpi, sort_order", order=("sort_order", False))
         if not data:
             self.reset_goal_bands()
-            data = self._select_all(
-                "rok_goal_bands",
-                "band_id, label, min_power, max_power, target_dkpi, sort_order",
-                order=("sort_order", False),
-            )
+            data = self._select_all("rok_goal_bands", "band_id, label, min_power, max_power, target_dkpi, sort_order", order=("sort_order", False))
         return normalize_goal_bands(_ensure_goal_band_columns(pd.DataFrame(data)))
 
     def save_goal_bands(self, bands: pd.DataFrame) -> None:
@@ -326,19 +208,8 @@ class SupabaseStorage:
     def reset_goal_bands(self) -> None:
         self.save_goal_bands(default_goal_bands())
 
-    # ------------------------------------------------------------------
-    # Internal
-    # ------------------------------------------------------------------
-
-    def _select_all(
-        self,
-        table: str,
-        columns: str,
-        *,
-        filters: dict[str, Any] | None = None,
-        order: tuple[str, bool] | None = None,
-    ) -> list[dict[str, Any]]:
-        rows:  list[dict[str, Any]] = []
+    def _select_all(self, table, columns, *, filters=None, order=None):
+        rows  = []
         start = 0
         step  = 1000
 
@@ -350,19 +221,22 @@ class SupabaseStorage:
                 col, desc = order
                 query = query.order(col, desc=desc)
 
-            response = query.range(start, start + step - 1).execute()
-            batch    = response.data or []
+            try:
+                response = query.range(start, start + step - 1).execute()
+            except Exception:
+                try:
+                    response = query.execute()
+                except Exception:
+                    return rows
+
+            batch = getattr(response, "data", None) or []
             rows.extend(batch)
             if len(batch) < step:
                 return rows
             start += step
 
 
-# ---------------------------------------------------------------------------
-# Factory
-# ---------------------------------------------------------------------------
-
-def create_storage() -> SQLiteStorage | SupabaseStorage:
+def create_storage():
     url = _secret("SUPABASE_URL")
     key = _secret("SUPABASE_KEY")
     if url and key:
@@ -370,11 +244,7 @@ def create_storage() -> SQLiteStorage | SupabaseStorage:
     return SQLiteStorage()
 
 
-# ---------------------------------------------------------------------------
-# Private helpers
-# ---------------------------------------------------------------------------
-
-def _secret(name: str) -> str | None:
+def _secret(name: str):
     value = os.getenv(name)
     if value:
         return value
