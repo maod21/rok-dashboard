@@ -744,6 +744,7 @@ def show_history(storage, imports: pd.DataFrame, group_power: int) -> None:
 # Tab: Governors
 # ─────────────────────────────────────────────────────────────────────────────
 def show_governors(metrics: pd.DataFrame) -> None:
+    st.write(list(metrics.columns))   # ← adicione esta linha
     ranked = add_rank(metrics,"kill_points")
     if px is not None and not ranked.empty:
         c1,c2 = st.columns(2)
