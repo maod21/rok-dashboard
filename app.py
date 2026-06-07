@@ -258,8 +258,18 @@ def main() -> None:
         st.divider()
         admin_enabled, is_admin = admin_panel()
 
-    metrics = calculate_metrics(filtered, group_power=group_power)
-    goals   = calculate_member_goals(metrics)
+  metrics = calculate_metrics(filtered, group_power=group_power)
+
+# Merge das colunas de mortes do stats bruto para o goals
+death_cols = ["character_id", "t5_deaths", "t4_deaths", "t3_deaths", "t2_deaths", "t1_deaths"]
+deaths_raw = filtered[[c for c in death_cols if c in filtered.columns]].copy()
+metrics_with_deaths = metrics.merge(deaths_raw, on="character_id", how="left")
+for col in ["t5_deaths","t4_deaths","t3_deaths","t2_deaths","t1_deaths"]:
+    if col not in metrics_with_deaths.columns:
+        metrics_with_deaths[col] = 0
+    metrics_with_deaths[col] = metrics_with_deaths[col].fillna(0)
+
+goals = calculate_member_goals(metrics_with_deaths)
 
     # Apply status filter
     if filter_status != "Todos":
@@ -744,7 +754,6 @@ def show_history(storage, imports: pd.DataFrame, group_power: int) -> None:
 # Tab: Governors
 # ─────────────────────────────────────────────────────────────────────────────
 def show_governors(metrics: pd.DataFrame) -> None:
-    st.write(list(metrics.columns))   # ← adicione esta linha
     ranked = add_rank(metrics,"kill_points")
     if px is not None and not ranked.empty:
         c1,c2 = st.columns(2)
