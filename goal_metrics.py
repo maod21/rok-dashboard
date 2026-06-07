@@ -1,39 +1,191 @@
 from __future__ import annotations
 
+"""
+goal_metrics.py — Lógica de metas por City Power
+
+Metas (City Power → Dead Troops + KP):
+  ≤ 49M          : 900k T4 mortes  | 80M KP
+  50M – 59M      : 900k T4 ou 450k T5 mortes | 100M KP
+  60M – 69M      : 1M T4 ou 500k T5 mortes   | 140M KP
+  70M – 79M      : 1.4M T4 ou 700k T5 mortes | 180M KP
+  80M – 89M      : 1.6M T4 ou 800k T5 mortes | 200M KP
+  90M – 99M      : 2M T4 ou 1M T5 mortes     | 280M KP
+  ≥ 100M         : 2M T4 ou 1M T5 mortes     | 320M KP
+
+Equivalência T5↔T4: 1 morte T5 = 2 mortes T4
+(score_mortes = deaths_t5 * 2 + deaths_t4)
+Meta em "T4 equivalente".
+"""
+
 import math
 from typing import Any
 
 import pandas as pd
 
+# ---------------------------------------------------------------------------
+# Tabela de metas fixas por faixa de power
+# ---------------------------------------------------------------------------
+# target_deaths_t4eq = meta de mortes em unidades T4-equivalente
+# target_kp           = meta de Kill Points
+POWER_GOAL_BANDS = [
+    {"label": "≤ 49M",   "min_power": 0,           "max_power": 50_000_000,  "target_deaths_t4eq": 900_000,   "target_kp": 80_000_000},
+    {"label": "50M–59M", "min_power": 50_000_000,  "max_power": 60_000_000,  "target_deaths_t4eq": 900_000,   "target_kp": 100_000_000},
+    {"label": "60M–69M", "min_power": 60_000_000,  "max_power": 70_000_000,  "target_deaths_t4eq": 1_000_000, "target_kp": 140_000_000},
+    {"label": "70M–79M", "min_power": 70_000_000,  "max_power": 80_000_000,  "target_deaths_t4eq": 1_400_000, "target_kp": 180_000_000},
+    {"label": "80M–89M", "min_power": 80_000_000,  "max_power": 90_000_000,  "target_deaths_t4eq": 1_600_000, "target_kp": 200_000_000},
+    {"label": "90M–99M", "min_power": 90_000_000,  "max_power": 100_000_000, "target_deaths_t4eq": 2_000_000, "target_kp": 280_000_000},
+    {"label": "≥ 100M",  "min_power": 100_000_000, "max_power": None,        "target_deaths_t4eq": 2_000_000, "target_kp": 320_000_000},
+]
 
+
+def _find_band(power: float) -> dict[str, Any] | None:
+    for band in POWER_GOAL_BANDS:
+        if power < band["min_power"]:
+            continue
+        if band["max_power"] is None or power < band["max_power"]:
+            return band
+    return None
+
+
+def _deaths_t4eq(row: pd.Series) -> int:
+    """T4-equivalent death score: T5 * 2 + T4."""
+    t5 = float(row.get("t5_deaths", 0) or 0)
+    t4 = float(row.get("t4_deaths", 0) or 0)
+    return int(t5 * 2 + t4)
+
+
+def _death_status(deaths_t4eq: int, target_t4eq: int) -> str:
+    """Classifica o progresso de mortes."""
+    if target_t4eq <= 0:
+        return "ok"
+    pct = deaths_t4eq / target_t4eq
+    if pct >= 1.0:
+        return "ok"
+    if pct >= 0.75:
+        return "pending"
+    return "below"
+
+
+def _kp_status(kp: float, target_kp: int) -> str:
+    if target_kp <= 0:
+        return "ok"
+    pct = kp / target_kp
+    if pct >= 1.0:
+        return "ok"
+    if pct >= 0.75:
+        return "pending"
+    return "below"
+
+
+def _overall_status(death_s: str, kp_s: str) -> str:
+    """
+    Aprovado   → ambos ok
+    Pendente   → algum pending, nenhum below
+    Abaixo     → algum below
+    """
+    statuses = {death_s, kp_s}
+    if "below" in statuses:
+        return "Abaixo da meta"
+    if "pending" in statuses:
+        return "Pendente"
+    return "Aprovado"
+
+
+# ---------------------------------------------------------------------------
+# Função principal
+# ---------------------------------------------------------------------------
+
+def calculate_member_goals(metrics: pd.DataFrame) -> pd.DataFrame:
+    """
+    Recebe o DataFrame de métricas (saída de calculate_metrics) e retorna um
+    DataFrame enriquecido com colunas de metas individuais:
+
+      power_band          – faixa de power
+      target_deaths_t4eq  – meta de mortes em T4-eq
+      target_kp           – meta de KP
+      deaths_t4eq         – mortes T4-eq do membro
+      deaths_pct          – % da meta de mortes atingida
+      kp_pct              – % da meta de KP atingida
+      deaths_gap          – quanto falta em T4-eq (0 se já bateu)
+      kp_gap              – quanto falta em KP (0 se já bateu)
+      death_goal_status   – "ok" | "pending" | "below"
+      kp_goal_status      – "ok" | "pending" | "below"
+      goal_status         – "Aprovado" | "Pendente" | "Abaixo da meta"
+    """
+    out = metrics.copy()
+    if out.empty:
+        for col in [
+            "power_band", "target_deaths_t4eq", "target_kp",
+            "deaths_t4eq", "deaths_pct", "kp_pct",
+            "deaths_gap", "kp_gap", "death_goal_status",
+            "kp_goal_status", "goal_status",
+        ]:
+            out[col] = pd.Series(dtype="object")
+        return out
+
+    out["power"] = pd.to_numeric(out.get("power", 0), errors="coerce").fillna(0)
+    out["kill_points"] = pd.to_numeric(out.get("kill_points", 0), errors="coerce").fillna(0)
+    out["t5_deaths"] = pd.to_numeric(out.get("t5_deaths", 0), errors="coerce").fillna(0)
+    out["t4_deaths"] = pd.to_numeric(out.get("t4_deaths", 0), errors="coerce").fillna(0)
+
+    bands = out["power"].map(lambda p: _find_band(float(p)))
+
+    out["power_band"] = bands.map(lambda b: b["label"] if b else "—")
+    out["target_deaths_t4eq"] = bands.map(lambda b: int(b["target_deaths_t4eq"]) if b else 0)
+    out["target_kp"] = bands.map(lambda b: int(b["target_kp"]) if b else 0)
+
+    out["deaths_t4eq"] = out.apply(_deaths_t4eq, axis=1)
+
+    out["deaths_pct"] = out.apply(
+        lambda r: min(r["deaths_t4eq"] / r["target_deaths_t4eq"], 1.0) if r["target_deaths_t4eq"] > 0 else 0.0,
+        axis=1,
+    )
+    out["kp_pct"] = out.apply(
+        lambda r: min(float(r["kill_points"]) / r["target_kp"], 1.0) if r["target_kp"] > 0 else 0.0,
+        axis=1,
+    )
+
+    out["deaths_gap"] = (out["target_deaths_t4eq"] - out["deaths_t4eq"]).clip(lower=0).astype("int64")
+    out["kp_gap"] = (out["target_kp"] - out["kill_points"]).clip(lower=0).astype("int64")
+
+    out["death_goal_status"] = out.apply(
+        lambda r: _death_status(int(r["deaths_t4eq"]), int(r["target_deaths_t4eq"])), axis=1
+    )
+    out["kp_goal_status"] = out.apply(
+        lambda r: _kp_status(float(r["kill_points"]), int(r["target_kp"])), axis=1
+    )
+    out["goal_status"] = out.apply(
+        lambda r: _overall_status(r["death_goal_status"], r["kp_goal_status"]), axis=1
+    )
+
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Legado — mantido para não quebrar imports existentes no app.py original
+# ---------------------------------------------------------------------------
 GOAL_BAND_COLUMNS = ["band_id", "label", "min_power", "max_power", "target_dkpi", "sort_order"]
 
 DEFAULT_GOAL_BANDS = [
-    {"band_id": "0_10m",    "label": "0-10M",    "min_power": 0,          "max_power": 10_000_000,  "target_dkpi": 0.008, "sort_order": 1},
-    {"band_id": "10_30m",   "label": "10M-30M",  "min_power": 10_000_000, "max_power": 30_000_000,  "target_dkpi": 0.012, "sort_order": 2},
-    {"band_id": "30_60m",   "label": "30M-60M",  "min_power": 30_000_000, "max_power": 60_000_000,  "target_dkpi": 0.018, "sort_order": 3},
-    {"band_id": "60_90m",   "label": "60M-90M",  "min_power": 60_000_000, "max_power": 90_000_000,  "target_dkpi": 0.024, "sort_order": 4},
-    {"band_id": "90m_plus", "label": "90M+",     "min_power": 90_000_000, "max_power": None,         "target_dkpi": 0.030, "sort_order": 5},
+    {"band_id": "0_49m",   "label": "≤ 49M",   "min_power": 0,           "max_power": 50_000_000,  "target_dkpi": 0.0, "sort_order": 1},
+    {"band_id": "50_59m",  "label": "50M–59M",  "min_power": 50_000_000,  "max_power": 60_000_000,  "target_dkpi": 0.0, "sort_order": 2},
+    {"band_id": "60_69m",  "label": "60M–69M",  "min_power": 60_000_000,  "max_power": 70_000_000,  "target_dkpi": 0.0, "sort_order": 3},
+    {"band_id": "70_79m",  "label": "70M–79M",  "min_power": 70_000_000,  "max_power": 80_000_000,  "target_dkpi": 0.0, "sort_order": 4},
+    {"band_id": "80_89m",  "label": "80M–89M",  "min_power": 80_000_000,  "max_power": 90_000_000,  "target_dkpi": 0.0, "sort_order": 5},
+    {"band_id": "90_99m",  "label": "90M–99M",  "min_power": 90_000_000,  "max_power": 100_000_000, "target_dkpi": 0.0, "sort_order": 6},
+    {"band_id": "100m_plus","label": "≥ 100M",  "min_power": 100_000_000, "max_power": None,        "target_dkpi": 0.0, "sort_order": 7},
 ]
 
 
 def default_goal_bands() -> pd.DataFrame:
-    """Return the built-in 'Balanceado' preset as a normalised DataFrame."""
     return normalize_goal_bands(pd.DataFrame(DEFAULT_GOAL_BANDS))
 
 
-def normalize_goal_bands(raw: pd.DataFrame | list[dict[str, Any]]) -> pd.DataFrame:
-    """Coerce and validate a goal-band table.
-
-    Missing columns are added as ``None``/0.  Rows with blank ``band_id`` or
-    ``label`` are dropped.  The result is sorted by ``sort_order`` then
-    ``min_power``.
-    """
+def normalize_goal_bands(raw) -> pd.DataFrame:
     frame = pd.DataFrame(raw).copy()
     for col in GOAL_BAND_COLUMNS:
         if col not in frame:
             frame[col] = None
-
     frame = frame[GOAL_BAND_COLUMNS]
     frame["band_id"] = frame["band_id"].fillna("").astype(str).str.strip()
     frame["label"] = frame["label"].fillna("").astype(str).str.strip()
@@ -45,8 +197,7 @@ def normalize_goal_bands(raw: pd.DataFrame | list[dict[str, Any]]) -> pd.DataFra
     return frame.sort_values(["sort_order", "min_power"]).reset_index(drop=True)
 
 
-def serialize_goal_bands(raw: pd.DataFrame) -> list[dict[str, Any]]:
-    """Normalise *raw* and return a list of plain dicts safe for JSON / SQL."""
+def serialize_goal_bands(raw) -> list[dict[str, Any]]:
     frame = normalize_goal_bands(raw)
     records: list[dict[str, Any]] = []
     for row in frame.to_dict(orient="records"):
@@ -60,45 +211,27 @@ def serialize_goal_bands(raw: pd.DataFrame) -> list[dict[str, Any]]:
 
 
 def calculate_goal_progress(metrics: pd.DataFrame, goal_bands: pd.DataFrame) -> pd.DataFrame:
-    """Annotate *metrics* with goal-progress columns.
-
-    Added columns: ``power_band``, ``target_dkpi``, ``target_points``,
-    ``progress_pct``, ``gap_to_goal``, ``over_goal_points``, ``goal_status``.
-    """
-    bands = normalize_goal_bands(goal_bands)
-    output = metrics.copy()
-
-    if output.empty:
-        for col in _goal_columns():
-            output[col] = []
-        return output
-
-    output["power"] = pd.to_numeric(output.get("power", 0), errors="coerce").fillna(0)
-    output["combined_points"] = pd.to_numeric(output.get("combined_points", 0), errors="coerce").fillna(0)
-
-    assigned = output["power"].map(lambda p: _find_band(float(p), bands))
-    output["power_band"] = assigned.map(lambda b: b["label"] if b else "Unassigned")
-    output["target_dkpi"] = assigned.map(lambda b: float(b["target_dkpi"]) if b else 0.0)
-    output["target_points"] = output.apply(
-        lambda row: int(math.ceil(max(float(row["power"]), 0) * max(float(row["target_dkpi"]), 0))),
-        axis=1,
-    )
-    output["progress_pct"] = output.apply(_progress_pct, axis=1)
-    output["gap_to_goal"] = (output["target_points"] - output["combined_points"]).clip(lower=0).astype("int64")
-    output["over_goal_points"] = (output["combined_points"] - output["target_points"]).clip(lower=0).astype("int64")
-    output["goal_status"] = output.apply(_goal_status, axis=1)
-
-    return output
+    """Compat shim — delegates to calculate_member_goals."""
+    result = calculate_member_goals(metrics)
+    result["combined_points"] = result.get("kill_points", 0)
+    result["target_points"] = result.get("target_kp", 0)
+    result["progress_pct"] = result.get("kp_pct", 0.0)
+    result["gap_to_goal"] = result.get("kp_gap", 0)
+    result["over_goal_points"] = (result["kill_points"] - result["target_kp"]).clip(lower=0).astype("int64")
+    # map status to old format
+    status_map = {"Aprovado": "Met", "Pendente": "In Progress", "Abaixo da meta": "No Points"}
+    result["goal_status"] = result["goal_status"].map(status_map).fillna("No Target")
+    result["target_dkpi"] = 0.0
+    result["power_band"] = result.get("power_band", "—")
+    return result
 
 
 def summarize_goal_bands(goal_progress: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate goal progress by power band."""
     if goal_progress.empty:
         return pd.DataFrame(columns=[
             "power_band", "players", "met_goal", "no_points",
             "combined_points", "target_points", "gap_to_goal", "progress_pct",
         ])
-
     grouped = (
         goal_progress.groupby("power_band", dropna=False)
         .agg(
@@ -111,46 +244,8 @@ def summarize_goal_bands(goal_progress: pd.DataFrame) -> pd.DataFrame:
         )
         .reset_index()
     )
-    grouped["progress_pct"] = grouped.apply(_progress_pct, axis=1)
+    grouped["progress_pct"] = grouped.apply(
+        lambda r: float(r["combined_points"]) / r["target_points"] if r["target_points"] > 0 else 0.0,
+        axis=1,
+    )
     return grouped.sort_values("target_points", ascending=False).reset_index(drop=True)
-
-
-# ---------------------------------------------------------------------------
-# Private helpers
-# ---------------------------------------------------------------------------
-
-def _find_band(power: float, bands: pd.DataFrame) -> dict[str, Any] | None:
-    for band in bands.to_dict(orient="records"):
-        min_power = float(band["min_power"])
-        max_power = band["max_power"]
-        if power < min_power:
-            continue
-        if pd.isna(max_power) or power < float(max_power):
-            return band
-    return None
-
-
-def _progress_pct(row: pd.Series) -> float:
-    target = float(row.get("target_points", 0) or 0)
-    if target <= 0:
-        return 0.0
-    return float(row.get("combined_points", 0) or 0) / target
-
-
-def _goal_status(row: pd.Series) -> str:
-    target = float(row.get("target_points", 0) or 0)
-    combined = float(row.get("combined_points", 0) or 0)
-    if target <= 0:
-        return "No Target"
-    if combined >= target:
-        return "Met"
-    if combined <= 0:
-        return "No Points"
-    return "In Progress"
-
-
-def _goal_columns() -> list[str]:
-    return [
-        "power_band", "target_dkpi", "target_points",
-        "progress_pct", "gap_to_goal", "over_goal_points", "goal_status",
-    ]
