@@ -34,9 +34,6 @@ except Exception:
     px = None
     go = None
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Constants
-# ─────────────────────────────────────────────────────────────────────────────
 THEME_GOLD   = "#f59e0b"
 THEME_ORANGE = "#ea580c"
 THEME_RED    = "#ef4444"
@@ -63,9 +60,6 @@ TIER_COLORS = {
     "T1": "#64748b",
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Page config & CSS
-# ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="K1602 · KP Dashboard",
     page_icon="⚔️",
@@ -75,17 +69,12 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* ── Base ── */
 html, body, [class*="css"] { font-family: 'Segoe UI', system-ui, sans-serif; }
 .main .block-container { padding-top: 1.2rem; padding-bottom: 2rem; }
-
-/* ── Sidebar ── */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg,#0a1628 0%,#0f1f3a 100%) !important;
     border-right: 1px solid #1e3a5f;
 }
-
-/* ── Metric cards ── */
 [data-testid="stMetric"] {
     background: linear-gradient(135deg,#1e293b 0%,#162032 100%);
     border: 1px solid #334155;
@@ -101,18 +90,10 @@ section[data-testid="stSidebar"] {
 }
 [data-testid="stMetricLabel"] { color:#94a3b8!important; font-size:.72rem!important; text-transform:uppercase; letter-spacing:.1em; font-weight:600; }
 [data-testid="stMetricValue"] { color:#f1f5f9!important; font-size:1.45rem!important; font-weight:800; letter-spacing:-.02em; }
-
-/* ── Tabs ── */
 [data-testid="stTabs"] button { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#64748b!important; }
 [data-testid="stTabs"] button[aria-selected="true"] { color:#f59e0b!important; border-bottom-color:#f59e0b!important; }
-
-/* ── DataFrames ── */
 [data-testid="stDataFrame"] { border:1px solid #1e3a5f; border-radius:10px; overflow:hidden; }
-
-/* ── Dividers ── */
 hr { border-color:#1e3a5f!important; margin:1.2rem 0!important; }
-
-/* ── Title banner ── */
 .title-banner {
     background: linear-gradient(135deg,#1a2744 0%,#0f172a 100%);
     border:1px solid #1e3a5f; border-left:4px solid #f59e0b;
@@ -121,14 +102,10 @@ hr { border-color:#1e3a5f!important; margin:1.2rem 0!important; }
 }
 .title-banner h1 { margin:0; font-size:1.4rem; font-weight:800; color:#f1f5f9; }
 .title-banner p  { margin:3px 0 0; font-size:.75rem; color:#94a3b8; }
-
-/* ── Section headers ── */
 .section-header {
     font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em;
     color:#64748b; border-bottom:1px solid #1e3a5f; padding-bottom:5px; margin-bottom:10px;
 }
-
-/* ── Member ranking cards ── */
 .member-card {
     background: linear-gradient(135deg,#1e293b,#162032);
     border:1px solid #334155; border-radius:12px;
@@ -140,7 +117,6 @@ hr { border-color:#1e3a5f!important; margin:1.2rem 0!important; }
 .member-card.aprovado  { border-left:4px solid #22c55e; }
 .member-card.pendente  { border-left:4px solid #eab308; }
 .member-card.abaixo    { border-left:4px solid #ef4444; }
-
 .member-rank   { font-size:.7rem; color:#64748b; font-weight:700; text-transform:uppercase; }
 .member-name   { font-size:1.05rem; font-weight:800; color:#f1f5f9; margin:2px 0 4px; }
 .member-power  { font-size:.78rem; color:#94a3b8; }
@@ -151,7 +127,6 @@ hr { border-color:#1e3a5f!important; margin:1.2rem 0!important; }
 .badge-aprovado  { background:#22c55e22; color:#22c55e; border:1px solid #22c55e55; }
 .badge-pendente  { background:#eab30822; color:#eab308; border:1px solid #eab30855; }
 .badge-abaixo    { background:#ef444422; color:#ef4444; border:1px solid #ef444455; }
-
 .stat-grid { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
 .stat-pill {
     background:#0f172a; border:1px solid #334155; border-radius:6px;
@@ -159,21 +134,16 @@ hr { border-color:#1e3a5f!important; margin:1.2rem 0!important; }
     white-space:nowrap;
 }
 .stat-pill span { font-weight:800; }
-
 .progress-bar-bg {
     background:#1e293b; border-radius:4px; height:6px;
     margin:4px 0; overflow:hidden; border:1px solid #334155;
 }
 .progress-bar-fill { height:100%; border-radius:4px; transition:width .4s; }
-
-/* ── Unlock box ── */
 .unlock-box {
     background:linear-gradient(135deg,#1a2744,#0f172a);
     border:1px solid #1e3a5f; border-radius:12px;
     padding:22px; text-align:center; margin:10px 0;
 }
-
-/* ── Summary tiles ── */
 .summary-tile {
     background:linear-gradient(135deg,#1e293b,#162032);
     border:1px solid #334155; border-radius:10px;
@@ -185,17 +155,11 @@ hr { border-color:#1e3a5f!important; margin:1.2rem 0!important; }
 """, unsafe_allow_html=True)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Storage
-# ─────────────────────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_storage():
     return create_storage()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Main
-# ─────────────────────────────────────────────────────────────────────────────
 def main() -> None:
     storage = get_storage()
 
@@ -209,7 +173,6 @@ def main() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Sidebar ──
     with st.sidebar:
         st.markdown(f"""
         <div style="padding:6px 0 14px">
@@ -217,7 +180,6 @@ def main() -> None:
             <div style="color:#f59e0b;font-size:.82rem;font-weight:600">🟢 {storage.label}</div>
         </div>
         """, unsafe_allow_html=True)
-
         st.markdown('<div class="section-header">📂 Relatórios</div>', unsafe_allow_html=True)
         handle_upload(storage)
 
@@ -238,9 +200,9 @@ def main() -> None:
     with st.sidebar:
         st.divider()
         st.markdown('<div class="section-header">⚙️ Filtros</div>', unsafe_allow_html=True)
-        basis      = st.radio("Base das métricas", basis_options, index=0)
-        search     = st.text_input("🔍 Buscar membro")
-        min_power  = st.number_input("Power mínimo", min_value=0, value=0, step=1_000_000, format="%d")
+        basis         = st.radio("Base das métricas", basis_options, index=0)
+        search        = st.text_input("🔍 Buscar membro")
+        min_power     = st.number_input("Power mínimo", min_value=0, value=0, step=1_000_000, format="%d")
         filter_status = st.selectbox("Filtrar por status", ["Todos", "Aprovado", "Pendente", "Abaixo da meta"])
 
     stats_basis = compute_period_deltas(current, previous) if basis == "Delta do período" else current
@@ -258,25 +220,24 @@ def main() -> None:
         st.divider()
         admin_enabled, is_admin = admin_panel()
 
-            metrics = calculate_metrics(filtered, group_power=group_power)
-    
-        # Merge das colunas de mortes do stats bruto para o goals
-        death_cols = ["character_id", "t5_deaths", "t4_deaths", "t3_deaths", "t2_deaths", "t1_deaths"]
-        deaths_raw = filtered[[c for c in death_cols if c in filtered.columns]].copy()
-        metrics_with_deaths = metrics.merge(deaths_raw, on="character_id", how="left")
-        for col in ["t5_deaths", "t4_deaths", "t3_deaths", "t2_deaths", "t1_deaths"]:
-            if col not in metrics_with_deaths.columns:
-                metrics_with_deaths[col] = 0
-            metrics_with_deaths[col] = metrics_with_deaths[col].fillna(0)
-    
-        goals = calculate_member_goals(metrics_with_deaths)
+    metrics = calculate_metrics(filtered, group_power=group_power)
 
-    # Apply status filter
+    # Merge das colunas de mortes do stats bruto para o goals
+    death_cols = ["character_id", "t5_deaths", "t4_deaths", "t3_deaths", "t2_deaths", "t1_deaths"]
+    deaths_raw = filtered[[c for c in death_cols if c in filtered.columns]].copy()
+    metrics_with_deaths = metrics.merge(deaths_raw, on="character_id", how="left")
+    for col in ["t5_deaths", "t4_deaths", "t3_deaths", "t2_deaths", "t1_deaths"]:
+        if col not in metrics_with_deaths.columns:
+            metrics_with_deaths[col] = 0
+        metrics_with_deaths[col] = metrics_with_deaths[col].fillna(0)
+
+    goals = calculate_member_goals(metrics_with_deaths)
+
     if filter_status != "Todos":
         goals = goals[goals["goal_status"] == filter_status]
 
-    n_import   = len(imports)
-    delta_lbl  = f" (+{n_import-1} anterior{'es' if n_import > 2 else ''})" if n_import > 1 else ""
+    n_import  = len(imports)
+    delta_lbl = f" (+{n_import-1} anterior{'es' if n_import > 2 else ''})" if n_import > 1 else ""
     st.caption(
         f"📅 **{selected['report_date']}** · Base: **{basis}** · "
         f"Membros: **{len(goals):,}** · Imports: **{n_import}**{delta_lbl}"
@@ -299,58 +260,36 @@ def main() -> None:
     with tabs[5]: show_help()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tab: Ranking de Membros (NOVA ABA PRINCIPAL)
-# ─────────────────────────────────────────────────────────────────────────────
 def show_member_ranking(goals: pd.DataFrame) -> None:
     if goals.empty:
         st.info("Nenhum membro encontrado com os filtros selecionados.")
         return
 
-    # ── Summary row ──
-    total   = len(goals)
-    aprov   = int((goals["goal_status"] == "Aprovado").sum())
-    pend    = int((goals["goal_status"] == "Pendente").sum())
-    abaixo  = int((goals["goal_status"] == "Abaixo da meta").sum())
+    total  = len(goals)
+    aprov  = int((goals["goal_status"] == "Aprovado").sum())
+    pend   = int((goals["goal_status"] == "Pendente").sum())
+    abaixo = int((goals["goal_status"] == "Abaixo da meta").sum())
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(f"""
-        <div class="summary-tile">
-            <div class="stile-num" style="color:#f59e0b">{total}</div>
-            <div class="stile-lbl">Total de Membros</div>
-        </div>""", unsafe_allow_html=True)
+        st.markdown(f'<div class="summary-tile"><div class="stile-num" style="color:#f59e0b">{total}</div><div class="stile-lbl">Total de Membros</div></div>', unsafe_allow_html=True)
     with c2:
-        st.markdown(f"""
-        <div class="summary-tile">
-            <div class="stile-num" style="color:#22c55e">{aprov}</div>
-            <div class="stile-lbl">✅ Aprovados</div>
-        </div>""", unsafe_allow_html=True)
+        st.markdown(f'<div class="summary-tile"><div class="stile-num" style="color:#22c55e">{aprov}</div><div class="stile-lbl">✅ Aprovados</div></div>', unsafe_allow_html=True)
     with c3:
-        st.markdown(f"""
-        <div class="summary-tile">
-            <div class="stile-num" style="color:#eab308">{pend}</div>
-            <div class="stile-lbl">⚠️ Pendentes</div>
-        </div>""", unsafe_allow_html=True)
+        st.markdown(f'<div class="summary-tile"><div class="stile-num" style="color:#eab308">{pend}</div><div class="stile-lbl">⚠️ Pendentes</div></div>', unsafe_allow_html=True)
     with c4:
-        st.markdown(f"""
-        <div class="summary-tile">
-            <div class="stile-num" style="color:#ef4444">{abaixo}</div>
-            <div class="stile-lbl">❌ Abaixo da Meta</div>
-        </div>""", unsafe_allow_html=True)
+        st.markdown(f'<div class="summary-tile"><div class="stile-num" style="color:#ef4444">{abaixo}</div><div class="stile-lbl">❌ Abaixo da Meta</div></div>', unsafe_allow_html=True)
 
     st.divider()
 
-    # ── Goal table reference ──
     with st.expander("📋 Tabela de Metas por City Power", expanded=False):
         tbl_data = []
         for band in POWER_GOAL_BANDS:
             t4eq = band["target_deaths_t4eq"]
-            t5_eq = t4eq // 2
             tbl_data.append({
                 "Faixa de Power": band["label"],
                 "Meta Mortes T4": f"{t4eq:,}",
-                "ou Meta Mortes T5": f"{t5_eq:,}",
+                "ou Meta Mortes T5": f"{t4eq//2:,}",
                 "Meta KP": f"{band['target_kp']:,}",
             })
         st.dataframe(pd.DataFrame(tbl_data), use_container_width=True, hide_index=True)
@@ -358,15 +297,12 @@ def show_member_ranking(goals: pd.DataFrame) -> None:
 
     st.divider()
 
-    # ── Sort order: Abaixo → Pendente → Aprovado, then by power desc ──
     order_map = {"Abaixo da meta": 0, "Pendente": 1, "Aprovado": 2}
     display = goals.copy()
     display["_order"] = display["goal_status"].map(order_map).fillna(0)
     display = display.sort_values(["_order", "power"], ascending=[True, False]).reset_index(drop=True)
 
-    # ── View toggle ──
     view_mode = st.radio("Visualização", ["Cards detalhados", "Tabela compacta"], horizontal=True)
-
     st.divider()
 
     if view_mode == "Cards detalhados":
@@ -374,7 +310,6 @@ def show_member_ranking(goals: pd.DataFrame) -> None:
     else:
         _render_table(display)
 
-    # Export
     st.divider()
     csv_cols = [
         "username", "power", "power_band",
@@ -390,7 +325,6 @@ def show_member_ranking(goals: pd.DataFrame) -> None:
 
 
 def _render_cards(df: pd.DataFrame) -> None:
-    """Render detailed member cards."""
     page_size = st.selectbox("Cards por página", [10, 25, 50], index=0, key="card_ps")
     total_p   = max(1, -(-len(df) // page_size))
     page      = st.number_input("Página", min_value=1, max_value=total_p, value=1, key="card_pg")
@@ -400,46 +334,40 @@ def _render_cards(df: pd.DataFrame) -> None:
     page_df = df.iloc[start_i: start_i + page_size]
 
     for idx, row in page_df.iterrows():
-        status      = str(row.get("goal_status", "Abaixo da meta"))
-        card_class  = {"Aprovado": "aprovado", "Pendente": "pendente", "Abaixo da meta": "abaixo"}.get(status, "abaixo")
-        badge_class = {"Aprovado": "badge-aprovado", "Pendente": "badge-pendente", "Abaixo da meta": "badge-abaixo"}.get(status, "badge-abaixo")
-        color       = STATUS_COLOR.get(status, "#ef4444")
-        icon        = STATUS_ICON.get(status, "❌")
+        status       = str(row.get("goal_status", "Abaixo da meta"))
+        card_class   = {"Aprovado": "aprovado", "Pendente": "pendente", "Abaixo da meta": "abaixo"}.get(status, "abaixo")
+        badge_class  = {"Aprovado": "badge-aprovado", "Pendente": "badge-pendente", "Abaixo da meta": "badge-abaixo"}.get(status, "badge-abaixo")
+        color        = STATUS_COLOR.get(status, "#ef4444")
+        icon         = STATUS_ICON.get(status, "❌")
 
-        power        = int(row.get("power", 0))
-        kp           = int(row.get("kill_points", 0))
-        target_kp    = int(row.get("target_kp", 0))
-        kp_gap       = int(row.get("kp_gap", 0))
-        kp_pct       = float(row.get("kp_pct", 0))
-
-        deaths_t4eq  = int(row.get("deaths_t4eq", 0))
+        power         = int(row.get("power", 0))
+        kp            = int(row.get("kill_points", 0))
+        target_kp     = int(row.get("target_kp", 0))
+        kp_gap        = int(row.get("kp_gap", 0))
+        kp_pct        = float(row.get("kp_pct", 0))
+        deaths_t4eq   = int(row.get("deaths_t4eq", 0))
         target_deaths = int(row.get("target_deaths_t4eq", 0))
-        deaths_gap   = int(row.get("deaths_gap", 0))
-        deaths_pct   = float(row.get("deaths_pct", 0))
-
+        deaths_gap    = int(row.get("deaths_gap", 0))
+        deaths_pct    = float(row.get("deaths_pct", 0))
         t5k = int(row.get("t5_kills", 0))
         t4k = int(row.get("t4_kills", 0))
         t3k = int(row.get("t3_kills", 0))
         t2k = int(row.get("t2_kills", 0))
         t1k = int(row.get("t1_kills", 0))
-
         t5d = int(row.get("t5_deaths", 0))
         t4d = int(row.get("t4_deaths", 0))
         t3d = int(row.get("t3_deaths", 0))
         t2d = int(row.get("t2_deaths", 0))
         t1d = int(row.get("t1_deaths", 0))
-
-        band = str(row.get("power_band", "—"))
+        band   = str(row.get("power_band", "—"))
         rank_n = idx + 1
 
-        kp_bar_w     = int(kp_pct * 100)
-        deaths_bar_w = int(deaths_pct * 100)
-
+        kp_bar_w         = int(kp_pct * 100)
+        deaths_bar_w     = int(deaths_pct * 100)
         kp_bar_color     = color if kp_pct < 1.0 else "#22c55e"
         deaths_bar_color = color if deaths_pct < 1.0 else "#22c55e"
-
-        gap_deaths_txt = f"Faltam {deaths_gap:,} T4-eq" if deaths_gap > 0 else "✓ Meta atingida"
-        gap_kp_txt     = f"Faltam {kp_gap:,} KP" if kp_gap > 0 else "✓ Meta atingida"
+        gap_deaths_txt   = f"Faltam {deaths_gap:,} T4-eq" if deaths_gap > 0 else "✓ Meta atingida"
+        gap_kp_txt       = f"Faltam {kp_gap:,} KP" if kp_gap > 0 else "✓ Meta atingida"
 
         st.markdown(f"""
         <div class="member-card {card_class}">
@@ -453,33 +381,22 @@ def _render_cards(df: pd.DataFrame) -> None:
                     <span class="member-badge {badge_class}">{icon} {status}</span>
                 </div>
             </div>
-
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px">
-
-                <!-- KP -->
                 <div>
                     <div style="font-size:.65rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Kill Points</div>
                     <div style="font-size:1rem;font-weight:800;color:#f1f5f9">{kp:,}</div>
                     <div style="font-size:.65rem;color:#94a3b8">Meta: {target_kp:,}</div>
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" style="width:{kp_bar_w}%;background:{kp_bar_color}"></div>
-                    </div>
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:{kp_bar_w}%;background:{kp_bar_color}"></div></div>
                     <div style="font-size:.62rem;color:{kp_bar_color}">{kp_bar_w}% · {gap_kp_txt}</div>
                 </div>
-
-                <!-- Mortes -->
                 <div>
                     <div style="font-size:.65rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Mortes (T4-eq)</div>
                     <div style="font-size:1rem;font-weight:800;color:#f1f5f9">{deaths_t4eq:,}</div>
                     <div style="font-size:.65rem;color:#94a3b8">Meta: {target_deaths:,} T4-eq</div>
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" style="width:{deaths_bar_w}%;background:{deaths_bar_color}"></div>
-                    </div>
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:{deaths_bar_w}%;background:{deaths_bar_color}"></div></div>
                     <div style="font-size:.62rem;color:{deaths_bar_color}">{deaths_bar_w}% · {gap_deaths_txt}</div>
                 </div>
             </div>
-
-            <!-- Kills breakdown -->
             <div style="margin-top:10px">
                 <div style="font-size:.62rem;color:#475569;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Kills por tier</div>
                 <div class="stat-grid">
@@ -490,8 +407,6 @@ def _render_cards(df: pd.DataFrame) -> None:
                     <div class="stat-pill">T1 <span style="color:{TIER_COLORS['T1']}">{t1k:,}</span></div>
                 </div>
             </div>
-
-            <!-- Deaths breakdown -->
             <div style="margin-top:8px">
                 <div style="font-size:.62rem;color:#475569;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Mortes por tier</div>
                 <div class="stat-grid">
@@ -507,88 +422,47 @@ def _render_cards(df: pd.DataFrame) -> None:
 
 
 def _render_table(df: pd.DataFrame) -> None:
-    """Render compact sortable table."""
     tbl = df.copy()
-
-    # Select & rename columns
     col_map = {
-        "username":             "Membro",
-        "power":                "City Power",
-        "power_band":           "Faixa",
-        "kill_points":          "KP Total",
-        "target_kp":            "Meta KP",
-        "kp_pct":               "KP %",
-        "kp_gap":               "Falta KP",
-        "t5_kills":             "Kills T5",
-        "t4_kills":             "Kills T4",
-        "t3_kills":             "Kills T3",
-        "t2_kills":             "Kills T2",
-        "t1_kills":             "Kills T1",
-        "t5_deaths":            "Mortes T5",
-        "t4_deaths":            "Mortes T4",
-        "t3_deaths":            "Mortes T3",
-        "t2_deaths":            "Mortes T2",
-        "t1_deaths":            "Mortes T1",
-        "deaths_t4eq":          "Mortes T4-eq",
-        "target_deaths_t4eq":   "Meta Mortes",
-        "deaths_pct":           "Mortes %",
-        "deaths_gap":           "Falta Mortes",
-        "goal_status":          "Status",
+        "username": "Membro", "power": "City Power", "power_band": "Faixa",
+        "kill_points": "KP Total", "target_kp": "Meta KP", "kp_pct": "KP %", "kp_gap": "Falta KP",
+        "t5_kills": "Kills T5", "t4_kills": "Kills T4", "t3_kills": "Kills T3", "t2_kills": "Kills T2", "t1_kills": "Kills T1",
+        "t5_deaths": "Mortes T5", "t4_deaths": "Mortes T4", "t3_deaths": "Mortes T3", "t2_deaths": "Mortes T2", "t1_deaths": "Mortes T1",
+        "deaths_t4eq": "Mortes T4-eq", "target_deaths_t4eq": "Meta Mortes", "deaths_pct": "Mortes %", "deaths_gap": "Falta Mortes",
+        "goal_status": "Status",
     }
     avail = [c for c in col_map if c in tbl.columns]
     out   = tbl[avail].copy()
-
     if "kp_pct" in out:
         out["kp_pct"] = out["kp_pct"].map(lambda v: f"{v*100:.1f}%")
     if "deaths_pct" in out:
         out["deaths_pct"] = out["deaths_pct"].map(lambda v: f"{v*100:.1f}%")
     if "goal_status" in out:
-        out["goal_status"] = out["goal_status"].map(
-            lambda s: f"{STATUS_ICON.get(s,'')} {s}"
-        )
-
+        out["goal_status"] = out["goal_status"].map(lambda s: f"{STATUS_ICON.get(s,'')} {s}")
     out.rename(columns=col_map, inplace=True)
-
     page_size = st.selectbox("Linhas por página", [25, 50, 100], index=0, key="tbl_ps")
     total_p   = max(1, -(-len(out) // page_size))
     page      = st.number_input("Página", min_value=1, max_value=total_p, value=1, key="tbl_pg")
     start_i   = (page - 1) * page_size
     st.caption(f"Mostrando {start_i+1}–{min(start_i+page_size, len(out))} de {len(out):,}")
-
     st.dataframe(out.iloc[start_i: start_i + page_size], use_container_width=True, hide_index=True)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tab: Kill Points (mantida do original)
-# ─────────────────────────────────────────────────────────────────────────────
-DISPLAY_COLUMNS = [
-    "rank","username","character_id","power",
-    "t5_kills","t4_kills","t3_kills","t2_kills","t1_kills",
-    "kill_points","kill_share",
-]
-DISPLAY_NAMES = {
-    "rank":"#","username":"Governor","character_id":"ID",
-    "power":"Power","t5_kills":"T5 Kills","t4_kills":"T4 Kills",
-    "t3_kills":"T3 Kills","t2_kills":"T2 Kills","t1_kills":"T1 Kills",
-    "kill_points":"Kill Points","kill_share":"Share %",
-}
+DISPLAY_COLUMNS = ["rank","username","character_id","power","t5_kills","t4_kills","t3_kills","t2_kills","t1_kills","kill_points","kill_share"]
+DISPLAY_NAMES   = {"rank":"#","username":"Governor","character_id":"ID","power":"Power","t5_kills":"T5 Kills","t4_kills":"T4 Kills","t3_kills":"T3 Kills","t2_kills":"T2 Kills","t1_kills":"T1 Kills","kill_points":"Kill Points","kill_share":"Share %"}
 
 def show_kp_main(metrics: pd.DataFrame, group_power: int) -> None:
-    kp_total    = int(metrics["kill_points"].sum())
-    active      = int((metrics["kill_points"] > 0).sum())
+    kp_total      = int(metrics["kill_points"].sum())
+    active        = int((metrics["kill_points"] > 0).sum())
     participation = active / len(metrics) if len(metrics) else 0
-    group_kpi   = kp_total / group_power if group_power else 0
-
+    group_kpi     = kp_total / group_power if group_power else 0
     c1,c2,c3,c4,c5 = st.columns(5)
     c1.metric("⚔️ Total Kill Points", fmt_int(kp_total))
     c2.metric("📊 KPi do Reino", fmt_dkpi(group_kpi))
     c3.metric("👥 Governors Ativos", fmt_int(active))
     c4.metric("📈 Participação", fmt_pct(participation))
     c5.metric("🏰 Total Governors", fmt_int(len(metrics)))
-
     st.divider()
-
-    # Tier breakdown
     st.markdown('<div class="section-header">Contribuição por tier</div>', unsafe_allow_html=True)
     tier_config = [
         ("t5_kills","T5",POINT_WEIGHTS.get("t5_kills",20),TIER_COLORS["T5"]),
@@ -605,18 +479,12 @@ def show_kp_main(metrics: pd.DataFrame, group_power: int) -> None:
         tier_data.append({"Tier":label,"Kills":total_kills,"KP":tier_pts,"Peso":f"×{weight}","color":color})
         with t_cols[i]:
             st.markdown(f"""
-            <div style="background:#1e293b;border:1px solid #334155;border-top:3px solid {color};
-                border-radius:10px;padding:12px 14px;text-align:center">
-                <div style="font-size:.68rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.08em">
-                    {label} <span style="color:{color}">{weight}</span>
-                </div>
+            <div style="background:#1e293b;border:1px solid #334155;border-top:3px solid {color};border-radius:10px;padding:12px 14px;text-align:center">
+                <div style="font-size:.68rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.08em">{label} <span style="color:{color}">{weight}</span></div>
                 <div style="font-size:1.3rem;font-weight:800;color:#f1f5f9;margin:5px 0 2px">{fmt_int(total_kills)}</div>
                 <div style="font-size:.78rem;color:{color};font-weight:700">{fmt_int(tier_pts)} KP</div>
             </div>""", unsafe_allow_html=True)
-
     st.divider()
-
-    # Top 3 podium
     ranked = add_rank(metrics, "kill_points")
     st.markdown('<div class="section-header">🏆 Top Governors</div>', unsafe_allow_html=True)
     if len(ranked) >= 3:
@@ -626,16 +494,13 @@ def show_kp_main(metrics: pd.DataFrame, group_power: int) -> None:
             row = ranked.iloc[i]
             with cols[i]:
                 st.markdown(f"""
-                <div style="background:linear-gradient(135deg,#1e293b,#162032);border:1px solid #334155;
-                    border-radius:12px;padding:14px;text-align:center;border-top:3px solid {color}">
+                <div style="background:linear-gradient(135deg,#1e293b,#162032);border:1px solid #334155;border-radius:12px;padding:14px;text-align:center;border-top:3px solid {color}">
                     <div style="font-size:1.7rem">{medal}</div>
                     <div style="font-size:.88rem;font-weight:700;color:#f1f5f9;margin:4px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{row['username']}</div>
                     <div style="font-size:1rem;font-weight:800;color:{color}">{fmt_int(int(row['kill_points']))}</div>
                     <div style="font-size:.68rem;color:#64748b;margin-top:2px">Power: {fmt_int(int(row['power']))}</div>
                 </div>""", unsafe_allow_html=True)
-
     st.divider()
-
     if px is not None and not ranked.empty:
         left, right = st.columns([3,2])
         with left:
@@ -644,33 +509,28 @@ def show_kp_main(metrics: pd.DataFrame, group_power: int) -> None:
             fig = px.bar(top20, x="kill_points", y="username", orientation="h",
                          color="kill_points", color_continuous_scale=["#1e3a5f","#f59e0b"],
                          labels={"kill_points":"Kill Points","username":""})
-            fig.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
-                              font_color="#94a3b8", showlegend=False, coloraxis_showscale=False,
-                              margin=dict(l=0,r=0,t=10,b=0),
-                              xaxis=dict(gridcolor="#1e3a5f",color="#64748b"),
-                              yaxis=dict(gridcolor="#1e3a5f",color="#e2e8f0"))
+            fig.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a", font_color="#94a3b8",
+                              showlegend=False, coloraxis_showscale=False, margin=dict(l=0,r=0,t=10,b=0),
+                              xaxis=dict(gridcolor="#1e3a5f",color="#64748b"), yaxis=dict(gridcolor="#1e3a5f",color="#e2e8f0"))
             fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
         with right:
             st.markdown('<div class="section-header">Contribuição por tier</div>', unsafe_allow_html=True)
             pie_data = [td for td in tier_data if td["KP"]>0]
             if pie_data:
-                fig2 = px.pie(values=[td["KP"] for td in pie_data],names=[td["Tier"] for td in pie_data],
+                fig2 = px.pie(values=[td["KP"] for td in pie_data], names=[td["Tier"] for td in pie_data],
                               color=[td["Tier"] for td in pie_data],
                               color_discrete_map={td["Tier"]:td["color"] for td in pie_data}, hole=0.6)
-                fig2.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a",
-                                   font_color="#94a3b8", showlegend=True,
-                                   legend=dict(font=dict(color="#94a3b8")),
-                                   margin=dict(l=0,r=0,t=10,b=0))
+                fig2.update_layout(plot_bgcolor="#0f172a", paper_bgcolor="#0f172a", font_color="#94a3b8",
+                                   showlegend=True, legend=dict(font=dict(color="#94a3b8")), margin=dict(l=0,r=0,t=10,b=0))
                 fig2.update_traces(textposition="inside", textinfo="percent+label", textfont_color="white")
                 st.plotly_chart(fig2, use_container_width=True)
-
     st.divider()
     st.markdown('<div class="section-header">Ranking completo</div>', unsafe_allow_html=True)
-    page_size = st.selectbox("Por página",[25,50,100],index=0,key="kp_ps")
+    page_size   = st.selectbox("Por página",[25,50,100],index=0,key="kp_ps")
     total_pages = max(1,-(-len(ranked)//page_size))
-    page = st.number_input("Página",min_value=1,max_value=total_pages,value=1,key="kp_pg")
-    start_i = (page-1)*page_size
+    page        = st.number_input("Página",min_value=1,max_value=total_pages,value=1,key="kp_pg")
+    start_i     = (page-1)*page_size
     st.caption(f"Mostrando {start_i+1}–{min(start_i+page_size,len(ranked))} de {len(ranked):,}")
     st.dataframe(display_table(ranked.iloc[start_i:start_i+page_size]), use_container_width=True, hide_index=True)
     csv = ranked.to_csv(index=False).encode("utf-8")
@@ -684,9 +544,6 @@ def display_table(frame: pd.DataFrame) -> pd.DataFrame:
     return out.rename(columns=DISPLAY_NAMES)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tab: Histórico
-# ─────────────────────────────────────────────────────────────────────────────
 def show_history(storage, imports: pd.DataFrame, group_power: int) -> None:
     st.subheader("📈 Evolução histórica do reino")
     if len(imports) < 2:
@@ -723,7 +580,6 @@ def show_history(storage, imports: pd.DataFrame, group_power: int) -> None:
             fig2.update_layout(plot_bgcolor="#0f172a",paper_bgcolor="#0f172a",font_color="#94a3b8",
                                xaxis=dict(gridcolor="#1e3a5f"),yaxis=dict(gridcolor="#1e3a5f"))
             st.plotly_chart(fig2,use_container_width=True)
-
     st.divider()
     st.subheader("Comparar dois relatórios")
     labels = ordered["label"].tolist()
@@ -735,32 +591,25 @@ def show_history(storage, imports: pd.DataFrame, group_power: int) -> None:
     if id_a == id_b:
         st.warning("Selecione dois relatórios diferentes.")
         return
-    stats_a   = storage.load_stats(id_a)
-    stats_b   = storage.load_stats(id_b)
-    delta_df  = compute_period_deltas(stats_b, stats_a)
-    metrics   = calculate_metrics(delta_df, group_power=group_power)
+    delta_df = compute_period_deltas(storage.load_stats(id_b), storage.load_stats(id_a))
+    metrics  = calculate_metrics(delta_df, group_power=group_power)
     top = metrics.sort_values("kill_points",ascending=False).head(15)
     if not top.empty and px is not None:
-        fig = px.bar(top.sort_values("kill_points",ascending=True),
-                     x="kill_points",y="username",orientation="h",
-                     title="Top 15 — Ganho no período",color_discrete_sequence=[THEME_GOLD])
+        fig = px.bar(top.sort_values("kill_points",ascending=True), x="kill_points", y="username", orientation="h",
+                     title="Top 15 — Ganho no período", color_discrete_sequence=[THEME_GOLD])
         fig.update_layout(plot_bgcolor="#0f172a",paper_bgcolor="#0f172a",font_color="#94a3b8",
                           xaxis=dict(gridcolor="#1e3a5f"),yaxis=dict(gridcolor="#1e3a5f"))
         st.plotly_chart(fig,use_container_width=True)
     st.dataframe(display_table(add_rank(metrics,"kill_points")),use_container_width=True,hide_index=True)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tab: Governors
-# ─────────────────────────────────────────────────────────────────────────────
 def show_governors(metrics: pd.DataFrame) -> None:
     ranked = add_rank(metrics,"kill_points")
     if px is not None and not ranked.empty:
         c1,c2 = st.columns(2)
         with c1:
             fig = px.scatter(ranked,x="power",y="kill_points",hover_name="username",
-                             color="kill_points",color_continuous_scale="YlOrRd",
-                             title="Power vs Kill Points")
+                             color="kill_points",color_continuous_scale="YlOrRd",title="Power vs Kill Points")
             fig.update_layout(plot_bgcolor="#0f172a",paper_bgcolor="#0f172a",font_color="#94a3b8",
                               xaxis=dict(gridcolor="#1e3a5f"),yaxis=dict(gridcolor="#1e3a5f"))
             st.plotly_chart(fig,use_container_width=True)
@@ -776,9 +625,6 @@ def show_governors(metrics: pd.DataFrame) -> None:
     st.download_button("⬇️ Baixar CSV",data=csv,file_name="governors.csv",mime="text/csv")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tab: Imports
-# ─────────────────────────────────────────────────────────────────────────────
 def show_imports(imports: pd.DataFrame, storage, *, is_admin: bool, admin_enabled: bool) -> None:
     st.subheader("Relatórios importados")
     st.dataframe(
@@ -802,9 +648,6 @@ def show_imports(imports: pd.DataFrame, storage, *, is_admin: bool, admin_enable
                     st.error("Não encontrado.")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tab: Ajuda
-# ─────────────────────────────────────────────────────────────────────────────
 def show_help() -> None:
     st.header("❓ Como usar")
     st.markdown("""
@@ -820,11 +663,11 @@ def show_help() -> None:
 | 90M–99M | 2M T4 | 1M T5 | 280M |
 | ≥ 100M | 2M T4 | 1M T5 | 320M |
 
-**Equivalência:** 1 morte T5 = 2 mortes T4. A soma de T4 + T5 é aceita (ex: 300k T5 + 300k T4 = 900k T4-eq).
+**Equivalência:** 1 morte T5 = 2 mortes T4.
 
 ## Status de Meta
-- ✅ **Aprovado** — Bateu tanto mortes quanto KP
-- ⚠️ **Pendente** — ≥ 75% de progresso em ambos, mas não 100%
+- ✅ **Aprovado** — Bateu mortes e KP
+- ⚠️ **Pendente** — ≥ 75% em ambos
 - ❌ **Abaixo da meta** — Abaixo de 75% em mortes ou KP
 
 ## Como exportar do jogo
@@ -843,9 +686,6 @@ def show_help() -> None:
 """)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Sidebar helpers
-# ─────────────────────────────────────────────────────────────────────────────
 def _empty_state() -> None:
     st.markdown("""
     <div style="text-align:center;padding:60px 20px">
@@ -873,20 +713,15 @@ def handle_upload(storage) -> None:
                 st.error("❌ Senha incorreta")
         st.markdown('</div>',unsafe_allow_html=True)
         return
-
     st.success("✅ Upload desbloqueado")
     if st.button("🔒 Bloquear",use_container_width=True,type="secondary"):
         st.session_state.upload_auth = False; st.rerun()
-
     uploaded = st.file_uploader("Upload statsExport",type=["xlsx","xls"])
     if uploaded is None: return
-
-    safe_name   = re.sub(r"[^\w.\-]","_",uploaded.name)
+    safe_name    = re.sub(r"[^\w.\-]","_",uploaded.name)
     report_guess = extract_report_date_from_name(safe_name) or date.today()
     report_date  = st.date_input("Data do relatório",value=report_guess)
-
     if not st.button("💾 Salvar relatório",type="primary",use_container_width=True): return
-
     with st.spinner("Processando..."):
         try:
             file_bytes = uploaded.getvalue()
@@ -899,7 +734,6 @@ def handle_upload(storage) -> None:
             )
         except Exception as exc:
             st.error(f"❌ Falha no import: {exc}"); return
-
     if created:
         st.success(f"✅ {len(stats):,} governors salvos!")
     else:
@@ -980,18 +814,14 @@ def get_secret(name: str):
     return str(val) if val else None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Formatters
-# ─────────────────────────────────────────────────────────────────────────────
-def fmt_int(v)    -> str: return f"{int(v):,}"
-def fmt_pct(v)    -> str: return f"{float(v)*100:.1f}%"
-def fmt_dkpi(v)   -> str:
+def fmt_int(v)  -> str: return f"{int(v):,}"
+def fmt_pct(v)  -> str: return f"{float(v)*100:.1f}%"
+def fmt_dkpi(v) -> str:
     f = float(v)
     if f == 0: return "0.0000"
     if f < 0.0001: return f"{f:.2e}"
     return f"{f:.6f}"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     main()
