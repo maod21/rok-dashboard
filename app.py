@@ -34,568 +34,414 @@ st.set_page_config(
 #  Signature: dual-gauge row sempre visível, sem expand
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _css(dark: bool) -> str:
-    # ── Token map ──────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+#  DESIGN SYSTEM — Executive Dual Theme
+#  Dark:  Midnight Navy + Slate surfaces + Imperial Gold accent
+#  Light: Cloud White + Slate ink + Warm Gold accent
+#  Objetivo: contraste alto, visual premium e leitura confortável nos 2 modos.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def ui_tokens(dark: bool | None = None) -> dict:
+    """Tokens visuais centralizados para CSS, gráficos e pequenos componentes HTML."""
+    if dark is None:
+        dark = bool(st.session_state.get("dark_mode", True))
+
     if dark:
-        bg         = "#0d0f14"
-        surface    = "#1c1f2b"
-        surface2   = "#15181f"
-        border     = "rgba(200,146,42,0.15)"
-        border_hi  = "rgba(200,146,42,0.35)"
-        text       = "#e8e0cc"
-        text_sub   = "#9a9080"
-        text_dim   = "#5a5448"
-        text_muted = "#3a3428"
-        amber      = "#c8922a"
-        amber_hi   = "#f0b040"
-        green      = "#4ade80"
-        yellow     = "#fbbf24"
-        red        = "#f87171"
-        blue       = "#60a5fa"
-        blue_dark  = "#1d4ed8"
-        gauge_bg   = "rgba(255,255,255,0.05)"
-        gauge_bdr  = "rgba(255,255,255,0.04)"
-        tier_bg    = surface
-        scroll_bg  = bg
-        scroll_th  = "rgba(200,146,42,0.30)"
-        plot_bg    = "rgba(0,0,0,0)"
-        plot_font  = "#7a7060"
-        plot_grid  = "rgba(200,146,42,0.06)"
-        sidebar_bg = bg
-        input_bg   = surface
-        # status badges (dark — semi-transparent bg)
-        ok_bg   = "rgba(74,222,128,0.08)";  ok_br  = "rgba(74,222,128,0.30)";  ok_tx  = "#4ade80"
-        wa_bg   = "rgba(251,191,36,0.08)";  wa_br  = "rgba(251,191,36,0.30)";  wa_tx  = "#fbbf24"
-        er_bg   = "rgba(248,113,113,0.08)"; er_br  = "rgba(248,113,113,0.30)"; er_tx  = "#f87171"
-        # tier pills
-        t5_tx="#f59e0b"; t5_br="rgba(245,158,11,.35)"; t5_bg="rgba(245,158,11,.08)"
-        t4_tx="#fb923c"; t4_br="rgba(251,146,60,.35)"; t4_bg="rgba(251,146,60,.08)"
-        t3_tx="#a78bfa"; t3_br="rgba(167,139,250,.35)"; t3_bg="rgba(167,139,250,.08)"
-        t2_tx="#60a5fa"; t2_br="rgba(96,165,250,.35)"; t2_bg="rgba(96,165,250,.08)"
-        t1_tx="#6b7280"; t1_br="rgba(107,114,128,.35)"; t1_bg="rgba(107,114,128,.08)"
-        eq_tx="#7a7060"; eq_br="rgba(122,112,96,.35)"; eq_bg="rgba(122,112,96,.08)"
-        # header
-        hdr_bg1="#1c1f2b"; hdr_bg2="#15181f"
-        # metric bottom line
-        metric_line="linear-gradient(90deg,#c8922a 0%,transparent 100%)"
-        # table
-        tbl_th_c    = "#3a3428"
-        tbl_td_c    = "#b0a898"
-        tbl_td1_c   = "#6a6050"
-        tbl_sep     = "rgba(200,146,42,0.10)"
-        tbl_row_sep = "rgba(255,255,255,0.03)"
-        # KD cards
-        kd_bg = surface
-        # attention row
-        att_bg = surface
-        att_br = "rgba(200,146,42,0.10)"
-        # band table
-        band_th  = "#4a4438"
-        band_td  = "#9a9080"
-        band_td1 = "#7a7060"
-        band_sep = "rgba(200,146,42,0.15)"
-    else:
-        bg         = "#f5f0e8"
-        surface    = "#ffffff"
-        surface2   = "#ede8dc"
-        border     = "rgba(120,80,20,0.15)"
-        border_hi  = "rgba(120,80,20,0.38)"
-        text       = "#1a1410"
-        text_sub   = "#5a4a30"
-        text_dim   = "#8a7a60"
-        text_muted = "#b0a080"
-        amber      = "#96600a"     # escuro para contraste no fundo claro
-        amber_hi   = "#c8922a"
-        green      = "#15803d"
-        yellow     = "#92400e"
-        red        = "#991b1b"
-        blue       = "#1d4ed8"
-        blue_dark  = "#1e40af"
-        gauge_bg   = "rgba(0,0,0,0.07)"
-        gauge_bdr  = "rgba(0,0,0,0.06)"
-        tier_bg    = surface2
-        scroll_bg  = surface2
-        scroll_th  = "rgba(120,80,20,0.25)"
-        plot_bg    = "rgba(0,0,0,0)"
-        plot_font  = "#6a5a40"
-        plot_grid  = "rgba(120,80,20,0.08)"
-        sidebar_bg = "#1a1410"     # sidebar permanece escura — leitura mais fácil
-        input_bg   = surface
-        # status badges (light — cores sólidas escuras)
-        ok_bg   = "rgba(21,128,61,0.10)";  ok_br  = "rgba(21,128,61,0.30)";  ok_tx  = "#15803d"
-        wa_bg   = "rgba(146,64,14,0.10)";  wa_br  = "rgba(146,64,14,0.30)";  wa_tx  = "#92400e"
-        er_bg   = "rgba(153,27,27,0.10)";  er_br  = "rgba(153,27,27,0.30)";  er_tx  = "#991b1b"
-        # tier pills
-        t5_tx="#92400e"; t5_br="rgba(146,64,14,.35)"; t5_bg="rgba(146,64,14,.08)"
-        t4_tx="#9a3412"; t4_br="rgba(154,52,18,.35)"; t4_bg="rgba(154,52,18,.08)"
-        t3_tx="#5b21b6"; t3_br="rgba(91,33,182,.30)"; t3_bg="rgba(91,33,182,.07)"
-        t2_tx="#1e40af"; t2_br="rgba(30,64,175,.30)"; t2_bg="rgba(30,64,175,.07)"
-        t1_tx="#374151"; t1_br="rgba(55,65,81,.30)";  t1_bg="rgba(55,65,81,.07)"
-        eq_tx="#6a5a40"; eq_br="rgba(106,90,64,.30)"; eq_bg="rgba(106,90,64,.07)"
-        # header
-        hdr_bg1="#ffffff"; hdr_bg2="#f5f0e8"
-        # metric
-        metric_line="linear-gradient(90deg,#96600a 0%,transparent 100%)"
-        # table
-        tbl_th_c    = "#6a5a40"
-        tbl_td_c    = "#5a4a30"
-        tbl_td1_c   = "#8a7a60"
-        tbl_sep     = "rgba(120,80,20,0.12)"
-        tbl_row_sep = "rgba(0,0,0,0.04)"
-        # KD cards
-        kd_bg = surface
-        # attention row
-        att_bg = surface
-        att_br = "rgba(120,80,20,0.12)"
-        # band table
-        band_th  = "#8a7a60"
-        band_td  = "#5a4a30"
-        band_td1 = "#7a6a50"
-        band_sep = "rgba(120,80,20,0.15)"
+        return {
+            "mode": "dark",
+            "bg": "#080D1A",
+            "bg_soft": "#0D1424",
+            "surface": "#111827",
+            "surface2": "#172033",
+            "surface3": "#1E293B",
+            "sidebar_bg": "#0B1020",
+            "sidebar_text": "#CBD5E1",
+            "sidebar_dim": "#64748B",
+            "sidebar_border": "rgba(245,158,11,0.18)",
+            "input_bg": "#0F172A",
+            "border": "rgba(148,163,184,0.16)",
+            "border_hi": "rgba(245,158,11,0.38)",
+            "shadow": "0 18px 55px rgba(0,0,0,.38)",
+            "shadow_sm": "0 10px 28px rgba(0,0,0,.24)",
+            "text": "#F8FAFC",
+            "text_sub": "#CBD5E1",
+            "text_dim": "#94A3B8",
+            "text_muted": "#64748B",
+            "text_faint": "#475569",
+            "accent": "#F59E0B",
+            "accent_hi": "#FBBF24",
+            "accent_soft": "rgba(245,158,11,.12)",
+            "green": "#22C55E",
+            "yellow": "#FACC15",
+            "red": "#F87171",
+            "blue": "#38BDF8",
+            "blue_dark": "#2563EB",
+            "purple": "#A78BFA",
+            "gauge_bg": "rgba(226,232,240,.08)",
+            "gauge_bdr": "rgba(226,232,240,.05)",
+            "plot_grid": "rgba(148,163,184,.14)",
+            "plot_axis": "#94A3B8",
+            "pie_line": "#080D1A",
+            "button_text": "#111827",
+            "table_header": "#CBD5E1",
+            "table_cell": "#CBD5E1",
+            "table_dim": "#94A3B8",
+        }
+
+    return {
+        "mode": "light",
+        "bg": "#F6F8FC",
+        "bg_soft": "#EEF2F7",
+        "surface": "#FFFFFF",
+        "surface2": "#F1F5F9",
+        "surface3": "#E2E8F0",
+        "sidebar_bg": "#FFFFFF",
+        "sidebar_text": "#334155",
+        "sidebar_dim": "#64748B",
+        "sidebar_border": "rgba(15,23,42,0.10)",
+        "input_bg": "#FFFFFF",
+        "border": "rgba(15,23,42,0.10)",
+        "border_hi": "rgba(180,83,9,0.28)",
+        "shadow": "0 18px 45px rgba(15,23,42,.09)",
+        "shadow_sm": "0 8px 22px rgba(15,23,42,.07)",
+        "text": "#0F172A",
+        "text_sub": "#334155",
+        "text_dim": "#64748B",
+        "text_muted": "#94A3B8",
+        "text_faint": "#CBD5E1",
+        "accent": "#B45309",
+        "accent_hi": "#D97706",
+        "accent_soft": "rgba(180,83,9,.09)",
+        "green": "#15803D",
+        "yellow": "#B45309",
+        "red": "#B91C1C",
+        "blue": "#0369A1",
+        "blue_dark": "#1D4ED8",
+        "purple": "#6D28D9",
+        "gauge_bg": "rgba(15,23,42,.08)",
+        "gauge_bdr": "rgba(15,23,42,.06)",
+        "plot_grid": "rgba(100,116,139,.18)",
+        "plot_axis": "#64748B",
+        "pie_line": "#FFFFFF",
+        "button_text": "#FFFFFF",
+        "table_header": "#334155",
+        "table_cell": "#334155",
+        "table_dim": "#64748B",
+    }
+
+
+def _css(dark: bool) -> str:
+    t = ui_tokens(dark)
+
+    bg = t["bg"]; bg_soft = t["bg_soft"]
+    surface = t["surface"]; surface2 = t["surface2"]; surface3 = t["surface3"]
+    sidebar_bg = t["sidebar_bg"]; sidebar_text = t["sidebar_text"]; sidebar_dim = t["sidebar_dim"]; sidebar_border = t["sidebar_border"]
+    input_bg = t["input_bg"]
+    border = t["border"]; border_hi = t["border_hi"]
+    shadow = t["shadow"]; shadow_sm = t["shadow_sm"]
+    text = t["text"]; text_sub = t["text_sub"]; text_dim = t["text_dim"]; text_muted = t["text_muted"]; text_faint = t["text_faint"]
+    accent = t["accent"]; accent_hi = t["accent_hi"]; accent_soft = t["accent_soft"]
+    green = t["green"]; yellow = t["yellow"]; red = t["red"]
+    blue = t["blue"]; blue_dark = t["blue_dark"]; purple = t["purple"]
+    gauge_bg = t["gauge_bg"]; gauge_bdr = t["gauge_bdr"]
+    plot_grid = t["plot_grid"]
+    button_text = t["button_text"]
+    table_header = t["table_header"]; table_cell = t["table_cell"]; table_dim = t["table_dim"]
+
+    ok_bg = "rgba(34,197,94,.13)" if dark else "rgba(21,128,61,.10)"
+    ok_br = "rgba(34,197,94,.32)" if dark else "rgba(21,128,61,.24)"
+    wa_bg = "rgba(250,204,21,.14)" if dark else "rgba(180,83,9,.10)"
+    wa_br = "rgba(250,204,21,.34)" if dark else "rgba(180,83,9,.24)"
+    er_bg = "rgba(248,113,113,.14)" if dark else "rgba(185,28,28,.10)"
+    er_br = "rgba(248,113,113,.34)" if dark else "rgba(185,28,28,.24)"
 
     return f"""
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* ─── RESET / BASE ─────────────────────────────────────── */
-*, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+:root {{
+  --rok-bg: {bg};
+  --rok-bg-soft: {bg_soft};
+  --rok-surface: {surface};
+  --rok-surface-2: {surface2};
+  --rok-surface-3: {surface3};
+  --rok-border: {border};
+  --rok-border-hi: {border_hi};
+  --rok-text: {text};
+  --rok-text-sub: {text_sub};
+  --rok-text-dim: {text_dim};
+  --rok-text-muted: {text_muted};
+  --rok-accent: {accent};
+  --rok-accent-hi: {accent_hi};
+  --rok-green: {green};
+  --rok-yellow: {yellow};
+  --rok-red: {red};
+  --rok-blue: {blue};
+  --rok-blue-dark: {blue_dark};
+}}
 
+/* ─── RESET / BASE ─────────────────────────────────────── */
+*, *::before, *::after {{ box-sizing: border-box; }}
 html, body, [class*="css"], .stApp {{
-  font-family: 'Inter', system-ui, sans-serif !important;
-  background: {bg} !important;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+  background:
+    radial-gradient(circle at 12% 0%, {accent_soft} 0, transparent 32%),
+    radial-gradient(circle at 90% 0%, rgba(56,189,248,.08) 0, transparent 28%),
+    {bg} !important;
   color: {text} !important;
 }}
 .main .block-container {{
-  padding: 1.2rem 2rem 3rem !important;
-  max-width: 1500px !important;
-  background: {bg} !important;
+  padding: 1.35rem 2rem 3.2rem !important;
+  max-width: 1540px !important;
 }}
 
 /* ─── SIDEBAR ───────────────────────────────────────────── */
 section[data-testid="stSidebar"] {{
   background: {sidebar_bg} !important;
-  border-right: 1px solid rgba(200,146,42,0.20) !important;
+  border-right: 1px solid {sidebar_border} !important;
+  box-shadow: {shadow_sm};
 }}
-section[data-testid="stSidebar"] > div {{ padding: 1.5rem 1rem !important; }}
-section[data-testid="stSidebar"] * {{ color: #9a8060 !important; }}
-section[data-testid="stSidebar"] .stSuccess p {{ color: #4ade80 !important; }}
-section[data-testid="stSidebar"] .stError   p {{ color: #f87171 !important; }}
-section[data-testid="stSidebar"] .stWarning p {{ color: #fbbf24 !important; }}
+section[data-testid="stSidebar"] > div {{ padding: 1.35rem .95rem !important; }}
+section[data-testid="stSidebar"] * {{ color: {sidebar_text} !important; }}
+section[data-testid="stSidebar"] small,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] .stCaption,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {{ color: {sidebar_dim} !important; }}
+section[data-testid="stSidebar"] .stSuccess p {{ color: {green} !important; }}
+section[data-testid="stSidebar"] .stError p {{ color: {red} !important; }}
+section[data-testid="stSidebar"] .stWarning p {{ color: {yellow} !important; }}
+.sidebar-storage {{ font-size:.70rem; color:{sidebar_dim}; margin-bottom:12px; }}
+.sidebar-storage span {{ color:{accent_hi}; font-weight:800; }}
 
-/* ─── METRICS ───────────────────────────────────────────── */
-[data-testid="stMetric"] {{
+/* ─── STREAMLIT CORE COMPONENTS ─────────────────────────── */
+[data-testid="stMetric"], [data-testid="stDataFrame"], .stAlert {{
   background: {surface} !important;
   border: 1px solid {border} !important;
-  border-radius: 10px !important;
-  padding: 18px 20px !important;
-  position: relative; overflow: hidden;
+  border-radius: 14px !important;
+  box-shadow: {shadow_sm};
 }}
+[data-testid="stMetric"] {{ padding: 18px 20px !important; position: relative; overflow: hidden; }}
 [data-testid="stMetric"]::after {{
-  content: '';
-  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-  background: {metric_line};
+  content:''; position:absolute; left:0; right:0; bottom:0; height:3px;
+  background: linear-gradient(90deg,{accent},{accent_hi},transparent);
 }}
 [data-testid="stMetricLabel"] {{
-  font-size: .62rem !important; font-weight: 600 !important;
-  text-transform: uppercase; letter-spacing: .12em;
-  color: {text_dim} !important;
+  font-size:.64rem !important; font-weight:800 !important; text-transform:uppercase;
+  letter-spacing:.12em; color:{text_dim} !important;
 }}
 [data-testid="stMetricValue"] {{
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 1.5rem !important; font-weight: 600 !important;
-  color: {text} !important; letter-spacing: -.03em;
+  font-family:'JetBrains Mono', monospace !important; font-size:1.55rem !important;
+  font-weight:700 !important; color:{text} !important; letter-spacing:-.04em;
 }}
 
-/* ─── TABS ──────────────────────────────────────────────── */
 [data-testid="stTabs"] [role="tablist"] {{
-  border-bottom: 1px solid {border};
-  gap: 0; background: transparent;
+  border-bottom:1px solid {border}; gap:4px; background:transparent;
 }}
 [data-testid="stTabs"] button[role="tab"] {{
-  font-size: .68rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .10em; color: {text_dim} !important;
-  padding: 10px 20px; border-bottom: 2px solid transparent;
-  border-radius: 0; background: transparent !important;
-  transition: color .2s, border-color .2s;
+  font-size:.70rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em;
+  color:{text_dim} !important; padding:11px 18px; border-bottom:2px solid transparent;
+  border-radius:10px 10px 0 0; background:transparent !important;
+  transition:color .2s, background .2s, border-color .2s;
 }}
-[data-testid="stTabs"] button[role="tab"]:hover {{ color: {amber} !important; }}
+[data-testid="stTabs"] button[role="tab"]:hover {{ color:{accent} !important; background:{accent_soft} !important; }}
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{
-  color: {amber} !important;
-  border-bottom-color: {amber} !important;
-  background: transparent !important;
+  color:{accent} !important; border-bottom-color:{accent} !important; background:{surface} !important;
 }}
 
-/* ─── INPUTS ────────────────────────────────────────────── */
 [data-testid="stTextInput"] input,
 [data-testid="stSelectbox"] > div > div,
-[data-testid="stNumberInput"] input {{
-  background: {input_bg} !important;
-  border: 1px solid {border} !important;
-  border-radius: 8px !important;
-  color: {text} !important;
-  font-family: 'Inter', sans-serif !important;
-  font-size: .82rem !important;
+[data-testid="stNumberInput"] input,
+[data-testid="stDateInput"] input {{
+  background:{input_bg} !important; border:1px solid {border} !important; border-radius:10px !important;
+  color:{text} !important; font-family:'Inter', sans-serif !important; font-size:.84rem !important;
+  min-height: 38px;
 }}
-[data-testid="stTextInput"] input::placeholder {{ color: {text_dim} !important; }}
+[data-testid="stTextInput"] input::placeholder {{ color:{text_muted} !important; }}
 [data-testid="stTextInput"] input:focus,
-[data-testid="stSelectbox"] > div > div:focus-within {{
-  border-color: {amber} !important;
-  box-shadow: 0 0 0 2px rgba(200,146,42,0.15) !important;
+[data-testid="stSelectbox"] > div > div:focus-within,
+[data-testid="stNumberInput"] input:focus,
+[data-testid="stDateInput"] input:focus {{
+  border-color:{accent} !important; box-shadow:0 0 0 3px {accent_soft} !important;
 }}
-
-/* ─── BUTTONS ───────────────────────────────────────────── */
 [data-testid="stButton"] button {{
-  background: {amber} !important;
-  color: {'#0d0f14' if dark else '#ffffff'} !important;
-  border: none !important; border-radius: 8px !important;
-  font-weight: 700 !important; font-size: .78rem !important;
-  text-transform: uppercase; letter-spacing: .08em;
-  transition: opacity .2s, transform .1s;
+  background:linear-gradient(135deg,{accent},{accent_hi}) !important; color:{button_text} !important;
+  border:none !important; border-radius:10px !important; font-weight:800 !important; font-size:.76rem !important;
+  text-transform:uppercase; letter-spacing:.07em; box-shadow:0 10px 24px {accent_soft};
+  transition: transform .12s ease, opacity .2s ease, box-shadow .2s ease;
 }}
-[data-testid="stButton"] button:hover {{ opacity: .85; transform: translateY(-1px); }}
+[data-testid="stButton"] button:hover {{ opacity:.92; transform:translateY(-1px); box-shadow:0 14px 30px {accent_soft}; }}
 [data-testid="stButton"] button[kind="secondary"] {{
-  background: transparent !important;
-  border: 1px solid {border_hi} !important;
-  color: {amber} !important;
+  background:{surface} !important; border:1px solid {border_hi} !important; color:{accent} !important; box-shadow:none;
 }}
-
-/* ─── EXPANDER ──────────────────────────────────────────── */
-[data-testid="stExpander"] {{
-  border: none !important; border-radius: 0 !important;
-  background: transparent !important;
-}}
+[data-testid="stExpander"] {{ border:none !important; border-radius:0 !important; background:transparent !important; }}
 [data-testid="stExpander"] > details > summary {{
-  background: transparent !important; border: none !important; padding: 0 !important;
-  color: {text_sub} !important;
+  background:transparent !important; border:none !important; padding:0 !important; color:{text_sub} !important;
 }}
-
-/* ─── DATAFRAME ─────────────────────────────────────────── */
-[data-testid="stDataFrame"] {{
-  border: 1px solid {border} !important;
-  border-radius: 10px !important; overflow: hidden;
-}}
-
-/* ─── DIVIDER ───────────────────────────────────────────── */
-hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
-
-/* ─── SCROLLBAR ─────────────────────────────────────────── */
-::-webkit-scrollbar {{ width: 6px; height: 6px; }}
-::-webkit-scrollbar-track {{ background: {scroll_bg}; }}
-::-webkit-scrollbar-thumb {{ background: {scroll_th}; border-radius: 3px; }}
-::-webkit-scrollbar-thumb:hover {{ background: {amber}; }}
-
-/* ─── RADIO / CHECKBOX ──────────────────────────────────── */
-[data-testid="stRadio"] label,
-[data-testid="stCheckbox"] label {{
-  color: {text_sub} !important;
-  font-size: .78rem !important;
-}}
-
-/* ══════════════════════════════════════════════════════════
-   COMPONENT LIBRARY
-   ══════════════════════════════════════════════════════════ */
+hr {{ border-color:{border} !important; margin:1.2rem 0 !important; }}
+::-webkit-scrollbar {{ width:8px; height:8px; }}
+::-webkit-scrollbar-track {{ background:{bg_soft}; }}
+::-webkit-scrollbar-thumb {{ background:{text_faint}; border-radius:999px; }}
+::-webkit-scrollbar-thumb:hover {{ background:{accent}; }}
+[data-testid="stRadio"] label, [data-testid="stCheckbox"] label {{ color:{text_sub} !important; font-size:.78rem !important; }}
 
 /* ─── HEADER ────────────────────────────────────────────── */
 .rok-header {{
-  display: flex; align-items: center; gap: 18px;
-  padding: 18px 24px; margin-bottom: 18px;
-  background: linear-gradient(135deg, {hdr_bg1} 0%, {hdr_bg2} 100%);
-  border: 1px solid {border_hi};
-  border-radius: 12px;
-  position: relative; overflow: hidden;
+  display:flex; align-items:center; gap:18px; padding:20px 24px; margin-bottom:18px;
+  background:
+    linear-gradient(135deg, {surface} 0%, {surface2} 100%);
+  border:1px solid {border_hi}; border-radius:18px; position:relative; overflow:hidden;
+  box-shadow:{shadow};
 }}
-.rok-header::before {{
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, {amber}, transparent);
-}}
+.rok-header::before {{ content:''; position:absolute; inset:0 0 auto 0; height:1px; background:linear-gradient(90deg,transparent,{accent_hi},transparent); }}
+.rok-header::after {{ content:''; position:absolute; width:220px; height:220px; right:-90px; top:-120px; background:{accent_soft}; border-radius:50%; filter:blur(2px); }}
 .rok-header-emblem {{
-  width: 52px; height: 52px; flex-shrink: 0;
-  background: linear-gradient(135deg, {amber}, {amber_hi});
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.6rem;
-  box-shadow: 0 4px 16px rgba(200,146,42,0.25);
+  width:56px; height:56px; flex-shrink:0; background:linear-gradient(135deg,{accent},{accent_hi});
+  border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:1.75rem;
+  box-shadow:0 12px 30px {accent_soft}; position:relative; z-index:1;
 }}
-.rok-header-title {{
-  font-size: 1.4rem; font-weight: 900; color: {text};
-  letter-spacing: -.03em; line-height: 1;
-}}
-.rok-header-sub {{
-  font-size: .7rem; color: {text_dim};
-  letter-spacing: .05em; margin-top: 4px; text-transform: uppercase;
-}}
-.rok-header-right {{ margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }}
+.rok-header-title {{ font-size:1.55rem; font-weight:900; color:{text}; letter-spacing:-.045em; line-height:1; position:relative; z-index:1; }}
+.rok-header-sub {{ font-size:.72rem; color:{text_dim}; letter-spacing:.08em; margin-top:6px; text-transform:uppercase; position:relative; z-index:1; }}
+.rok-header-right {{ margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }}
 
-/* ─── THEME TOGGLE BUTTON ───────────────────────────────── */
-.theme-btn {{
-  background: {surface} !important;
-  border: 1px solid {border_hi} !important;
-  border-radius: 6px !important;
-  padding: 5px 12px !important;
-  font-size: .68rem !important;
-  font-weight: 700 !important;
-  color: {amber} !important;
-  cursor: pointer;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}}
-
-/* ─── WEIGHT PILLS ──────────────────────────────────────── */
-.tier-pills {{ display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }}
+/* ─── GLOBAL LABELS / PILLS ─────────────────────────────── */
+.tier-pills {{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }}
 .tier-pill {{
-  padding: 3px 10px; border-radius: 4px;
-  font-size: .64rem; font-weight: 700; letter-spacing: .06em;
-  text-transform: uppercase; white-space: nowrap; border: 1px solid;
+  padding:5px 11px; border-radius:999px; font-size:.66rem; font-weight:800; letter-spacing:.055em;
+  text-transform:uppercase; white-space:nowrap; border:1px solid; background:{surface}; box-shadow:{shadow_sm};
 }}
-.tp-t5 {{ color: {t5_tx}; border-color: {t5_br}; background: {t5_bg}; }}
-.tp-t4 {{ color: {t4_tx}; border-color: {t4_br}; background: {t4_bg}; }}
-.tp-t3 {{ color: {t3_tx}; border-color: {t3_br}; background: {t3_bg}; }}
-.tp-t2 {{ color: {t2_tx}; border-color: {t2_br}; background: {t2_bg}; }}
-.tp-t1 {{ color: {t1_tx}; border-color: {t1_br}; background: {t1_bg}; }}
-.tp-eq {{ color: {eq_tx}; border-color: {eq_br}; background: {eq_bg}; }}
-
-/* ─── SECTION LABEL ─────────────────────────────────────── */
+.tp-t5 {{ color:{accent_hi}; border-color:rgba(245,158,11,.34); background:{accent_soft}; }}
+.tp-t4 {{ color:{accent}; border-color:rgba(217,119,6,.30); background:{accent_soft}; }}
+.tp-t3 {{ color:{purple}; border-color:rgba(167,139,250,.28); background:rgba(167,139,250,.10); }}
+.tp-t2 {{ color:{blue}; border-color:rgba(56,189,248,.28); background:rgba(56,189,248,.10); }}
+.tp-t1 {{ color:{text_dim}; border-color:{border}; background:{surface2}; }}
+.tp-eq {{ color:{text_sub}; border-color:{border_hi}; background:{surface}; }}
 .sec-label {{
-  font-size: .6rem; font-weight: 800; letter-spacing: .16em;
-  text-transform: uppercase; color: {text_dim};
-  display: flex; align-items: center; gap: 10px;
-  margin: 20px 0 12px;
+  font-size:.62rem; font-weight:900; letter-spacing:.16em; text-transform:uppercase; color:{text_dim};
+  display:flex; align-items:center; gap:12px; margin:22px 0 12px;
 }}
-.sec-label::after {{ content: ''; flex: 1; height: 1px; background: {border}; }}
+.sec-label::after {{ content:''; flex:1; height:1px; background:linear-gradient(90deg,{border},transparent); }}
+.page-hint {{ font-size:.66rem; color:{text_dim}; padding-top:8px; }}
 
-/* ─── KPI STAT BOX ──────────────────────────────────────── */
-.stat-box {{
-  background: {surface};
-  border: 1px solid {border};
-  border-radius: 10px; padding: 16px 18px;
-  position: relative; overflow: hidden; height: 100%;
+/* ─── STAT / BADGE / CARD COMPONENTS ────────────────────── */
+.stat-box, .kd-card, .sm-card, .mrow, .att-row, .upload-lock {{
+  background:{surface}; border:1px solid {border}; box-shadow:{shadow_sm};
 }}
-.stat-box-label {{
-  font-size: .6rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .12em; color: {text_dim}; margin-bottom: 4px;
+.stat-box {{ border-radius:14px; padding:17px 18px; position:relative; overflow:hidden; height:100%; }}
+.stat-box-label, .kd-card-label, .sm-label, .mdet-block-label {{
+  font-size:.60rem; font-weight:900; text-transform:uppercase; letter-spacing:.12em; color:{text_dim};
 }}
-.stat-box-value {{
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 1.4rem; font-weight: 600;
-  color: {text}; line-height: 1; letter-spacing: -.03em;
+.stat-box-value, .kd-card-value, .sm-count, .mdet-block-val {{
+  font-family:'JetBrains Mono', monospace; font-weight:700; color:{text}; letter-spacing:-.045em; line-height:1;
 }}
-.stat-box-sub {{ font-size: .67rem; color: {text_dim}; margin-top: 5px; }}
-.stat-box-bar {{
-  position: absolute; bottom: 0; left: 0; height: 2px;
-  background: linear-gradient(90deg, {amber}, transparent);
-}}
-
-/* ─── STATUS BADGE ──────────────────────────────────────── */
+.stat-box-value {{ font-size:1.45rem; }}
+.stat-box-sub, .kd-card-sub, .sm-pct, .mrow-meta, .mdet-block-sub, .mdet-gap {{ font-size:.67rem; color:{text_dim}; }}
+.stat-box-bar {{ position:absolute; bottom:0; left:0; height:3px; background:linear-gradient(90deg,{accent},transparent); }}
 .sbadge {{
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 9px; border-radius: 4px;
-  font-size: .63rem; font-weight: 700; letter-spacing: .05em;
-  text-transform: uppercase; white-space: nowrap; border: 1px solid;
+  display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px;
+  font-size:.64rem; font-weight:900; letter-spacing:.045em; text-transform:uppercase; white-space:nowrap; border:1px solid;
 }}
-.sbadge-ok  {{ color: {ok_tx};  border-color: {ok_br};  background: {ok_bg};  }}
-.sbadge-wa  {{ color: {wa_tx};  border-color: {wa_br};  background: {wa_bg};  }}
-.sbadge-er  {{ color: {er_tx};  border-color: {er_br};  background: {er_bg};  }}
+.sbadge-ok {{ color:{green}; border-color:{ok_br}; background:{ok_bg}; }}
+.sbadge-wa {{ color:{yellow}; border-color:{wa_br}; background:{wa_bg}; }}
+.sbadge-er {{ color:{red}; border-color:{er_br}; background:{er_bg}; }}
 
 /* ─── MEMBER ROW ────────────────────────────────────────── */
-.mrow {{
-  background: {surface};
-  border: 1px solid {border};
-  border-radius: 10px; margin-bottom: 6px;
-  overflow: hidden; transition: border-color .2s, background .2s;
-}}
-.mrow:hover {{ border-color: {border_hi}; background: {surface2}; }}
-.mrow.ok {{ border-left: 3px solid {ok_tx}; }}
-.mrow.wa {{ border-left: 3px solid {wa_tx}; }}
-.mrow.er {{ border-left: 3px solid {er_tx}; }}
-
-.mrow-sum {{
-  display: grid;
-  grid-template-columns: 36px 1fr 90px 80px auto;
-  align-items: center; gap: 12px; padding: 12px 16px;
-}}
-.mrow-rank {{
-  font-family: 'JetBrains Mono', monospace;
-  font-size: .85rem; font-weight: 600;
-  color: {text_muted}; text-align: right;
-}}
-.mrow-name {{
-  font-size: .88rem; font-weight: 700; color: {text};
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}}
-.mrow-meta {{ font-size: .64rem; color: {text_dim}; margin-top: 2px; }}
-
-/* dual-gauge */
-.gauge-head {{
-  display: flex; justify-content: space-between;
-  font-size: .58rem; color: {text_dim}; margin-bottom: 2px;
-}}
-.gauge-track {{
-  height: 5px; background: {gauge_bg};
-  border-radius: 99px; overflow: hidden; border: 1px solid {gauge_bdr};
-}}
-.gauge-fill {{ height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1); }}
-.gauge-fill.kp   {{ background: linear-gradient(90deg, {amber},    {amber_hi}); }}
-.gauge-fill.dead {{ background: linear-gradient(90deg, {blue_dark},{blue});     }}
-.gauge-fill.full {{ background: linear-gradient(90deg, {green},    {green});    }}
-
-.mrow-kp {{
-  font-family: 'JetBrains Mono', monospace;
-  font-size: .9rem; font-weight: 600; color: {amber}; text-align: right; white-space: nowrap;
-}}
+.mrow {{ border-radius:14px; margin-bottom:8px; overflow:hidden; transition:border-color .2s, background .2s, transform .15s; }}
+.mrow:hover {{ border-color:{border_hi}; background:{surface2}; transform:translateY(-1px); }}
+.mrow.ok {{ border-left:4px solid {green}; }}
+.mrow.wa {{ border-left:4px solid {yellow}; }}
+.mrow.er {{ border-left:4px solid {red}; }}
+.mrow-sum {{ display:grid; grid-template-columns:42px 1fr 110px 92px auto; align-items:center; gap:14px; padding:13px 16px; }}
+.mrow-rank {{ font-family:'JetBrains Mono', monospace; font-size:.86rem; font-weight:700; color:{text_muted}; text-align:right; }}
+.mrow-name {{ font-size:.91rem; font-weight:800; color:{text}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.mrow-kp {{ font-family:'JetBrains Mono', monospace; font-size:.92rem; font-weight:700; color:{accent}; text-align:right; white-space:nowrap; }}
+.gauge-head {{ display:flex; justify-content:space-between; font-size:.59rem; color:{text_dim}; margin-bottom:3px; }}
+.gauge-track {{ height:6px; background:{gauge_bg}; border-radius:999px; overflow:hidden; border:1px solid {gauge_bdr}; }}
+.gauge-fill {{ height:100%; border-radius:999px; transition:width .6s cubic-bezier(.4,0,.2,1); }}
+.gauge-fill.kp {{ background:linear-gradient(90deg,{accent},{accent_hi}); }}
+.gauge-fill.dead {{ background:linear-gradient(90deg,{blue_dark},{blue}); }}
+.gauge-fill.full {{ background:linear-gradient(90deg,{green},{green}); }}
 
 /* detail panel */
-.mdet {{
-  border-top: 1px solid {border};
-  background: {surface2}; padding: 16px 20px 20px;
-}}
-.mdet-accent-bar {{ height: 1px; margin-bottom: 16px; }}
-.mdet-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }}
-.mdet-block-label {{
-  font-size: .58rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .12em; color: {text_dim}; margin-bottom: 6px;
-}}
-.mdet-block-val {{
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 1.6rem; font-weight: 600; color: {text};
-  letter-spacing: -.04em; line-height: 1;
-}}
-.mdet-block-sub {{ font-size: .65rem; color: {text_dim}; margin-top: 4px; }}
-.mdet-prog {{ margin-top: 8px; }}
-.mdet-prog-head {{
-  display: flex; justify-content: space-between;
-  font-size: .6rem; color: {text_dim}; margin-bottom: 3px;
-}}
-.mdet-prog-track {{
-  height: 8px; background: {gauge_bg}; border-radius: 99px; overflow: hidden;
-}}
-.mdet-prog-fill {{ height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1); }}
-.mdet-prog-fill.kp        {{ background: linear-gradient(90deg,{amber},{amber_hi}); }}
-.mdet-prog-fill.dead      {{ background: linear-gradient(90deg,{blue_dark},{blue}); }}
-.mdet-prog-fill.full-kp   {{ background: linear-gradient(90deg,{green},{green});    }}
-.mdet-prog-fill.full-dead {{ background: linear-gradient(90deg,{green},{green});    }}
-.mdet-gap {{ font-size: .62rem; color: {text_dim}; margin-top: 4px; }}
-.mdet-gap.warn {{ color: {red};   }}
-.mdet-gap.ok   {{ color: {green}; }}
+.mdet {{ border-top:1px solid {border}; background:{surface2}; padding:17px 20px 20px; }}
+.mdet-accent-bar {{ height:2px; margin-bottom:16px; border-radius:999px; }}
+.mdet-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:16px; }}
+.mdet-block-val {{ font-size:1.65rem; }}
+.mdet-prog {{ margin-top:9px; }}
+.mdet-prog-head {{ display:flex; justify-content:space-between; font-size:.62rem; color:{text_dim}; margin-bottom:4px; }}
+.mdet-prog-track {{ height:9px; background:{gauge_bg}; border-radius:999px; overflow:hidden; }}
+.mdet-prog-fill {{ height:100%; border-radius:999px; transition:width .6s cubic-bezier(.4,0,.2,1); }}
+.mdet-prog-fill.kp {{ background:linear-gradient(90deg,{accent},{accent_hi}); }}
+.mdet-prog-fill.dead {{ background:linear-gradient(90deg,{blue_dark},{blue}); }}
+.mdet-prog-fill.full-kp, .mdet-prog-fill.full-dead {{ background:linear-gradient(90deg,{green},{green}); }}
+.mdet-gap.warn {{ color:{red}; }}
+.mdet-gap.ok {{ color:{green}; }}
 
-/* tier table */
-.tier-table {{ width: 100%; border-collapse: collapse; margin-top: 4px; }}
-.tier-table th {{
-  font-size: .58rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .10em; color: {tbl_th_c};
-  padding: 5px 8px; text-align: right; border-bottom: 1px solid {tbl_sep};
+/* tables */
+.tier-table, .band-table {{ width:100%; border-collapse:collapse; }}
+.tier-table th, .band-table th {{
+  font-size:.59rem; font-weight:900; text-transform:uppercase; letter-spacing:.10em; color:{table_header};
+  padding:7px 9px; text-align:right; border-bottom:1px solid {border};
 }}
-.tier-table th:first-child {{ text-align: left; }}
-.tier-table td {{
-  font-family: 'JetBrains Mono', monospace;
-  font-size: .75rem; color: {tbl_td_c};
-  padding: 5px 8px; text-align: right; border-bottom: 1px solid {tbl_row_sep};
+.tier-table th:first-child, .band-table th:first-child {{ text-align:left; }}
+.tier-table td, .band-table td {{
+  font-family:'JetBrains Mono', monospace; font-size:.76rem; color:{table_cell}; padding:7px 9px;
+  text-align:right; border-bottom:1px solid {border};
 }}
-.tier-table td:first-child {{ text-align: left; color: {tbl_td1_c}; font-weight: 600; }}
-.tier-table tr:last-child td {{ border-bottom: none; }}
-.tier-table td.amber {{ color: {amber}; }}
-.tier-table td.blue  {{ color: {blue};  }}
-.tier-table td.equiv {{ color: {text_dim}; font-size: .68rem; }}
+.tier-table td:first-child, .band-table td:first-child {{ text-align:left; color:{table_dim}; font-weight:800; }}
+.band-table td:first-child {{ font-family:'Inter', sans-serif; font-size:.80rem; }}
+.tier-table tr:last-child td, .band-table tr:last-child td {{ border-bottom:none; }}
+.tier-table td.amber {{ color:{accent}; }}
+.tier-table td.blue {{ color:{blue}; }}
+.tier-table td.equiv {{ color:{text_dim}; font-size:.69rem; }}
 
-/* ─── KINGDOM CARDS ─────────────────────────────────────── */
-.kd-row {{ display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 18px; }}
-.kd-card {{
-  background: {kd_bg};
-  border: 1px solid {border};
-  border-radius: 10px; padding: 16px 18px;
-  position: relative; overflow: hidden;
-}}
-.kd-card::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }}
-.kd-card.amber::before {{ background: linear-gradient(90deg,{amber},transparent); }}
-.kd-card.green::before {{ background: linear-gradient(90deg,{green},transparent); }}
-.kd-card.yellow::before{{ background: linear-gradient(90deg,{yellow},transparent); }}
-.kd-card.red::before   {{ background: linear-gradient(90deg,{red},transparent);   }}
-.kd-card.blue::before  {{ background: linear-gradient(90deg,{blue},transparent);  }}
-.kd-card-icon  {{ font-size: 1.2rem; margin-bottom: 8px; opacity: .7; }}
-.kd-card-label {{
-  font-size: .58rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .12em; color: {text_dim}; margin-bottom: 5px;
-}}
-.kd-card-value {{
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 1.45rem; font-weight: 600; color: {text};
-  letter-spacing: -.03em; line-height: 1;
-}}
-.kd-card-sub {{ font-size: .65rem; color: {text_muted}; margin-top: 4px; }}
+/* ─── KINGDOM AREA ──────────────────────────────────────── */
+.kd-row {{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }}
+.kd-card {{ border-radius:16px; padding:17px 18px; position:relative; overflow:hidden; }}
+.kd-card::before {{ content:''; position:absolute; top:0; left:0; right:0; height:3px; }}
+.kd-card.amber::before {{ background:linear-gradient(90deg,{accent},transparent); }}
+.kd-card.green::before {{ background:linear-gradient(90deg,{green},transparent); }}
+.kd-card.yellow::before {{ background:linear-gradient(90deg,{yellow},transparent); }}
+.kd-card.red::before {{ background:linear-gradient(90deg,{red},transparent); }}
+.kd-card.blue::before {{ background:linear-gradient(90deg,{blue},transparent); }}
+.kd-card-icon {{ font-size:1.25rem; margin-bottom:9px; opacity:.84; }}
+.kd-card-value {{ font-size:1.48rem; }}
+.sm-card {{ border-radius:16px; padding:17px 18px; }}
+.sm-count {{ font-size:2.05rem; }}
+.sm-denom {{ font-size:1rem; color:{text_muted}; }}
+.sm-bar {{ background:{gauge_bg}; border-radius:999px; height:7px; overflow:hidden; margin-top:11px; }}
+.sm-fill {{ height:100%; border-radius:999px; }}
+.att-row {{ display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; margin-bottom:7px; }}
+.att-row.er {{ border-left:4px solid {red}; }}
+.att-row.wa {{ border-left:4px solid {yellow}; }}
+.att-name {{ flex:1; font-size:.84rem; font-weight:800; color:{text}; }}
+.att-pow, .att-pcts {{ font-size:.68rem; color:{text_dim}; white-space:nowrap; }}
 
-/* status meter card */
-.sm-card {{
-  background: {surface}; border: 1px solid {border};
-  border-radius: 10px; padding: 16px 18px;
-}}
-.sm-label {{ font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {text_dim}; margin-bottom: 8px; }}
-.sm-count {{ font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 600; color: {text}; letter-spacing: -.04em; line-height: 1; }}
-.sm-denom {{ font-size: 1rem; color: {text_muted}; }}
-.sm-bar {{ background: {gauge_bg}; border-radius: 99px; height: 6px; overflow: hidden; margin-top: 10px; }}
-.sm-fill {{ height: 100%; border-radius: 99px; }}
-.sm-pct {{ font-size: .6rem; color: {text_dim}; margin-top: 4px; }}
-
-/* attention row */
-.att-row {{
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 14px; background: {att_bg};
-  border: 1px solid {att_br}; border-radius: 8px; margin-bottom: 5px;
-}}
-.att-row.er {{ border-left: 3px solid {er_tx}; }}
-.att-row.wa {{ border-left: 3px solid {wa_tx}; }}
-.att-name {{ flex: 1; font-size: .82rem; font-weight: 600; color: {text}; }}
-.att-pow  {{ font-size: .68rem; color: {text_dim}; white-space: nowrap; }}
-.att-pcts {{ font-size: .65rem; color: {text_dim}; white-space: nowrap; }}
-
-/* power band table */
-.band-table {{ width: 100%; border-collapse: collapse; }}
-.band-table th {{
-  font-size: .58rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .10em; color: {band_th};
-  padding: 8px 12px; text-align: right; border-bottom: 1px solid {band_sep};
-}}
-.band-table th:first-child {{ text-align: left; }}
-.band-table td {{
-  font-family: 'JetBrains Mono', monospace;
-  font-size: .76rem; color: {band_td};
-  padding: 8px 12px; text-align: right; border-bottom: 1px solid {tbl_row_sep};
-}}
-.band-table td:first-child {{ text-align: left; color: {band_td1}; font-weight: 600; font-family: 'Inter', sans-serif; font-size: .78rem; }}
-.band-table tr:last-child td {{ border-bottom: none; }}
-
-/* ─── UPLOAD LOCK ───────────────────────────────────────── */
-.upload-lock {{
-  background: {surface2};
-  border: 1px solid {border}; border-radius: 8px;
-  padding: 14px; text-align: center; margin-bottom: 10px;
-}}
-.upload-lock-icon {{ font-size: 1.3rem; margin-bottom: 6px; }}
-.upload-lock-text {{ font-size: .72rem; color: {text_dim}; margin-bottom: 10px; }}
-
-/* ─── SIDEBAR SECTION LABEL ─────────────────────────────── */
+/* ─── SIDEBAR / STATES / CAPTION ────────────────────────── */
+.upload-lock {{ border-radius:12px; padding:15px; text-align:center; margin-bottom:10px; background:{surface2}; }}
+.upload-lock-icon {{ font-size:1.35rem; margin-bottom:6px; }}
+.upload-lock-text {{ font-size:.74rem; color:{text_dim}; margin-bottom:10px; }}
 .sb-sec {{
-  font-size: .58rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .14em; color: #5a5040;
-  border-bottom: 1px solid rgba(200,146,42,0.15);
-  padding-bottom: 6px; margin: 14px 0 10px;
+  font-size:.59rem; font-weight:900; text-transform:uppercase; letter-spacing:.14em; color:{sidebar_dim};
+  border-bottom:1px solid {sidebar_border}; padding-bottom:7px; margin:15px 0 10px;
 }}
-
-/* ─── CAPTION ───────────────────────────────────────────── */
 .rok-caption {{
-  display: flex; align-items: center; gap: 14px;
-  padding: 8px 14px; margin-bottom: 16px;
-  background: {surface2}; border: 1px solid {border};
-  border-radius: 6px; flex-wrap: wrap;
+  display:flex; align-items:center; gap:14px; padding:10px 14px; margin-bottom:18px;
+  background:{surface}; border:1px solid {border}; border-radius:12px; flex-wrap:wrap; box-shadow:{shadow_sm};
 }}
-.rok-caption-item {{ font-size: .68rem; color: {text_dim}; }}
-.rok-caption-val  {{ color: {amber_hi}; font-weight: 600; }}
-.rok-caption-sep  {{ color: {text_muted}; font-size: .7rem; }}
+.rok-caption-item {{ font-size:.70rem; color:{text_dim}; }}
+.rok-caption-val {{ color:{accent}; font-weight:900; }}
+.rok-caption-sep {{ color:{text_muted}; font-size:.72rem; }}
+.empty-state {{ text-align:center; padding:64px 20px; }}
+.empty-state-icon {{ font-size:3rem; margin-bottom:14px; opacity:.45; }}
+.empty-state-title {{ font-size:1.05rem; font-weight:800; color:{text_sub}; margin-bottom:6px; }}
+.empty-state-sub {{ font-size:.78rem; color:{text_dim}; }}
 
-/* ─── EMPTY STATE ───────────────────────────────────────── */
-.empty-state {{ text-align: center; padding: 60px 20px; }}
-.empty-state-icon  {{ font-size: 3rem; margin-bottom: 14px; opacity: .4; }}
-.empty-state-title {{ font-size: 1rem; font-weight: 700; color: {text_sub}; margin-bottom: 6px; }}
-.empty-state-sub   {{ font-size: .75rem; color: {text_dim}; }}
+@media (max-width: 1100px) {{
+  .kd-row {{ grid-template-columns:repeat(2,1fr); }}
+  .mrow-sum {{ grid-template-columns:34px 1fr; }}
+  .mrow-gauges, .mrow-kp, .mrow-sum > div:last-child {{ grid-column:2; }}
+  .mdet-grid {{ grid-template-columns:1fr; }}
+}}
 </style>
 """
 
@@ -678,7 +524,7 @@ def main() -> None:
     # Sidebar
     with st.sidebar:
         st.markdown(f'<div class="sb-sec">Sistema</div>', unsafe_allow_html=True)
-        st.markdown(f'<div style="font-size:.68rem;color:#5a5448;margin-bottom:12px">Storage: <span style="color:#c8922a">{storage.label}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="sidebar-storage">Storage: <span>{storage.label}</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="sb-sec">Relatórios</div>', unsafe_allow_html=True)
         handle_upload(storage)
 
@@ -883,7 +729,7 @@ def show_ranking(ranked_full: pd.DataFrame) -> None:
     with col_pg1:
         page = st.number_input("Página",min_value=1,max_value=total_pg,value=1,key="rank_pg",label_visibility="collapsed")
     with col_pg2:
-        st.markdown(f'<div style="font-size:.65rem;color:#3a3428;padding-top:8px">Página {page} de {total_pg}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="page-hint">Página {page} de {total_pg}</div>', unsafe_allow_html=True)
 
     start = (page-1)*page_size
     _render_members(df.iloc[start:start+page_size])
@@ -954,7 +800,7 @@ def _render_members(df: pd.DataFrame) -> None:
 
             st.markdown(f"""
             <div class="mdet">
-              <div class="mdet-accent-bar" style="background:{'#4ade80' if cls=='ok' else '#fbbf24' if cls=='wa' else '#f87171'}"></div>
+              <div class="mdet-accent-bar" style="background:{ui_tokens()['green'] if cls=='ok' else ui_tokens()['yellow'] if cls=='wa' else ui_tokens()['red']}"></div>
               <div class="mdet-grid">
                 <div>
                   <div class="mdet-block-label">Kill Points</div>
@@ -1076,11 +922,12 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="sec-label">Status das metas</div>', unsafe_allow_html=True)
+    theme = ui_tokens()
     m1, m2, m3 = st.columns(3)
     for col, lbl, count, color in [
-        (m1,"Aprovados",  approved,"#4ade80"),
-        (m2,"Pendentes",  pending, "#fbbf24"),
-        (m3,"Abaixo da meta", below, "#f87171"),
+        (m1,"Aprovados",  approved, theme["green"]),
+        (m2,"Pendentes",  pending, theme["yellow"]),
+        (m3,"Abaixo da meta", below, theme["red"]),
     ]:
         pct = count/total*100 if total else 0
         with col:
@@ -1099,7 +946,7 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
     if px is not None:
         st.markdown('<div class="sec-label">Distribuição de Kill Points</div>', unsafe_allow_html=True)
         g1, g2 = st.columns([3,2])
-        cmap = {"Aprovado":"#4ade80","Pendente":"#fbbf24","Abaixo da meta":"#f87171"}
+        cmap = {"Aprovado": theme["green"], "Pendente": theme["yellow"], "Abaixo da meta": theme["red"]}
 
         with g1:
             top20 = ranked.sort_values("kill_points",ascending=True).tail(20)
@@ -1108,22 +955,22 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
                          labels={"kill_points":"Kill Points","username":""})
             fig.update_layout(showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#7a7060",family="Inter"),
-                yaxis=dict(tickfont=dict(size=11,color="#9a9080"),gridcolor="rgba(200,146,42,0.06)"),
-                xaxis=dict(tickfont=dict(size=10),gridcolor="rgba(200,146,42,0.06)"))
+                font=dict(color=theme["plot_axis"], family="Inter"),
+                yaxis=dict(tickfont=dict(size=11, color=theme["plot_axis"]), gridcolor=theme["plot_grid"]),
+                xaxis=dict(tickfont=dict(size=10, color=theme["plot_axis"]), gridcolor=theme["plot_grid"]))
             fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
 
         with g2:
             fig2 = px.pie(values=[approved,pending,below],
                 names=["Aprovado","Pendente","Abaixo da meta"],
-                hole=0.65, color_discrete_sequence=["#4ade80","#fbbf24","#f87171"])
+                hole=0.65, color_discrete_sequence=[theme["green"], theme["yellow"], theme["red"]])
             fig2.update_traces(textposition="inside",textinfo="percent",textfont_size=11,
-                               marker=dict(line=dict(color="#0d0f14",width=2)))
+                               marker=dict(line=dict(color=theme["pie_line"], width=2)))
             fig2.update_layout(showlegend=True,margin=dict(t=10,b=0,l=0,r=0),
                 paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#7a7060",family="Inter"),
-                legend=dict(orientation="h",y=-0.08,font=dict(size=10,color="#7a7060")))
+                font=dict(color=theme["plot_axis"], family="Inter"),
+                legend=dict(orientation="h", y=-0.08, font=dict(size=10, color=theme["plot_axis"])))
             st.plotly_chart(fig2, use_container_width=True)
 
     if len(imports) >= 2:
@@ -1143,18 +990,18 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
         if px is not None and len(hist) >= 2:
             hc1, hc2 = st.columns(2)
             plot_cfg = dict(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#7a7060",family="Inter"),margin=dict(t=10,b=0,l=0,r=0),
-                xaxis=dict(gridcolor="rgba(200,146,42,0.06)"),
-                yaxis=dict(gridcolor="rgba(200,146,42,0.06)"))
+                font=dict(color=theme["plot_axis"], family="Inter"), margin=dict(t=10,b=0,l=0,r=0),
+                xaxis=dict(gridcolor=theme["plot_grid"], tickfont=dict(color=theme["plot_axis"])),
+                yaxis=dict(gridcolor=theme["plot_grid"], tickfont=dict(color=theme["plot_axis"])))
             with hc1:
-                fig3 = px.line(hist,x="Data",y="KP",markers=True,color_discrete_sequence=["#c8922a"])
+                fig3 = px.line(hist, x="Data", y="KP", markers=True, color_discrete_sequence=[theme["accent"]])
                 fig3.update_layout(**plot_cfg)
                 fig3.update_traces(line_width=2,marker_size=6)
                 st.plotly_chart(fig3,use_container_width=True)
             with hc2:
                 melt = hist[["Data","Aprovados","Pendentes","Abaixo"]].melt(id_vars="Data",var_name="Status",value_name="N")
                 fig4 = px.bar(melt,x="Data",y="N",color="Status",barmode="stack",
-                    color_discrete_map={"Aprovados":"#4ade80","Pendentes":"#fbbf24","Abaixo":"#f87171"})
+                    color_discrete_map={"Aprovados": theme["green"], "Pendentes": theme["yellow"], "Abaixo": theme["red"]})
                 fig4.update_layout(**{**plot_cfg,"showlegend":True,
                     "legend":dict(orientation="h",y=-0.15,font=dict(size=10))})
                 fig4.update_traces(marker_line_width=0)
@@ -1220,15 +1067,16 @@ def show_history(storage, imports, group_power):
     top   = met.sort_values("kill_points",ascending=False).head(15)
 
     if not top.empty and px is not None:
+        theme = ui_tokens()
         fig = px.bar(top.sort_values("kill_points",ascending=True),
                      x="kill_points",y="username",orientation="h",
-                     color_discrete_sequence=["#c8922a"],
+                     color_discrete_sequence=[theme["accent"]],
                      labels={"kill_points":"Kill Points Ganhos","username":""})
         fig.update_layout(showlegend=False,margin=dict(t=10,b=0,l=0,r=0),
             paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#7a7060",family="Inter"),
-            yaxis=dict(tickfont=dict(size=11,color="#9a9080"),gridcolor="rgba(200,146,42,0.06)"),
-            xaxis=dict(gridcolor="rgba(200,146,42,0.06)"))
+            font=dict(color=theme["plot_axis"], family="Inter"),
+            yaxis=dict(tickfont=dict(size=11, color=theme["plot_axis"]), gridcolor=theme["plot_grid"]),
+            xaxis=dict(tickfont=dict(color=theme["plot_axis"]), gridcolor=theme["plot_grid"]))
         fig.update_traces(marker_line_width=0)
         st.plotly_chart(fig,use_container_width=True)
 
