@@ -618,6 +618,18 @@ def get_secret(name):
     except: v = None
     return str(v) if v else None
 
+def inject_css(dark: bool) -> None:
+    """Injeta o CSS do app sem deixar o código aparecer como texto na tela."""
+    css = _css(dark).strip()
+
+    # Streamlit mais novo: melhor forma para HTML/CSS puro.
+    if hasattr(st, "html"):
+        st.html(css)
+    else:
+        # Compatibilidade com versões antigas do Streamlit.
+        st.markdown(css, unsafe_allow_html=True)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Main
 # ══════════════════════════════════════════════════════════════════════════════
@@ -629,7 +641,7 @@ def main() -> None:
     dark = st.session_state.dark_mode
 
     # inject CSS before anything renders
-    st.markdown(_css(dark), unsafe_allow_html=True)
+    inject_css(dark)
 
     storage = get_storage()
 
