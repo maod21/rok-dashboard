@@ -33,27 +33,27 @@ st.set_page_config(
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _css() -> str:
-    # Paleta "Azul Estático" (Única)
-    bg = "#F0F4F8"           
-    surface = "#FFFFFF"      
-    surface2 = "#E1E8EF"     
-    border = "rgba(30, 136, 229, 0.15)" 
-    border_hi = "rgba(30, 136, 229, 0.5)"
+    # Paleta "Azul Estático" Personalizada
+    bg = "#E9F1FA"           # Azul claro solicitado
+    surface = "#FFFFFF"      # Branco solicitado
+    surface2 = "#F5F8FC"     # Um tom levemente off-white para separações internas
+    border = "rgba(0, 171, 228, 0.2)" 
+    border_hi = "rgba(0, 171, 228, 0.5)"
     
-    text = "#102A43"         
+    text = "#102A43"         # Azul ultra escuro para garantir leitura perfeita
     text_sub = "#334E68"     
     text_dim = "#627D98"
     text_mut = "#829AB1"
     
     # Cores de Ação e Identidade
-    blue = "#1E88E5"         
-    blue_dark = "#1565C0"
+    blue = "#00ABE4"         # Azul brilhante solicitado
+    blue_dark = "#0088B6"    # Versão levemente mais escura para gradientes
     amber = "#F59E0B"        
     amber_hi = "#D97706"
     green, yellow, red = "#10B981", "#F59E0B", "#EF4444"
     
-    gauge_bg, gauge_bdr = "rgba(30, 136, 229, 0.05)", "rgba(30, 136, 229, 0.1)"
-    sidebar_bg = "#FFFFFF"
+    gauge_bg, gauge_bdr = "rgba(0, 171, 228, 0.08)", "rgba(0, 171, 228, 0.15)"
+    sidebar_bg = "#FFFFFF"   # Sidebar em branco para mesclar bem com o azul brilhante
     
     # Badges
     ok_bg, ok_br, ok_tx = "rgba(16, 185, 129, 0.1)", "rgba(16, 185, 129, 0.3)", "#10B981"
@@ -67,10 +67,10 @@ def _css() -> str:
     t1_tx, t1_br, t1_bg = "#627D98", "rgba(98, 125, 152, 0.4)", "rgba(98, 125, 152, 0.1)"
     eq_tx, eq_br, eq_bg = "#829AB1", "rgba(130, 154, 177, 0.4)", "rgba(130, 154, 177, 0.1)"
     
-    hdr1, hdr2 = "#FFFFFF", "#F0F4F8"
-    metric_line = "linear-gradient(90deg, #1E88E5 0%, transparent 100%)"
-    tbl_th, tbl_td, tbl_td1 = "#627D98", "#E1E8EF", "#102A43"
-    tbl_rowsep = "rgba(30, 136, 229, 0.08)"
+    hdr1, hdr2 = "#FFFFFF", "#E9F1FA"
+    metric_line = "linear-gradient(90deg, #00ABE4 0%, transparent 100%)"
+    tbl_th, tbl_td, tbl_td1 = "#627D98", "#F5F8FC", "#102A43"
+    tbl_rowsep = "rgba(0, 171, 228, 0.1)"
 
     return f"""
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -79,7 +79,7 @@ def _css() -> str:
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
 html, body, [class*="css"], .stApp {{ font-family: 'Inter', system-ui, sans-serif !important; background: {bg} !important; color: {text} !important; }}
 .main .block-container {{ padding: 1.5rem 2.5rem 3rem !important; max-width: 1500px !important; background:{bg} !important; }}
-section[data-testid="stSidebar"] {{ background: {sidebar_bg} !important; border-right: 1px solid {border} !important; box-shadow: 2px 0 12px rgba(30,136,229,0.05); }}
+section[data-testid="stSidebar"] {{ background: {sidebar_bg} !important; border-right: 1px solid {border} !important; box-shadow: 2px 0 12px rgba(0, 171, 228, 0.05); }}
 section[data-testid="stSidebar"] > div {{ padding: 2rem 1.5rem !important; }}
 section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 
@@ -91,12 +91,12 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
   padding: 20px 24px !important; 
   position: relative; 
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(30,136,229,0.04);
+  box-shadow: 0 4px 16px rgba(0, 171, 228, 0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }}
 [data-testid="stMetric"]:hover {{
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(30,136,229,0.08);
+    box-shadow: 0 8px 24px rgba(0, 171, 228, 0.08);
 }}
 [data-testid="stMetric"]::after {{ content:''; position:absolute; bottom:0; left:0; right:0; height:3px; background:{metric_line}; }}
 [data-testid="stMetricLabel"] {{ font-size:0.7rem !important; font-weight:700 !important; text-transform:uppercase; letter-spacing:0.15em; color:{text_dim} !important; }}
@@ -110,25 +110,25 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
   background: transparent !important; transition: all 0.2s ease;
 }}
 [data-testid="stTabs"] button[role="tab"]:hover {{ color: {blue} !important; background: {surface2} !important; }}
-[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{ color: {blue} !important; background: {surface} !important; box-shadow: 0 2px 8px rgba(30,136,229,0.1); border-bottom: 2px solid {blue} !important; }}
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{ color: {blue} !important; background: {surface} !important; box-shadow: 0 2px 8px rgba(0, 171, 228, 0.1); border-bottom: 2px solid {blue} !important; }}
 
 /* Inputs e Botões */
 [data-testid="stTextInput"] input, [data-testid="stSelectbox"] > div > div, [data-testid="stNumberInput"] input {{ 
   background: {surface} !important; border: 1px solid {border} !important; border-radius: 8px !important; 
   color: {text} !important; font-size: 0.85rem !important; transition: border-color 0.2s ease;
 }}
-[data-testid="stTextInput"] input:focus, [data-testid="stSelectbox"] > div > div:focus-within {{ border-color: {blue} !important; box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15) !important; }}
-[data-testid="stButton"] button {{ background: {blue} !important; color: #fff !important; border: none !important; border-radius: 8px !important; font-weight: 800 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.5rem 1rem !important; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2); }}
-[data-testid="stButton"] button:hover {{ transform: translateY(-2px); box-shadow: 0 6px 16px rgba(30, 136, 229, 0.3); }}
+[data-testid="stTextInput"] input:focus, [data-testid="stSelectbox"] > div > div:focus-within {{ border-color: {blue} !important; box-shadow: 0 0 0 3px rgba(0, 171, 228, 0.15) !important; }}
+[data-testid="stButton"] button {{ background: {blue} !important; color: #fff !important; border: none !important; border-radius: 8px !important; font-weight: 800 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.5rem 1rem !important; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 171, 228, 0.2); }}
+[data-testid="stButton"] button:hover {{ transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 171, 228, 0.3); }}
 
 /* Expander Clean */
 [data-testid="stExpander"] {{ border: 1px solid {border} !important; border-radius: 12px !important; background: {surface} !important; overflow: hidden; }}
 [data-testid="stExpander"] > details > summary {{ background: {surface2} !important; padding: 12px 16px !important; color: {text} !important; font-weight: 600 !important; }}
 
 /* Header Principal */
-.rok-header {{ display: flex; align-items: center; gap: 20px; padding: 24px; margin-bottom: 24px; background: linear-gradient(135deg, {hdr1} 0%, {hdr2} 100%); border: 1px solid {border}; border-radius: 16px; box-shadow: 0 8px 32px rgba(30,136,229,0.05); position: relative; overflow: hidden; }}
+.rok-header {{ display: flex; align-items: center; gap: 20px; padding: 24px; margin-bottom: 24px; background: linear-gradient(135deg, {hdr1} 0%, {hdr2} 100%); border: 1px solid {border}; border-radius: 16px; box-shadow: 0 8px 32px rgba(0, 171, 228, 0.05); position: relative; overflow: hidden; }}
 .rok-header::before {{ content:''; position:absolute; top:0; left:0; width: 4px; height: 100%; background: {blue}; }}
-.rok-header-emblem {{ width: 60px; height: 60px; flex-shrink: 0; background: linear-gradient(135deg, {blue}, {blue_dark}); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 24px rgba(30, 136, 229, 0.3); color: white; }}
+.rok-header-emblem {{ width: 60px; height: 60px; flex-shrink: 0; background: linear-gradient(135deg, {blue}, {blue_dark}); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 24px rgba(0, 171, 228, 0.3); color: white; }}
 .rok-header-title {{ font-size: 1.8rem; font-weight: 900; color: {text}; letter-spacing: -0.04em; line-height: 1; }}
 .rok-header-sub {{ font-size: 0.8rem; font-weight: 600; color: {text_dim}; letter-spacing: 0.08em; margin-top: 6px; text-transform: uppercase; }}
 
@@ -148,8 +148,8 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 .sbadge-er {{ background: {er_bg}; border-color: {er_br}; color: {er_tx}; }}
 
 /* Linha de Jogador (Ranking) */
-.mrow {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; margin-bottom: 8px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 2px 8px rgba(30,136,229,0.03); }}
-.mrow:hover {{ transform: scale(1.002) translateX(4px); border-color: {border_hi}; box-shadow: 0 6px 16px rgba(30,136,229,0.08); z-index: 2; position: relative; }}
+.mrow {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; margin-bottom: 8px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 2px 8px rgba(0, 171, 228, 0.03); }}
+.mrow:hover {{ transform: scale(1.002) translateX(4px); border-color: {border_hi}; box-shadow: 0 6px 16px rgba(0, 171, 228, 0.08); z-index: 2; position: relative; }}
 .mrow.ok {{ border-left: 4px solid {ok_tx}; }}
 .mrow.wa {{ border-left: 4px solid {wa_tx}; }}
 .mrow.er {{ border-left: 4px solid {er_tx}; }}
@@ -164,7 +164,7 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 .gauge-track {{ height: 6px; background: {gauge_bg}; border-radius: 99px; overflow: hidden; border: 1px solid {gauge_bdr}; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }}
 .gauge-fill {{ height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }}
 .gauge-fill.kp {{ background: linear-gradient(90deg, {amber}, {amber_hi}); box-shadow: 0 0 8px rgba(245,158,11,0.4); }}
-.gauge-fill.dead {{ background: linear-gradient(90deg, {blue_dark}, {blue}); box-shadow: 0 0 8px rgba(30,136,229,0.4); }}
+.gauge-fill.dead {{ background: linear-gradient(90deg, {blue_dark}, {blue}); box-shadow: 0 0 8px rgba(0, 171, 228, 0.4); }}
 .gauge-fill.full {{ background: linear-gradient(90deg, {green}, #34D399); box-shadow: 0 0 8px rgba(16,185,129,0.4); }}
 
 .mrow-kp {{ font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 800; color: {amber}; text-align: right; white-space: nowrap; }}
@@ -191,7 +191,7 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 .mdet-gap.warn {{ background: {er_bg}; color: {er_tx}; border: 1px solid {er_br}; }}
 
 /* Tabelas Internas */
-.tier-table {{ width: 100%; border-collapse: collapse; font-size: 0.8rem; background: {surface}; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(30,136,229,0.03); }}
+.tier-table {{ width: 100%; border-collapse: collapse; font-size: 0.8rem; background: {surface}; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 171, 228, 0.03); }}
 .tier-table th {{ text-align: left; padding: 8px 12px; background: {surface2}; color: {text_dim}; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid {border}; }}
 .tier-table td {{ padding: 8px 12px; border-bottom: 1px solid {tbl_rowsep}; font-family: 'JetBrains Mono', monospace; font-weight: 600; color: {text_sub}; }}
 .tier-table td:first-child {{ font-family: 'Inter', sans-serif; font-weight: 800; color: {text}; }}
@@ -204,15 +204,15 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 .sec-label::after {{ content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, {blue} 0%, transparent 100%); opacity: 0.3; }}
 
 /* Tabela de Bandas */
-.band-table {{ width: 100%; border-collapse: separate; border-spacing: 0; background: {surface}; border-radius: 12px; overflow: hidden; border: 1px solid {border}; box-shadow: 0 4px 16px rgba(30,136,229,0.04); }}
+.band-table {{ width: 100%; border-collapse: separate; border-spacing: 0; background: {surface}; border-radius: 12px; overflow: hidden; border: 1px solid {border}; box-shadow: 0 4px 16px rgba(0, 171, 228, 0.04); }}
 .band-table th {{ font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; background: {surface2}; color: {text_sub}; padding: 12px 16px; text-align: right; border-bottom: 1px solid {border}; }}
 .band-table th:first-child {{ text-align: left; }}
 .band-table td {{ font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: {text}; padding: 12px 16px; text-align: right; border-bottom: 1px solid {tbl_rowsep}; }}
 .band-table td:first-child {{ text-align: left; font-family: 'Inter', sans-serif; font-weight: 700; }}
 
 /* Cards de Resumo */
-.kd-card {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; padding: 20px; position: relative; overflow: hidden; box-shadow: 0 4px 16px rgba(30,136,229,0.04); transition: transform 0.2s; }}
-.kd-card:hover {{ transform: translateY(-4px); box-shadow: 0 8px 24px rgba(30,136,229,0.08); }}
+.kd-card {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; padding: 20px; position: relative; overflow: hidden; box-shadow: 0 4px 16px rgba(0, 171, 228, 0.04); transition: transform 0.2s; }}
+.kd-card:hover {{ transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0, 171, 228, 0.08); }}
 .kd-card.amber::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{amber},transparent); }}
 .kd-card.blue::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{blue},transparent); }}
 .kd-card.green::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{green},transparent); }}
@@ -225,7 +225,7 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 .kd-row {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }}
 
 /* SM Cards */
-.sm-card {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(30,136,229,0.03); }}
+.sm-card {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0, 171, 228, 0.03); }}
 .sm-label {{ font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: {text_dim}; margin-bottom: 4px; }}
 .sm-count {{ font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; }}
 .sm-denom {{ font-size: 0.8rem; color: {text_mut}; }}
@@ -252,7 +252,7 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 .empty-state-sub {{ font-size: 0.85rem; color: {text_dim}; }}
 
 /* KVK Event Card */
-.kvk-event-card {{ display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(90deg, {surface}, {surface2}); border: 1px solid {border}; border-left: 4px solid {blue}; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(30,136,229,0.05); }}
+.kvk-event-card {{ display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(90deg, {surface}, {surface2}); border: 1px solid {border}; border-left: 4px solid {blue}; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0, 171, 228, 0.05); }}
 .kvk-event-name {{ font-size: 1.2rem; font-weight: 800; color: {text}; }}
 .kvk-event-dates {{ font-size: 0.8rem; font-weight: 600; color: {text_dim}; margin-top: 4px; }}
 .kvk-event-badge {{ background: {blue}; color: white; padding: 4px 12px; border-radius: 99px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }}
@@ -335,7 +335,7 @@ def main() -> None:
     # Sidebar
     with st.sidebar:
         st.markdown(f'<div class="sb-sec">System</div>', unsafe_allow_html=True)
-        st.markdown(f'<div style="font-size:.68rem;color:#627D98;margin-bottom:12px">Storage: <span style="color:#1E88E5;font-weight:bold;">{storage.label}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:.68rem;color:#627D98;margin-bottom:12px">Storage: <span style="color:#00ABE4;font-weight:bold;">{storage.label}</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="sb-sec">Reports</div>', unsafe_allow_html=True)
         handle_upload(storage)
 
@@ -702,7 +702,7 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
                   <tr><td>T1</td><td>{fmt_k(t1d)}</td><td class="equiv">—</td></tr>
                 </table>
                 <div style="font-size:.62rem;color:#627D98;margin-top:8px">
-                  Total equiv: <span style="color:#1E88E5;font-family:monospace">{fmt_int(dead_equiv)}</span>
+                  Total equiv: <span style="color:#00ABE4;font-family:monospace">{fmt_int(dead_equiv)}</span>
                   / Goal: <span style="color:#829AB1;font-family:monospace">{fmt_int(int(row['dead_t4_goal']))}</span>
                 </div>
                 """, unsafe_allow_html=True)
@@ -715,8 +715,8 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
 
 def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) -> None:
     st.markdown('''
-    <div class="rok-header" style="border-left-color:#1E88E5">
-      <div class="rok-header-emblem" style="background:linear-gradient(135deg,#1E88E5,#1565C0)">🛡</div>
+    <div class="rok-header" style="border-left-color:#00ABE4">
+      <div class="rok-header-emblem" style="background:linear-gradient(135deg,#00ABE4,#0088B6)">🛡</div>
       <div>
         <div class="rok-header-title">KvK Events</div>
         <div class="rok-header-sub">Performance windows for Kingdom vs Kingdom</div>
@@ -901,8 +901,8 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
         fig.update_layout(showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#627D98", family="Inter"),
-            yaxis=dict(tickfont=dict(size=11,color="#627D98"), gridcolor="rgba(30,136,229,0.08)"),
-            xaxis=dict(tickfont=dict(size=10), gridcolor="rgba(30,136,229,0.08)"))
+            yaxis=dict(tickfont=dict(size=11,color="#627D98"), gridcolor="rgba(0, 171, 228, 0.08)"),
+            xaxis=dict(tickfont=dict(size=10), gridcolor="rgba(0, 171, 228, 0.08)"))
         fig.update_traces(marker_line_width=0)
         st.plotly_chart(fig, use_container_width=True)
 
@@ -1056,14 +1056,14 @@ def show_profile(storage, imports, gp):
         fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['kill_points'],
                                  mode='lines+markers', name='Kill Points', line=dict(color='#F59E0B')))
         fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['dead_equiv'],
-                                 mode='lines+markers', name='Deaths (T4eq)', line=dict(color='#1E88E5')))
+                                 mode='lines+markers', name='Deaths (T4eq)', line=dict(color='#00ABE4')))
         
         fig.update_layout(
             title=f"Evolução de {selected_player}",
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#627D98", family="Inter"),
-            yaxis=dict(gridcolor="rgba(30,136,229,0.08)"),
-            xaxis=dict(gridcolor="rgba(30,136,229,0.08)")
+            yaxis=dict(gridcolor="rgba(0, 171, 228, 0.08)"),
+            xaxis=dict(gridcolor="rgba(0, 171, 228, 0.08)")
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -1101,7 +1101,7 @@ def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
     with col_info:
         total_kvks = len(kvks)
         st.markdown(
-            f'<div style="font-size:.68rem;color:#627D98;padding-top:8px">' f'<span style="color:#1E88E5;font-weight:700">{total_kvks}</span> KVK(s) archived' f'</div>',
+            f'<div style="font-size:.68rem;color:#627D98;padding-top:8px">' f'<span style="color:#00ABE4;font-weight:700">{total_kvks}</span> KVK(s) archived' f'</div>',
             unsafe_allow_html=True,
         )
 
@@ -1119,7 +1119,7 @@ def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
         _render_hof_list(kp_df, "kp")
 
     with c2:
-        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#1E88E5;margin-bottom:10px">💀 Top 10 Deaths</div>',
+        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#00ABE4;margin-bottom:10px">💀 Top 10 Deaths</div>',
                     unsafe_allow_html=True)
         _render_hof_list(dead_df, "deaths")
 
@@ -1128,7 +1128,7 @@ def _render_hof_list(df: pd.DataFrame, category: str) -> None:
         st.caption("No data for this KVK.")
         return
     medals = {1:"🥇", 2:"🥈", 3:"🥉"}
-    color  = "#F59E0B" if category == "kp" else "#1E88E5"
+    color  = "#F59E0B" if category == "kp" else "#00ABE4"
     unit   = "KP" if category == "kp" else "T4eq"
 
     for _, row in df.iterrows():
@@ -1139,8 +1139,8 @@ def _render_hof_list(df: pd.DataFrame, category: str) -> None:
         st.markdown(f'''
         <div style="display:flex;align-items:center;gap:10px;
                     padding:{'12px 14px' if is_top else '9px 14px'};
-                    background:{"rgba(30,136,229,0.03)" if is_top else "transparent"};
-                    border:1px solid {"rgba(30,136,229,0.15)" if is_top else "rgba(30,136,229,0.05)"};
+                    background:{"rgba(0, 171, 228, 0.03)" if is_top else "transparent"};
+                    border:1px solid {"rgba(0, 171, 228, 0.15)" if is_top else "rgba(0, 171, 228, 0.05)"};
                     border-radius:8px;margin-bottom:5px;">
           <div style="font-size:{'1.2rem' if is_top else '.85rem'};min-width:28px;text-align:center">{medal}</div>
           <div style="flex:1;min-width:0">
@@ -1187,8 +1187,8 @@ def show_history(storage, imports, group_power):
                 showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#627D98",family="Inter"),
-                yaxis=dict(tickfont=dict(size=11,color="#627D98"),gridcolor="rgba(30,136,229,0.08)"),
-                xaxis=dict(gridcolor="rgba(30,136,229,0.08)"),
+                yaxis=dict(tickfont=dict(size=11,color="#627D98"),gridcolor="rgba(0, 171, 228, 0.08)"),
+                xaxis=dict(gridcolor="rgba(0, 171, 228, 0.08)"),
             )
             fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
