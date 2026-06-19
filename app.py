@@ -32,84 +32,45 @@ st.set_page_config(
 #  DESIGN SYSTEM
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _css(dark: bool) -> str:
-    if dark:
-        # Tema "Obsidian & Azul Celeste" (Foco esportivo/competitivo)
-        bg, surface, surface2 = "#050505", "#0f1115", "#16191f" # Fundo quase preto para contraste extremo
-        border    = "rgba(255,255,255,0.08)"
-        border_hi = "rgba(0, 174, 239, 0.3)" # Azul celeste nas bordas ativas
-        text      = "#f8f9fa"
-        text_sub  = "#adb5bd"
-        text_dim  = "#6c757d"
-        text_mut  = "#495057"
-        
-        # Cores de Ação (Ouro para KP, Azul Celeste para Mortes)
-        amber     = "#d4af37" 
-        amber_hi  = "#f1c40f"
-        blue      = "#00AEEF" # Azul vibrante 
-        blue_dark = "#007bb5"
-        green, yellow, red = "#20c997", "#f5a623", "#fa5252"
-        
-        gauge_bg, gauge_bdr = "rgba(255,255,255,0.05)", "rgba(255,255,255,0.02)"
-        scroll_th = "rgba(212, 175, 55, 0.3)"
-        sidebar_bg = "#0a0b0e"
-        btn_text  = "#000000"
-        
-        # Badges refinados (fundo translúcido, borda sólida)
-        ok_bg,ok_br,ok_tx = "rgba(32,201,151,0.1)","rgba(32,201,151,0.4)","#20c997"
-        wa_bg,wa_br,wa_tx = "rgba(245,166,35,0.1)","rgba(245,166,35,0.4)","#f5a623"
-        er_bg,er_br,er_tx = "rgba(250,82,82,0.1)","rgba(250,82,82,0.4)","#fa5252"
-        
-        t5_tx,t5_br,t5_bg = "#f1c40f","rgba(241,196,15,.4)","rgba(241,196,15,.1)"
-        t4_tx,t4_br,t4_bg = "#fd7e14","rgba(253,126,20,.4)","rgba(253,126,20,.1)"
-        t3_tx,t3_br,t3_bg = "#b197fc","rgba(177,151,252,.4)","rgba(177,151,252,.1)"
-        t2_tx,t2_br,t2_bg = "#339af0","rgba(51,154,240,.4)","rgba(51,154,240,.1)"
-        t1_tx,t1_br,t1_bg = "#868e96","rgba(134,142,150,.4)","rgba(134,142,150,.1)"
-        eq_tx,eq_br,eq_bg = "#adb5bd","rgba(173,181,189,.4)","rgba(173,181,189,.1)"
-        
-        hdr1,hdr2 = "#0f1115","#050505"
-        metric_line = "linear-gradient(90deg, #00AEEF 0%, transparent 100%)"
-        tbl_th,tbl_td,tbl_td1 = "#6c757d","#dee2e6","#adb5bd"
-        tbl_sep, tbl_rowsep = "rgba(255,255,255,0.05)","rgba(255,255,255,0.02)"
-        att_bg, att_br = surface, "rgba(255,255,255,0.05)"
-        sb_sec_color = "#495057"
-    else:
-        # Light Mode (Clean & Minimalist)
-        bg, surface, surface2 = "#f4f6f8", "#ffffff", "#f8f9fa"
-        border    = "rgba(0,0,0,0.08)"
-        border_hi = "rgba(0, 174, 239, 0.4)"
-        text      = "#212529"
-        text_sub  = "#495057"
-        text_dim  = "#868e96"
-        text_mut  = "#adb5bd"
-        amber     = "#d4af37"
-        amber_hi  = "#b5952f"
-        blue      = "#00AEEF"
-        blue_dark = "#007bb5"
-        green, yellow, red = "#0ca678", "#f08c00", "#e03131"
-        
-        gauge_bg, gauge_bdr = "rgba(0,0,0,0.05)", "rgba(0,0,0,0.02)"
-        scroll_th = "rgba(0,0,0,0.2)"
-        sidebar_bg = "#ffffff"
-        btn_text  = "#ffffff"
-        
-        ok_bg,ok_br,ok_tx = "rgba(12,166,120,0.1)","rgba(12,166,120,0.3)","#0ca678"
-        wa_bg,wa_br,wa_tx = "rgba(240,140,0,0.1)","rgba(240,140,0,0.3)","#f08c00"
-        er_bg,er_br,er_tx = "rgba(224,49,49,0.1)","rgba(224,49,49,0.3)","#e03131"
-        
-        t5_tx,t5_br,t5_bg = "#d4af37","rgba(212,175,55,.4)","rgba(212,175,55,.1)"
-        t4_tx,t4_br,t4_bg = "#e8590c","rgba(232,89,12,.4)","rgba(232,89,12,.1)"
-        t3_tx,t3_br,t3_bg = "#845ef7","rgba(132,94,247,.4)","rgba(132,94,247,.1)"
-        t2_tx,t2_br,t2_bg = "#1c7ed6","rgba(28,126,214,.4)","rgba(28,126,214,.1)"
-        t1_tx,t1_br,t1_bg = "#495057","rgba(73,80,87,.4)","rgba(73,80,87,.1)"
-        eq_tx,eq_br,eq_bg = "#868e96","rgba(134,142,150,.4)","rgba(134,142,150,.1)"
-        
-        hdr1,hdr2 = "#ffffff","#f4f6f8"
-        metric_line = "linear-gradient(90deg, #00AEEF 0%, transparent 100%)"
-        tbl_th,tbl_td,tbl_td1 = "#868e96","#495057","#212529"
-        tbl_sep, tbl_rowsep = "rgba(0,0,0,0.05)","rgba(0,0,0,0.02)"
-        att_bg, att_br = surface, "rgba(0,0,0,0.05)"
-        sb_sec_color = "#868e96"
+def _css() -> str:
+    # Paleta "Azul Estático" (Única)
+    bg = "#F0F4F8"           
+    surface = "#FFFFFF"      
+    surface2 = "#E1E8EF"     
+    border = "rgba(30, 136, 229, 0.15)" 
+    border_hi = "rgba(30, 136, 229, 0.5)"
+    
+    text = "#102A43"         
+    text_sub = "#334E68"     
+    text_dim = "#627D98"
+    text_mut = "#829AB1"
+    
+    # Cores de Ação e Identidade
+    blue = "#1E88E5"         
+    blue_dark = "#1565C0"
+    amber = "#F59E0B"        
+    amber_hi = "#D97706"
+    green, yellow, red = "#10B981", "#F59E0B", "#EF4444"
+    
+    gauge_bg, gauge_bdr = "rgba(30, 136, 229, 0.05)", "rgba(30, 136, 229, 0.1)"
+    sidebar_bg = "#FFFFFF"
+    
+    # Badges
+    ok_bg, ok_br, ok_tx = "rgba(16, 185, 129, 0.1)", "rgba(16, 185, 129, 0.3)", "#10B981"
+    wa_bg, wa_br, wa_tx = "rgba(245, 158, 11, 0.1)", "rgba(245, 158, 11, 0.3)", "#F59E0B"
+    er_bg, er_br, er_tx = "rgba(239, 68, 68, 0.1)", "rgba(239, 68, 68, 0.3)", "#EF4444"
+    
+    t5_tx, t5_br, t5_bg = "#D97706", "rgba(245, 158, 11, 0.4)", "rgba(245, 158, 11, 0.1)"
+    t4_tx, t4_br, t4_bg = "#E8590C", "rgba(232, 89, 12, 0.4)", "rgba(232, 89, 12, 0.1)"
+    t3_tx, t3_br, t3_bg = "#845EF7", "rgba(132, 94, 247, 0.4)", "rgba(132, 94, 247, 0.1)"
+    t2_tx, t2_br, t2_bg = "#1C7ED6", "rgba(28, 126, 214, 0.4)", "rgba(28, 126, 214, 0.1)"
+    t1_tx, t1_br, t1_bg = "#627D98", "rgba(98, 125, 152, 0.4)", "rgba(98, 125, 152, 0.1)"
+    eq_tx, eq_br, eq_bg = "#829AB1", "rgba(130, 154, 177, 0.4)", "rgba(130, 154, 177, 0.1)"
+    
+    hdr1, hdr2 = "#FFFFFF", "#F0F4F8"
+    metric_line = "linear-gradient(90deg, #1E88E5 0%, transparent 100%)"
+    tbl_th, tbl_td, tbl_td1 = "#627D98", "#E1E8EF", "#102A43"
+    tbl_rowsep = "rgba(30, 136, 229, 0.08)"
 
     return f"""
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -118,7 +79,7 @@ def _css(dark: bool) -> str:
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
 html, body, [class*="css"], .stApp {{ font-family: 'Inter', system-ui, sans-serif !important; background: {bg} !important; color: {text} !important; }}
 .main .block-container {{ padding: 1.5rem 2.5rem 3rem !important; max-width: 1500px !important; background:{bg} !important; }}
-section[data-testid="stSidebar"] {{ background: {sidebar_bg} !important; border-right: 1px solid {border} !important; box-shadow: 2px 0 12px rgba(0,0,0,0.1); }}
+section[data-testid="stSidebar"] {{ background: {sidebar_bg} !important; border-right: 1px solid {border} !important; box-shadow: 2px 0 12px rgba(30,136,229,0.05); }}
 section[data-testid="stSidebar"] > div {{ padding: 2rem 1.5rem !important; }}
 section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 
@@ -130,12 +91,12 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
   padding: 20px 24px !important; 
   position: relative; 
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 16px rgba(30,136,229,0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }}
 [data-testid="stMetric"]:hover {{
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 24px rgba(30,136,229,0.08);
 }}
 [data-testid="stMetric"]::after {{ content:''; position:absolute; bottom:0; left:0; right:0; height:3px; background:{metric_line}; }}
 [data-testid="stMetricLabel"] {{ font-size:0.7rem !important; font-weight:700 !important; text-transform:uppercase; letter-spacing:0.15em; color:{text_dim} !important; }}
@@ -149,31 +110,31 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
   background: transparent !important; transition: all 0.2s ease;
 }}
 [data-testid="stTabs"] button[role="tab"]:hover {{ color: {blue} !important; background: {surface2} !important; }}
-[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{ color: {blue} !important; background: {surface} !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-bottom: 2px solid {blue} !important; }}
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{ color: {blue} !important; background: {surface} !important; box-shadow: 0 2px 8px rgba(30,136,229,0.1); border-bottom: 2px solid {blue} !important; }}
 
 /* Inputs e Botões */
 [data-testid="stTextInput"] input, [data-testid="stSelectbox"] > div > div, [data-testid="stNumberInput"] input {{ 
   background: {surface} !important; border: 1px solid {border} !important; border-radius: 8px !important; 
   color: {text} !important; font-size: 0.85rem !important; transition: border-color 0.2s ease;
 }}
-[data-testid="stTextInput"] input:focus, [data-testid="stSelectbox"] > div > div:focus-within {{ border-color: {blue} !important; box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15) !important; }}
-[data-testid="stButton"] button {{ background: {blue} !important; color: #fff !important; border: none !important; border-radius: 8px !important; font-weight: 800 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.5rem 1rem !important; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 174, 239, 0.2); }}
-[data-testid="stButton"] button:hover {{ transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 174, 239, 0.3); }}
+[data-testid="stTextInput"] input:focus, [data-testid="stSelectbox"] > div > div:focus-within {{ border-color: {blue} !important; box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15) !important; }}
+[data-testid="stButton"] button {{ background: {blue} !important; color: #fff !important; border: none !important; border-radius: 8px !important; font-weight: 800 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.5rem 1rem !important; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2); }}
+[data-testid="stButton"] button:hover {{ transform: translateY(-2px); box-shadow: 0 6px 16px rgba(30, 136, 229, 0.3); }}
 
 /* Expander Clean */
 [data-testid="stExpander"] {{ border: 1px solid {border} !important; border-radius: 12px !important; background: {surface} !important; overflow: hidden; }}
 [data-testid="stExpander"] > details > summary {{ background: {surface2} !important; padding: 12px 16px !important; color: {text} !important; font-weight: 600 !important; }}
 
 /* Header Principal */
-.rok-header {{ display: flex; align-items: center; gap: 20px; padding: 24px; margin-bottom: 24px; background: linear-gradient(135deg, {hdr1} 0%, {hdr2} 100%); border: 1px solid {border}; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); position: relative; overflow: hidden; }}
+.rok-header {{ display: flex; align-items: center; gap: 20px; padding: 24px; margin-bottom: 24px; background: linear-gradient(135deg, {hdr1} 0%, {hdr2} 100%); border: 1px solid {border}; border-radius: 16px; box-shadow: 0 8px 32px rgba(30,136,229,0.05); position: relative; overflow: hidden; }}
 .rok-header::before {{ content:''; position:absolute; top:0; left:0; width: 4px; height: 100%; background: {blue}; }}
-.rok-header-emblem {{ width: 60px; height: 60px; flex-shrink: 0; background: linear-gradient(135deg, {blue}, {blue_dark}); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 24px rgba(0, 174, 239, 0.3); color: white; }}
+.rok-header-emblem {{ width: 60px; height: 60px; flex-shrink: 0; background: linear-gradient(135deg, {blue}, {blue_dark}); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 24px rgba(30, 136, 229, 0.3); color: white; }}
 .rok-header-title {{ font-size: 1.8rem; font-weight: 900; color: {text}; letter-spacing: -0.04em; line-height: 1; }}
 .rok-header-sub {{ font-size: 0.8rem; font-weight: 600; color: {text_dim}; letter-spacing: 0.08em; margin-top: 6px; text-transform: uppercase; }}
 
 /* Badges e Pílulas */
 .tier-pills {{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }}
-.tier-pill {{ padding: 4px 12px; border-radius: 6px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; border: 1px solid; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }}
+.tier-pill {{ padding: 4px 12px; border-radius: 6px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; border: 1px solid; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }}
 .tp-t5 {{ color:{t5_tx}; border-color:{t5_br}; background:{t5_bg}; }}
 .tp-t4 {{ color:{t4_tx}; border-color:{t4_br}; background:{t4_bg}; }}
 .tp-t3 {{ color:{t3_tx}; border-color:{t3_br}; background:{t3_bg}; }}
@@ -181,9 +142,14 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 .tp-t1 {{ color:{t1_tx}; border-color:{t1_br}; background:{t1_bg}; }}
 .tp-eq {{ color:{eq_tx}; border-color:{eq_br}; background:{eq_bg}; }}
 
+.sbadge {{ padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; border: 1px solid; }}
+.sbadge-ok {{ background: {ok_bg}; border-color: {ok_br}; color: {ok_tx}; }}
+.sbadge-wa {{ background: {wa_bg}; border-color: {wa_br}; color: {wa_tx}; }}
+.sbadge-er {{ background: {er_bg}; border-color: {er_br}; color: {er_tx}; }}
+
 /* Linha de Jogador (Ranking) */
-.mrow {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; margin-bottom: 8px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }}
-.mrow:hover {{ transform: scale(1.002) translateX(4px); border-color: {border_hi}; box-shadow: 0 6px 16px rgba(0,0,0,0.08); background: {surface2}; z-index: 2; position: relative; }}
+.mrow {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; margin-bottom: 8px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 2px 8px rgba(30,136,229,0.03); }}
+.mrow:hover {{ transform: scale(1.002) translateX(4px); border-color: {border_hi}; box-shadow: 0 6px 16px rgba(30,136,229,0.08); z-index: 2; position: relative; }}
 .mrow.ok {{ border-left: 4px solid {ok_tx}; }}
 .mrow.wa {{ border-left: 4px solid {wa_tx}; }}
 .mrow.er {{ border-left: 4px solid {er_tx}; }}
@@ -195,32 +161,109 @@ section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
 /* Barras de Progresso Embutidas (Gauges) */
 .mrow-gauges {{ display: flex; flex-direction: column; gap: 8px; }}
 .gauge-head {{ display: flex; justify-content: space-between; font-size: 0.6rem; font-weight: 700; color: {text_sub}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }}
-.gauge-track {{ height: 6px; background: {gauge_bg}; border-radius: 99px; overflow: hidden; border: 1px solid {gauge_bdr}; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }}
+.gauge-track {{ height: 6px; background: {gauge_bg}; border-radius: 99px; overflow: hidden; border: 1px solid {gauge_bdr}; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }}
 .gauge-fill {{ height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }}
-.gauge-fill.kp {{ background: linear-gradient(90deg, {amber}, {amber_hi}); box-shadow: 0 0 8px rgba(212,175,55,0.4); }}
-.gauge-fill.dead {{ background: linear-gradient(90deg, {blue_dark}, {blue}); box-shadow: 0 0 8px rgba(0,174,239,0.4); }}
-.gauge-fill.full {{ background: linear-gradient(90deg, {green}, #38d9a9); box-shadow: 0 0 8px rgba(32,201,151,0.4); }}
+.gauge-fill.kp {{ background: linear-gradient(90deg, {amber}, {amber_hi}); box-shadow: 0 0 8px rgba(245,158,11,0.4); }}
+.gauge-fill.dead {{ background: linear-gradient(90deg, {blue_dark}, {blue}); box-shadow: 0 0 8px rgba(30,136,229,0.4); }}
+.gauge-fill.full {{ background: linear-gradient(90deg, {green}, #34D399); box-shadow: 0 0 8px rgba(16,185,129,0.4); }}
 
 .mrow-kp {{ font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 800; color: {amber}; text-align: right; white-space: nowrap; }}
+
+/* Mdet (Detalhes) */
+.mdet {{ padding: 16px 20px; background: {surface2}; border-top: 1px solid {border}; display: flex; flex-direction: column; gap: 16px; position: relative; }}
+.mdet-accent-bar {{ position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }}
+.mdet-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
+.mdet-block-label {{ font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: {text_dim}; margin-bottom: 4px; }}
+.mdet-block-val {{ font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; color: {text}; line-height: 1.1; }}
+.mdet-block-sub {{ font-size: 0.7rem; color: {text_mut}; margin-bottom: 12px; }}
+
+.mdet-prog {{ margin-bottom: 8px; }}
+.mdet-prog-head {{ display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 700; color: {text_sub}; margin-bottom: 4px; }}
+.mdet-prog-track {{ height: 8px; background: {border}; border-radius: 4px; overflow: hidden; }}
+.mdet-prog-fill {{ height: 100%; border-radius: 4px; }}
+.mdet-prog-fill.kp {{ background: {amber}; }}
+.mdet-prog-fill.dead {{ background: {blue}; }}
+.mdet-prog-fill.full-kp {{ background: {green}; }}
+.mdet-prog-fill.full-dead {{ background: {green}; }}
+
+.mdet-gap {{ font-size: 0.75rem; font-weight: 700; padding: 6px 10px; border-radius: 6px; display: inline-block; }}
+.mdet-gap.ok {{ background: {ok_bg}; color: {ok_tx}; border: 1px solid {ok_br}; }}
+.mdet-gap.warn {{ background: {er_bg}; color: {er_tx}; border: 1px solid {er_br}; }}
+
+/* Tabelas Internas */
+.tier-table {{ width: 100%; border-collapse: collapse; font-size: 0.8rem; background: {surface}; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(30,136,229,0.03); }}
+.tier-table th {{ text-align: left; padding: 8px 12px; background: {surface2}; color: {text_dim}; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid {border}; }}
+.tier-table td {{ padding: 8px 12px; border-bottom: 1px solid {tbl_rowsep}; font-family: 'JetBrains Mono', monospace; font-weight: 600; color: {text_sub}; }}
+.tier-table td:first-child {{ font-family: 'Inter', sans-serif; font-weight: 800; color: {text}; }}
+.tier-table td.amber {{ color: {amber}; }}
+.tier-table td.blue {{ color: {blue}; }}
+.tier-table td.equiv {{ color: {text_mut}; font-weight: 500; }}
 
 /* Seções e Separadores */
 .sec-label {{ font-size: 0.7rem; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; color: {blue}; display: flex; align-items: center; gap: 12px; margin: 32px 0 16px; }}
 .sec-label::after {{ content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, {blue} 0%, transparent 100%); opacity: 0.3; }}
 
 /* Tabela de Bandas */
-.band-table {{ width: 100%; border-collapse: separate; border-spacing: 0; background: {surface}; border-radius: 12px; overflow: hidden; border: 1px solid {border}; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }}
+.band-table {{ width: 100%; border-collapse: separate; border-spacing: 0; background: {surface}; border-radius: 12px; overflow: hidden; border: 1px solid {border}; box-shadow: 0 4px 16px rgba(30,136,229,0.04); }}
 .band-table th {{ font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; background: {surface2}; color: {text_sub}; padding: 12px 16px; text-align: right; border-bottom: 1px solid {border}; }}
 .band-table th:first-child {{ text-align: left; }}
 .band-table td {{ font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: {text}; padding: 12px 16px; text-align: right; border-bottom: 1px solid {tbl_rowsep}; }}
 .band-table td:first-child {{ text-align: left; font-family: 'Inter', sans-serif; font-weight: 700; }}
 
 /* Cards de Resumo */
-.kd-card {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; padding: 20px; position: relative; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04); transition: transform 0.2s; }}
-.kd-card:hover {{ transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }}
+.kd-card {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; padding: 20px; position: relative; overflow: hidden; box-shadow: 0 4px 16px rgba(30,136,229,0.04); transition: transform 0.2s; }}
+.kd-card:hover {{ transform: translateY(-4px); box-shadow: 0 8px 24px rgba(30,136,229,0.08); }}
 .kd-card.amber::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{amber},transparent); }}
 .kd-card.blue::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{blue},transparent); }}
+.kd-card.green::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{green},transparent); }}
+.kd-card.red::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{red},transparent); }}
+.kd-card.yellow::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{amber_hi},transparent); }}
 .kd-card-label {{ font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: {text_dim}; margin-bottom: 6px; }}
 .kd-card-value {{ font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 800; color: {text}; letter-spacing: -0.04em; line-height: 1; }}
+.kd-card-sub {{ font-size: 0.7rem; color: {text_mut}; margin-top: 4px; }}
+
+.kd-row {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }}
+
+/* SM Cards */
+.sm-card {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(30,136,229,0.03); }}
+.sm-label {{ font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: {text_dim}; margin-bottom: 4px; }}
+.sm-count {{ font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; }}
+.sm-denom {{ font-size: 0.8rem; color: {text_mut}; }}
+.sm-bar {{ height: 6px; background: {border}; border-radius: 3px; margin: 8px 0; overflow: hidden; }}
+.sm-fill {{ height: 100%; border-radius: 3px; }}
+.sm-pct {{ font-size: 0.65rem; color: {text_sub}; font-weight: 600; }}
+
+/* Att Row */
+.att-row {{ display: grid; grid-template-columns: 1fr 60px 140px auto; align-items: center; gap: 12px; padding: 10px 16px; background: {surface}; border: 1px solid {border}; border-radius: 8px; margin-bottom: 6px; }}
+.att-row.er {{ border-left: 3px solid {er_tx}; }}
+.att-row.wa {{ border-left: 3px solid {wa_tx}; }}
+.att-name {{ font-weight: 700; color: {text}; font-size: 0.85rem; }}
+.att-pow {{ font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: {text_sub}; }}
+.att-pcts {{ font-size: 0.75rem; color: {text_dim}; }}
+
+/* Upload and Empty States */
+.upload-lock {{ display: flex; align-items: center; gap: 12px; background: {surface2}; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid {border}; }}
+.upload-lock-icon {{ font-size: 1.2rem; }}
+.upload-lock-text {{ font-size: 0.75rem; font-weight: 600; color: {text_dim}; }}
+
+.empty-state {{ padding: 40px 20px; text-align: center; background: {surface}; border: 1px dashed {border_hi}; border-radius: 12px; margin: 20px 0; }}
+.empty-state-icon {{ font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }}
+.empty-state-title {{ font-size: 1.1rem; font-weight: 700; color: {text}; margin-bottom: 4px; }}
+.empty-state-sub {{ font-size: 0.85rem; color: {text_dim}; }}
+
+/* KVK Event Card */
+.kvk-event-card {{ display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(90deg, {surface}, {surface2}); border: 1px solid {border}; border-left: 4px solid {blue}; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(30,136,229,0.05); }}
+.kvk-event-name {{ font-size: 1.2rem; font-weight: 800; color: {text}; }}
+.kvk-event-dates {{ font-size: 0.8rem; font-weight: 600; color: {text_dim}; margin-top: 4px; }}
+.kvk-event-badge {{ background: {blue}; color: white; padding: 4px 12px; border-radius: 99px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }}
+
+/* Rok Caption */
+.rok-caption {{ display: flex; gap: 12px; align-items: center; background: {surface2}; padding: 10px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 0.75rem; border: 1px solid {border}; }}
+.rok-caption-item {{ font-weight: 600; color: {text_sub}; }}
+.rok-caption-val {{ font-family: 'JetBrains Mono', monospace; font-weight: 800; color: {text}; margin-left: 4px; }}
+.rok-caption-sep {{ color: {border_hi}; }}
+
+.sb-sec {{ font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: {blue}; margin: 24px 0 12px; padding-bottom: 4px; border-bottom: 1px solid {border}; }}
 </style>
 """
 
@@ -263,33 +306,20 @@ def get_all_history_metrics(storage, imports, gp):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main() -> None:
-    if "dark_mode" not in st.session_state:
-        st.session_state.dark_mode = True
-    dark = st.session_state.dark_mode
-
-    st.html(_css(dark))
+    st.html(_css())
 
     storage = get_storage()
 
-    # Header with theme toggle
-    h1, h2 = st.columns([6, 1])
-    with h1:
-        st.markdown("""
-        <div class="rok-header">
-          <div class="rok-header-emblem">⚔️</div>
-          <div>
-            <div class="rok-header-title">K1602 · KP Dashboard</div>
-            <div class="rok-header-sub">Kill Points Operations Center · Rise of Kingdoms</div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-    with h2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown('<div class="theme-toggle-btn">', unsafe_allow_html=True)
-        if st.button("☀️ Light" if dark else "🌙 Dark", key="theme_toggle", use_container_width=True):
-            st.session_state.dark_mode = not dark
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    # Header estático
+    st.markdown("""
+    <div class="rok-header">
+      <div class="rok-header-emblem">⚔️</div>
+      <div>
+        <div class="rok-header-title">K1602 · KP Dashboard</div>
+        <div class="rok-header-sub">Kill Points Operations Center · Rise of Kingdoms</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("""
     <div class="tier-pills">
@@ -305,7 +335,7 @@ def main() -> None:
     # Sidebar
     with st.sidebar:
         st.markdown(f'<div class="sb-sec">System</div>', unsafe_allow_html=True)
-        st.markdown(f'<div style="font-size:.68rem;color:#5a5448;margin-bottom:12px">Storage: <span style="color:#c8922a">{storage.label}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:.68rem;color:#627D98;margin-bottom:12px">Storage: <span style="color:#1E88E5;font-weight:bold;">{storage.label}</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="sb-sec">Reports</div>', unsafe_allow_html=True)
         handle_upload(storage)
 
@@ -532,7 +562,7 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
     with col_pg1:
         page = st.number_input("Page",min_value=1,max_value=total_pg,value=1,key=f"{key_prefix}_rank_pg",label_visibility="collapsed")
     with col_pg2:
-        st.markdown(f'<div style="font-size:.65rem;color:#3a3428;padding-top:8px">Page {page} of {total_pg}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:.65rem;color:#627D98;padding-top:8px">Page {page} of {total_pg}</div>',unsafe_allow_html=True)
 
     start = (page-1)*page_size
     _render_members(df.iloc[start:start+page_size], key_prefix=key_prefix)
@@ -610,7 +640,7 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
 
             st.markdown(f"""
             <div class="mdet">
-              <div class="mdet-accent-bar" style="background:{'#4ade80' if cls=='ok' else '#fbbf24' if cls=='wa' else '#f87171'}"></div>
+              <div class="mdet-accent-bar" style="background:{'#10B981' if cls=='ok' else '#F59E0B' if cls=='wa' else '#EF4444'}"></div>
               <div class="mdet-grid">
                 <div>
                   <div class="mdet-block-label">Kill Points</div>
@@ -671,9 +701,9 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
                   <tr><td>T2</td><td>{fmt_k(t2d)}</td><td class="equiv">—</td></tr>
                   <tr><td>T1</td><td>{fmt_k(t1d)}</td><td class="equiv">—</td></tr>
                 </table>
-                <div style="font-size:.62rem;color:#4a4438;margin-top:8px">
-                  Total equiv: <span style="color:#60a5fa;font-family:monospace">{fmt_int(dead_equiv)}</span>
-                  / Goal: <span style="color:#7a7060;font-family:monospace">{fmt_int(int(row['dead_t4_goal']))}</span>
+                <div style="font-size:.62rem;color:#627D98;margin-top:8px">
+                  Total equiv: <span style="color:#1E88E5;font-family:monospace">{fmt_int(dead_equiv)}</span>
+                  / Goal: <span style="color:#829AB1;font-family:monospace">{fmt_int(int(row['dead_t4_goal']))}</span>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -685,8 +715,8 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
 
 def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) -> None:
     st.markdown('''
-    <div class="rok-header" style="border-left-color:#c8922a">
-      <div class="rok-header-emblem" style="background:linear-gradient(135deg,#c8922a,#a07018)">🛡</div>
+    <div class="rok-header" style="border-left-color:#1E88E5">
+      <div class="rok-header-emblem" style="background:linear-gradient(135deg,#1E88E5,#1565C0)">🛡</div>
       <div>
         <div class="rok-header-title">KvK Events</div>
         <div class="rok-header-sub">Performance windows for Kingdom vs Kingdom</div>
@@ -817,31 +847,26 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
     st.markdown(f"""
     <div class="kd-row">
       <div class="kd-card amber">
-        <div class="kd-card-icon">⚔️</div>
         <div class="kd-card-label">Total Kill Points</div>
         <div class="kd-card-value">{fmt_k(kp_total)}</div>
         <div class="kd-card-sub">earned in this event</div>
       </div>
       <div class="kd-card green">
-        <div class="kd-card-icon">✅</div>
         <div class="kd-card-label">Approved</div>
         <div class="kd-card-value">{approved}</div>
         <div class="kd-card-sub">of {total} members</div>
       </div>
       <div class="kd-card yellow">
-        <div class="kd-card-icon">🟡</div>
         <div class="kd-card-label">Pending</div>
         <div class="kd-card-value">{pending}</div>
         <div class="kd-card-sub">close to goal</div>
       </div>
       <div class="kd-card red">
-        <div class="kd-card-icon">⚠️</div>
         <div class="kd-card-label">Below Goal</div>
         <div class="kd-card-value">{below}</div>
         <div class="kd-card-sub">needs attention</div>
       </div>
       <div class="kd-card blue">
-        <div class="kd-card-icon">👥</div>
         <div class="kd-card-label">Governors</div>
         <div class="kd-card-value">{total:,}</div>
         <div class="kd-card-sub">tracked in window</div>
@@ -869,15 +894,15 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
     if px is not None and not ranked_window.empty:
         st.markdown('<div class="sec-label">Top performers — this event</div>', unsafe_allow_html=True)
         top20 = ranked_window.sort_values("kill_points",ascending=True).tail(20)
-        cmap = {"Aprovado":"#4ade80","Pendente":"#fbbf24","Abaixo da meta":"#f87171"}
+        cmap = {"Aprovado":"#10B981","Pendente":"#F59E0B","Abaixo da meta":"#EF4444"}
         fig = px.bar(top20, x="kill_points", y="username", orientation="h",
                      color="status", color_discrete_map=cmap,
                      labels={"kill_points":"Kill Points","username":""})
         fig.update_layout(showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#7a7060", family="Inter"),
-            yaxis=dict(tickfont=dict(size=11,color="#9a9080"), gridcolor="rgba(200,146,42,0.06)"),
-            xaxis=dict(tickfont=dict(size=10), gridcolor="rgba(200,146,42,0.06)"))
+            font=dict(color="#627D98", family="Inter"),
+            yaxis=dict(tickfont=dict(size=11,color="#627D98"), gridcolor="rgba(30,136,229,0.08)"),
+            xaxis=dict(tickfont=dict(size=10), gridcolor="rgba(30,136,229,0.08)"))
         fig.update_traces(marker_line_width=0)
         st.plotly_chart(fig, use_container_width=True)
 
@@ -903,31 +928,26 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
     st.markdown(f"""
     <div class="kd-row">
       <div class="kd-card amber">
-        <div class="kd-card-icon">⚔️</div>
         <div class="kd-card-label">Total Kill Points</div>
         <div class="kd-card-value">{fmt_k(kp_total)}</div>
         <div class="kd-card-sub">accumulated points</div>
       </div>
       <div class="kd-card blue">
-        <div class="kd-card-icon">🏰</div>
         <div class="kd-card-label">Total Power</div>
         <div class="kd-card-value">{fmt_m(power_total)}M</div>
         <div class="kd-card-sub">combined city power</div>
       </div>
       <div class="kd-card green">
-        <div class="kd-card-icon">👥</div>
         <div class="kd-card-label">Governors</div>
         <div class="kd-card-value">{total:,}</div>
         <div class="kd-card-sub">{active} active in period</div>
       </div>
       <div class="kd-card green">
-        <div class="kd-card-icon">✅</div>
         <div class="kd-card-label">Approval Rate</div>
         <div class="kd-card-value">{aprov_pct:.1f}%</div>
         <div class="kd-card-sub">{approved} of {total} members</div>
       </div>
       <div class="kd-card red">
-        <div class="kd-card-icon">⚠️</div>
         <div class="kd-card-label">Below Goal</div>
         <div class="kd-card-value">{below}</div>
         <div class="kd-card-sub">{pending} pending</div>
@@ -938,9 +958,9 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
     st.markdown('<div class="sec-label">Goal status</div>', unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
     for col, lbl, count, color in [
-        (m1,"Approved",  approved,"#4ade80"),
-        (m2,"Pending",  pending, "#fbbf24"),
-        (m3,"Below goal", below, "#f87171"),
+        (m1,"Approved",  approved,"#10B981"),
+        (m2,"Pending",  pending, "#F59E0B"),
+        (m3,"Below goal", below, "#EF4444"),
     ]:
         pct = count/total*100 if total else 0
         with col:
@@ -1000,7 +1020,7 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
                 """, unsafe_allow_html=True)
 
     with col_mail:
-        st.markdown("<div style='font-size:0.75rem; color:#9a9080; margin-bottom:10px;'>Lista de IDs de jogadores pendentes ou abaixo da meta para enviar Mails no jogo:</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.75rem; color:#627D98; margin-bottom:10px;'>Lista de IDs de jogadores pendentes ou abaixo da meta para enviar Mails no jogo:</div>", unsafe_allow_html=True)
         abaixo_da_meta = ranked[ranked['status'] != 'Aprovado']
         if not abaixo_da_meta.empty:
             ids_correio = ",".join(abaixo_da_meta['character_id'].astype(str).tolist())
@@ -1034,16 +1054,16 @@ def show_profile(storage, imports, gp):
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['kill_points'],
-                                 mode='lines+markers', name='Kill Points', line=dict(color='#d4af37')))
+                                 mode='lines+markers', name='Kill Points', line=dict(color='#F59E0B')))
         fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['dead_equiv'],
-                                 mode='lines+markers', name='Deaths (T4eq)', line=dict(color='#00AEEF')))
+                                 mode='lines+markers', name='Deaths (T4eq)', line=dict(color='#1E88E5')))
         
         fig.update_layout(
             title=f"Evolução de {selected_player}",
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#7a7060", family="Inter"),
-            yaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
-            xaxis=dict(gridcolor="rgba(255,255,255,0.05)")
+            font=dict(color="#627D98", family="Inter"),
+            yaxis=dict(gridcolor="rgba(30,136,229,0.08)"),
+            xaxis=dict(gridcolor="rgba(30,136,229,0.08)")
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -1053,8 +1073,8 @@ def show_profile(storage, imports, gp):
 
 def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
     st.markdown('''
-    <div class="rok-header" style="border-left-color:#c8922a">
-      <div class="rok-header-emblem" style="background:linear-gradient(135deg,#c8922a,#a07018)">🏆</div>
+    <div class="rok-header" style="border-left-color:#F59E0B">
+      <div class="rok-header-emblem" style="background:linear-gradient(135deg,#F59E0B,#D97706)">🏆</div>
       <div>
         <div class="rok-header-title">Hall of Fame — K1602</div>
         <div class="rok-header-sub">Top 10 KP · Top 10 Deaths · By KvK</div>
@@ -1081,7 +1101,7 @@ def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
     with col_info:
         total_kvks = len(kvks)
         st.markdown(
-            f'<div style="font-size:.68rem;color:#5a5448;padding-top:8px">' f'<span style="color:#c8922a;font-weight:700">{total_kvks}</span> KVK(s) archived' f'</div>',
+            f'<div style="font-size:.68rem;color:#627D98;padding-top:8px">' f'<span style="color:#1E88E5;font-weight:700">{total_kvks}</span> KVK(s) archived' f'</div>',
             unsafe_allow_html=True,
         )
 
@@ -1094,12 +1114,12 @@ def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
     c1, c2 = st.columns(2)
 
     with c1:
-        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#c8922a;margin-bottom:10px">⚔ Top 10 Kill Points</div>',
+        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#F59E0B;margin-bottom:10px">⚔ Top 10 Kill Points</div>',
                     unsafe_allow_html=True)
         _render_hof_list(kp_df, "kp")
 
     with c2:
-        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#00AEEF;margin-bottom:10px">💀 Top 10 Deaths</div>',
+        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#1E88E5;margin-bottom:10px">💀 Top 10 Deaths</div>',
                     unsafe_allow_html=True)
         _render_hof_list(dead_df, "deaths")
 
@@ -1108,7 +1128,7 @@ def _render_hof_list(df: pd.DataFrame, category: str) -> None:
         st.caption("No data for this KVK.")
         return
     medals = {1:"🥇", 2:"🥈", 3:"🥉"}
-    color  = "#c8922a" if category == "kp" else "#00AEEF"
+    color  = "#F59E0B" if category == "kp" else "#1E88E5"
     unit   = "KP" if category == "kp" else "T4eq"
 
     for _, row in df.iterrows():
@@ -1119,15 +1139,15 @@ def _render_hof_list(df: pd.DataFrame, category: str) -> None:
         st.markdown(f'''
         <div style="display:flex;align-items:center;gap:10px;
                     padding:{'12px 14px' if is_top else '9px 14px'};
-                    background:{"rgba(255,255,255,0.03)" if is_top else "transparent"};
-                    border:1px solid {"rgba(255,255,255,0.08)" if is_top else "rgba(255,255,255,0.02)"};
+                    background:{"rgba(30,136,229,0.03)" if is_top else "transparent"};
+                    border:1px solid {"rgba(30,136,229,0.15)" if is_top else "rgba(30,136,229,0.05)"};
                     border-radius:8px;margin-bottom:5px;">
           <div style="font-size:{'1.2rem' if is_top else '.85rem'};min-width:28px;text-align:center">{medal}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:{'0.88rem' if is_top else '0.82rem'}; font-weight:{'700' if is_top else '500'}; color:#e8e0cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            <div style="font-size:{'0.88rem' if is_top else '0.82rem'}; font-weight:{'700' if is_top else '500'}; color:#102A43;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
               {row["username"]}
             </div>
-            <div style="font-size:.62rem;color:#4a4438;margin-top:1px">{fmt_m(int(row["power"]))}M power</div>
+            <div style="font-size:.62rem;color:#627D98;margin-top:1px">{fmt_m(int(row["power"]))}M power</div>
           </div>
           <div style="font-family:'JetBrains Mono',monospace; font-size:{'1rem' if is_top else '0.85rem'}; font-weight:600;color:{color};white-space:nowrap">
             {fmt_k(int(row["value"]))} {unit}
@@ -1161,14 +1181,14 @@ def show_history(storage, imports, group_power):
         if not top.empty and px is not None:
             fig = px.bar(top.sort_values("kill_points",ascending=True),
                          x="kill_points", y="username", orientation="h",
-                         color_discrete_sequence=["#d4af37"],
+                         color_discrete_sequence=["#F59E0B"],
                          labels={"kill_points":"Kill Points Gained","username":""})
             fig.update_layout(
                 showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#7a7060",family="Inter"),
-                yaxis=dict(tickfont=dict(size=11,color="#9a9080"),gridcolor="rgba(255,255,255,0.05)"),
-                xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
+                font=dict(color="#627D98",family="Inter"),
+                yaxis=dict(tickfont=dict(size=11,color="#627D98"),gridcolor="rgba(30,136,229,0.08)"),
+                xaxis=dict(gridcolor="rgba(30,136,229,0.08)"),
             )
             fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
