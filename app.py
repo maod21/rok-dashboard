@@ -29,10 +29,7 @@ st.set_page_config(
 )
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  DESIGN SYSTEM — Dual theme (Dark / Light), single source of truth
-#  Dark:  Obsidian + Stone + Parchment text + Amber accent
-#  Light: Parchment bg + White surfaces + Ink text + darkened Amber accent
-#  Signature: dual-gauge row — KP bar + Deaths bar always visible
+#  DESIGN SYSTEM
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _css(dark: bool) -> str:
@@ -108,92 +105,29 @@ def _css(dark: bool) -> str:
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-
-html, body, [class*="css"], .stApp {{
-  font-family: 'Inter', system-ui, sans-serif !important;
-  background: {bg} !important;
-  color: {text} !important;
-}}
+html, body, [class*="css"], .stApp {{ font-family: 'Inter', system-ui, sans-serif !important; background: {bg} !important; color: {text} !important; }}
 .main .block-container {{ padding: 1.2rem 2rem 3rem !important; max-width: 1500px !important; background:{bg} !important; }}
-
 section[data-testid="stSidebar"] {{ background: {sidebar_bg} !important; border-right: 1px solid rgba(200,146,42,0.20) !important; }}
 section[data-testid="stSidebar"] > div {{ padding: 1.5rem 1rem !important; }}
 section[data-testid="stSidebar"] * {{ color: #9a8060 !important; }}
-section[data-testid="stSidebar"] .stSuccess p {{ color: #4ade80 !important; }}
-section[data-testid="stSidebar"] .stError p {{ color: #f87171 !important; }}
-section[data-testid="stSidebar"] .stWarning p {{ color: #fbbf24 !important; }}
-
-[data-testid="stMetric"] {{
-  background: {surface} !important; border: 1px solid {border} !important;
-  border-radius: 10px !important; padding: 18px 20px !important;
-  position: relative; overflow: hidden;
-}}
+[data-testid="stMetric"] {{ background: {surface} !important; border: 1px solid {border} !important; border-radius: 10px !important; padding: 18px 20px !important; position: relative; overflow: hidden; }}
 [data-testid="stMetric"]::after {{ content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:{metric_line}; }}
-[data-testid="stMetricLabel"] {{ font-size:.62rem !important; font-weight:600 !important; text-transform:uppercase; letter-spacing:.12em; color:{text_dim} !important; }}
-[data-testid="stMetricValue"] {{ font-family:'JetBrains Mono',monospace !important; font-size:1.5rem !important; font-weight:600 !important; color:{text} !important; letter-spacing:-.03em; }}
-
 [data-testid="stTabs"] [role="tablist"] {{ border-bottom: 1px solid {border}; gap: 0; background: transparent; flex-wrap: wrap; }}
-[data-testid="stTabs"] button[role="tab"] {{
-  font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em;
-  color: {text_dim} !important; padding: 10px 20px; border-bottom: 2px solid transparent;
-  border-radius: 0; background: transparent !important; transition: color .2s, border-color .2s;
-}}
+[data-testid="stTabs"] button[role="tab"] {{ font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {text_dim} !important; padding: 10px 20px; border-bottom: 2px solid transparent; border-radius: 0; background: transparent !important; transition: color .2s, border-color .2s; }}
 [data-testid="stTabs"] button[role="tab"]:hover {{ color: {amber} !important; }}
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{ color: {amber} !important; border-bottom-color: {amber} !important; background: transparent !important; }}
-
-[data-testid="stTextInput"] input,
-[data-testid="stSelectbox"] > div > div,
-[data-testid="stNumberInput"] input {{
-  background: {surface} !important; border: 1px solid {border} !important; border-radius: 8px !important;
-  color: {text} !important; font-family: 'Inter', sans-serif !important; font-size: .82rem !important;
-}}
-[data-testid="stTextInput"] input::placeholder {{ color: {text_dim} !important; }}
-[data-testid="stTextInput"] input:focus, [data-testid="stSelectbox"] > div > div:focus-within {{
-  border-color: {amber} !important; box-shadow: 0 0 0 2px rgba(200,146,42,0.15) !important;
-}}
-
-[data-testid="stButton"] button {{
-  background: {amber} !important; color: {btn_text} !important; border: none !important; border-radius: 8px !important;
-  font-weight: 700 !important; font-size: .78rem !important; text-transform: uppercase; letter-spacing: .08em;
-  transition: opacity .2s, transform .1s;
-}}
-[data-testid="stButton"] button:hover {{ opacity: .85; transform: translateY(-1px); }}
+[data-testid="stTextInput"] input, [data-testid="stSelectbox"] > div > div, [data-testid="stNumberInput"] input {{ background: {surface} !important; border: 1px solid {border} !important; border-radius: 8px !important; color: {text} !important; font-size: .82rem !important; }}
+[data-testid="stButton"] button {{ background: {amber} !important; color: {btn_text} !important; border: none !important; border-radius: 8px !important; font-weight: 700 !important; font-size: .78rem !important; text-transform: uppercase; letter-spacing: .08em; transition: opacity .2s, transform .1s; }}
 [data-testid="stButton"] button[kind="secondary"] {{ background: transparent !important; border: 1px solid {border_hi} !important; color: {amber} !important; }}
-
 [data-testid="stExpander"] {{ border: none !important; border-radius: 0 !important; background: transparent !important; }}
 [data-testid="stExpander"] > details > summary {{ background: transparent !important; border: none !important; padding: 0 !important; color: {text_sub} !important; }}
-
 [data-testid="stDataFrame"] {{ border: 1px solid {border} !important; border-radius: 10px !important; overflow: hidden; }}
-
 hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
-
-::-webkit-scrollbar {{ width: 6px; height: 6px; }}
-::-webkit-scrollbar-track {{ background: {bg}; }}
-::-webkit-scrollbar-thumb {{ background: {scroll_th}; border-radius: 3px; }}
-::-webkit-scrollbar-thumb:hover {{ background: {amber}; }}
-
-[data-testid="stRadio"] label, [data-testid="stCheckbox"] label {{ color: {text_sub} !important; font-size: .78rem !important; }}
-
-/* ─── HEADER ────────────────────────────────────────────── */
-.rok-header {{
-  display: flex; align-items: center; gap: 18px; padding: 18px 24px; margin-bottom: 18px;
-  background: linear-gradient(135deg, {hdr1} 0%, {hdr2} 100%);
-  border: 1px solid {border_hi}; border-radius: 12px; position: relative; overflow: hidden;
-}}
+.rok-header {{ display: flex; align-items: center; gap: 18px; padding: 18px 24px; margin-bottom: 18px; background: linear-gradient(135deg, {hdr1} 0%, {hdr2} 100%); border: 1px solid {border_hi}; border-radius: 12px; position: relative; overflow: hidden; }}
 .rok-header::before {{ content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,{amber},transparent); }}
-.rok-header-emblem {{
-  width: 52px; height: 52px; flex-shrink: 0; background: linear-gradient(135deg, {amber}, {amber_hi});
-  border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
-  box-shadow: 0 4px 16px rgba(200,146,42,0.25);
-}}
+.rok-header-emblem {{ width: 52px; height: 52px; flex-shrink: 0; background: linear-gradient(135deg, {amber}, {amber_hi}); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: 0 4px 16px rgba(200,146,42,0.25); }}
 .rok-header-title {{ font-size: 1.4rem; font-weight: 900; color: {text}; letter-spacing: -.03em; line-height: 1; }}
 .rok-header-sub {{ font-size: .7rem; color: {text_dim}; letter-spacing: .05em; margin-top: 4px; text-transform: uppercase; }}
-
-.theme-toggle-btn [data-testid="stButton"] button {{
-  background: {surface} !important; color: {amber} !important;
-  border: 1px solid {border_hi} !important;
-}}
-
 .tier-pills {{ display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }}
 .tier-pill {{ padding: 3px 10px; border-radius: 4px; font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; border: 1px solid; }}
 .tp-t5 {{ color:{t5_tx}; border-color:{t5_br}; background:{t5_bg}; }}
@@ -202,32 +136,22 @@ hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
 .tp-t2 {{ color:{t2_tx}; border-color:{t2_br}; background:{t2_bg}; }}
 .tp-t1 {{ color:{t1_tx}; border-color:{t1_br}; background:{t1_bg}; }}
 .tp-eq {{ color:{eq_tx}; border-color:{eq_br}; background:{eq_bg}; }}
-
 .sec-label {{ font-size: .6rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: {text_dim}; display: flex; align-items: center; gap: 10px; margin: 20px 0 12px; }}
 .sec-label::after {{ content: ''; flex: 1; height: 1px; background: {border}; }}
-
-.stat-box {{ background: {surface}; border: 1px solid {border}; border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; height: 100%; }}
-.stat-box-label {{ font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: {text_dim}; margin-bottom: 4px; }}
-.stat-box-value {{ font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 600; color: {text}; line-height: 1; letter-spacing: -.03em; }}
-.stat-box-sub {{ font-size: .67rem; color: {text_dim}; margin-top: 5px; }}
-
 .sbadge {{ display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 4px; font-size: .63rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; border: 1px solid; }}
 .sbadge-ok {{ color:{ok_tx}; border-color:{ok_br}; background:{ok_bg}; }}
 .sbadge-wa {{ color:{wa_tx}; border-color:{wa_br}; background:{wa_bg}; }}
 .sbadge-er {{ color:{er_tx}; border-color:{er_br}; background:{er_bg}; }}
-
 .mrow {{ background: {surface}; border: 1px solid {border}; border-radius: 10px; margin-bottom: 6px; overflow: hidden; transition: border-color .2s, background .2s; }}
 .mrow:hover {{ border-color: {border_hi}; background: {surface2}; }}
 .mrow.ok {{ border-left: 3px solid {ok_tx}; }}
 .mrow.wa {{ border-left: 3px solid {wa_tx}; }}
 .mrow.er {{ border-left: 3px solid {er_tx}; }}
-
 .mrow-sum {{ display: grid; grid-template-columns: 36px 1fr 90px 80px auto; align-items: center; gap: 12px; padding: 12px 16px; }}
 .mrow-rank {{ font-family: 'JetBrains Mono', monospace; font-size: .85rem; font-weight: 600; color: {text_mut}; text-align: right; }}
 .mrow-info {{ min-width: 0; }}
 .mrow-name {{ font-size: .88rem; font-weight: 700; color: {text}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
 .mrow-meta {{ font-size: .64rem; color: {text_dim}; margin-top: 2px; }}
-
 .mrow-gauges {{ display: flex; flex-direction: column; gap: 5px; }}
 .gauge-head {{ display: flex; justify-content: space-between; font-size: .58rem; color: {text_dim}; margin-bottom: 2px; }}
 .gauge-track {{ height: 5px; background: {gauge_bg}; border-radius: 99px; overflow: hidden; border: 1px solid {gauge_bdr}; }}
@@ -235,9 +159,7 @@ hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
 .gauge-fill.kp {{ background: linear-gradient(90deg, {amber}, {amber_hi}); }}
 .gauge-fill.dead {{ background: linear-gradient(90deg, {blue_dark}, {blue}); }}
 .gauge-fill.full {{ background: linear-gradient(90deg, {green}, {green}); }}
-
 .mrow-kp {{ font-family: 'JetBrains Mono', monospace; font-size: .9rem; font-weight: 600; color: {amber}; text-align: right; white-space: nowrap; }}
-
 .mdet {{ border-top: 1px solid {border}; background: {surface2}; padding: 16px 20px 20px; }}
 .mdet-accent-bar {{ height: 1px; margin-bottom: 16px; }}
 .mdet-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }}
@@ -255,17 +177,14 @@ hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
 .mdet-gap {{ font-size: .62rem; color: {text_dim}; margin-top: 4px; }}
 .mdet-gap.warn {{ color: {red}; }}
 .mdet-gap.ok {{ color: {green}; }}
-
 .tier-table {{ width: 100%; border-collapse: collapse; margin-top: 4px; }}
 .tier-table th {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {tbl_th}; padding: 5px 8px; text-align: right; border-bottom: 1px solid {tbl_sep}; }}
 .tier-table th:first-child {{ text-align: left; }}
 .tier-table td {{ font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: {tbl_td}; padding: 5px 8px; text-align: right; border-bottom: 1px solid {tbl_rowsep}; }}
 .tier-table td:first-child {{ text-align: left; color: {tbl_td1}; font-weight: 600; }}
-.tier-table tr:last-child td {{ border-bottom: none; }}
 .tier-table td.amber {{ color: {amber}; }}
 .tier-table td.blue  {{ color: {blue}; }}
 .tier-table td.equiv {{ color: {text_dim}; font-size: .68rem; }}
-
 .kd-row {{ display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 18px; }}
 .kd-card {{ background: {surface}; border: 1px solid {border}; border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }}
 .kd-card::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }}
@@ -278,7 +197,6 @@ hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
 .kd-card-label {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: {text_dim}; margin-bottom: 5px; }}
 .kd-card-value {{ font-family: 'JetBrains Mono', monospace; font-size: 1.45rem; font-weight: 600; color: {text}; letter-spacing: -.03em; line-height: 1; }}
 .kd-card-sub {{ font-size: .65rem; color: {text_mut}; margin-top: 4px; }}
-
 .sm-card {{ background: {surface}; border: 1px solid {border}; border-radius: 10px; padding: 16px 18px; }}
 .sm-label {{ font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {text_dim}; margin-bottom: 8px; }}
 .sm-count {{ font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 600; color: {text}; letter-spacing: -.04em; line-height: 1; }}
@@ -286,37 +204,29 @@ hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
 .sm-bar {{ background: {gauge_bg}; border-radius: 99px; height: 6px; overflow: hidden; margin-top: 10px; }}
 .sm-fill {{ height: 100%; border-radius: 99px; }}
 .sm-pct {{ font-size: .6rem; color: {text_dim}; margin-top: 4px; }}
-
 .att-row {{ display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: {att_bg}; border: 1px solid {att_br}; border-radius: 8px; margin-bottom: 5px; }}
 .att-row.er {{ border-left: 3px solid {er_tx}; }}
 .att-row.wa {{ border-left: 3px solid {wa_tx}; }}
 .att-name {{ flex: 1; font-size: .82rem; font-weight: 600; color: {text}; }}
 .att-pow  {{ font-size: .68rem; color: {text_dim}; white-space: nowrap; }}
 .att-pcts {{ font-size: .65rem; color: {text_dim}; white-space: nowrap; }}
-
 .band-table {{ width: 100%; border-collapse: collapse; }}
 .band-table th {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {band_th}; padding: 8px 12px; text-align: right; border-bottom: 1px solid {tbl_sep}; }}
 .band-table th:first-child {{ text-align: left; }}
 .band-table td {{ font-family: 'JetBrains Mono', monospace; font-size: .76rem; color: {band_td}; padding: 8px 12px; text-align: right; border-bottom: 1px solid {tbl_rowsep}; }}
 .band-table td:first-child {{ text-align: left; color: {band_td1}; font-weight: 600; font-family: 'Inter', sans-serif; font-size: .78rem; }}
-.band-table tr:last-child td {{ border-bottom: none; }}
-
 .upload-lock {{ background: {surface2}; border: 1px solid {border}; border-radius: 8px; padding: 14px; text-align: center; margin-bottom: 10px; }}
 .upload-lock-icon {{ font-size: 1.3rem; margin-bottom: 6px; }}
 .upload-lock-text {{ font-size: .72rem; color: {text_dim}; margin-bottom: 10px; }}
-
 .sb-sec {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: {sb_sec_color}; border-bottom: 1px solid rgba(200,146,42,0.15); padding-bottom: 6px; margin: 14px 0 10px; }}
-
 .rok-caption {{ display: flex; align-items: center; gap: 14px; padding: 8px 14px; margin-bottom: 16px; background: {surface2}; border: 1px solid {border}; border-radius: 6px; flex-wrap: wrap; }}
 .rok-caption-item {{ font-size: .68rem; color: {text_dim}; }}
 .rok-caption-val  {{ color: {amber_hi}; font-weight: 600; }}
 .rok-caption-sep  {{ color: {text_mut}; font-size: .7rem; }}
-
 .kvk-event-card {{ background: linear-gradient(135deg,{surface},{surface2}); border: 1px solid {border_hi}; border-radius: 10px; padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; }}
 .kvk-event-name {{ font-size: .92rem; font-weight: 700; color: {text}; }}
 .kvk-event-dates {{ font-size: .68rem; color: {text_dim}; margin-top: 2px; }}
 .kvk-event-badge {{ margin-left: auto; padding: 4px 10px; border-radius: 4px; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; background: rgba(200,146,42,0.1); color: {amber}; border: 1px solid rgba(200,146,42,0.3); white-space: nowrap; }}
-
 .empty-state {{ text-align: center; padding: 60px 20px; }}
 .empty-state-icon {{ font-size: 3rem; margin-bottom: 14px; opacity: .4; }}
 .empty-state-title {{ font-size: 1rem; font-weight: 700; color: {text_sub}; margin-bottom: 6px; }}
@@ -343,6 +253,21 @@ def get_secret(name):
     except: v = None
     return str(v) if v else None
 
+def get_all_history_metrics(storage, imports, gp):
+    all_data = []
+    for _, row in imports.iterrows():
+        try:
+            stats = storage.load_stats(row['id'])
+            mets = calculate_metrics(stats, group_power=gp)
+            ranked = apply_goals(add_rank(mets, "kill_points"))
+            ranked['report_date'] = row['report_date']
+            all_data.append(ranked)
+        except Exception:
+            continue
+    if all_data:
+        return pd.concat(all_data, ignore_index=True)
+    return pd.DataFrame()
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Main
 # ══════════════════════════════════════════════════════════════════════════════
@@ -352,7 +277,6 @@ def main() -> None:
         st.session_state.dark_mode = True
     dark = st.session_state.dark_mode
 
-    # SOLUÇÃO APLICADA AQUI:
     st.html(_css(dark))
 
     storage = get_storage()
@@ -444,7 +368,7 @@ def main() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    tab_labels = ["⚔ Ranking", "🛡 KvK", "🏆 Hall of Fame", "🏰 Kingdom", "❓ Help"]
+    tab_labels = ["⚔ Ranking", "🛡 KvK", "🏆 Hall of Fame", "🏰 Kingdom", "👤 Profile", "❓ Help"]
     if admin_enabled and is_admin:
         tab_labels.append("📈 History")
         tab_labels.append("📁 Imports")
@@ -454,10 +378,11 @@ def main() -> None:
     with tabs[1]: show_kvk(storage, gp, is_admin=is_admin, admin_enabled=admin_enabled)
     with tabs[2]: show_hof(storage, is_admin=is_admin, admin_enabled=admin_enabled)
     with tabs[3]: show_kingdom(ranked, imports, storage, gp)
-    with tabs[4]: show_help()
+    with tabs[4]: show_profile(storage, imports, gp)
+    with tabs[5]: show_help()
     if admin_enabled and is_admin:
-        with tabs[5]: show_history(storage, imports, gp)
-        with tabs[6]: show_imports(imports, storage, is_admin=is_admin, admin_enabled=admin_enabled)
+        with tabs[6]: show_history(storage, imports, gp)
+        with tabs[7]: show_imports(imports, storage, is_admin=is_admin, admin_enabled=admin_enabled)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -507,7 +432,7 @@ def handle_upload(storage):
             imports_df = storage.list_imports()
             imports_df = prepare_imports(imports_df)
             prev = load_previous_report(storage, imports_df,
-                                        imports_df.loc[imports_df["id"].eq(import_id_saved)].iloc[0])                    if not imports_df.empty else None
+                                        imports_df.loc[imports_df["id"].eq(import_id_saved)].iloc[0]) if not imports_df.empty else None
             archived = maybe_archive(storage, import_id_saved, stats, prev)
             if archived:
                 st.info(f"🏆 Hall of Fame: {archived} entries archived")
@@ -564,8 +489,6 @@ def admin_panel():
 # ══════════════════════════════════════════════════════════════════════════════
 
 def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
-    """key_prefix MUST be unique per call site, since this is reused by the KvK tab."""
-
     fc1, fc2, fc3 = st.columns([5, 2, 2])
     with fc1:
         search = st.text_input("search", placeholder="Search member or Character ID…",
@@ -578,30 +501,29 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
                                ["KP ↓","Power ↓","% KP ↓","% Deaths ↓","Name ↑"],
                                key=f"{key_prefix}_rank_sort", label_visibility="collapsed")
 
-    with st.expander("Filter by import date", expanded=False):
-        dc1, dc2, dc3 = st.columns([2,2,1])
-        with dc1: date_from = st.date_input("From", value=None, key=f"{key_prefix}_df_from")
-        with dc2: date_to   = st.date_input("To",   value=None, key=f"{key_prefix}_df_to")
-        with dc3:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("Clear", key=f"{key_prefix}_clr_dt"):
-                st.session_state[f"{key_prefix}_df_from"] = None
-                st.session_state[f"{key_prefix}_df_to"] = None
-                st.rerun()
-
     df = ranked_full.copy()
+    
+    # Pré-cálculo para badges de gamificação
+    top_5_pct_deaths = df['dead_equiv'].quantile(0.95) if 'dead_equiv' in df.columns else float('inf')
+    df['emblems'] = ""
+    for idx, row in df.iterrows():
+        emb = ""
+        if row.get('dead_equiv', 0) >= top_5_pct_deaths and row.get('dead_equiv', 0) > 0:
+            emb += '<span title="Escudo de Carne (Top 5% Mortes)">🛡️</span> '
+        if row.get('kill_points', 0) >= (row.get('kp_goal', 1) * 2) and row.get('kp_goal', 0) > 0:
+            emb += '<span title="Máquina de Guerra (2x Meta KP)">🔥</span> '
+        if row.get('power', 0) >= 100_000_000:
+            emb += '<span title="Baleia (100M+ Poder)">🐋</span> '
+        df.at[idx, 'emblems'] = emb
+
     if search.strip():
         n = search.strip().lower()
         df = df[df["username"].astype(str).str.lower().str.contains(n,regex=False,na=False)
                 |df["character_id"].astype(str).str.lower().str.contains(n,regex=False,na=False)]
+    
     status_map_en2pt = {"Approved":"Aprovado","Pending":"Pendente","Below goal":"Abaixo da meta"}
     if sf != "All":
         df = df[df["status"] == status_map_en2pt.get(sf, sf)]
-    if "imported_at" in df.columns and (date_from or date_to):
-        df["_dt"] = pd.to_datetime(df["imported_at"],errors="coerce").dt.date
-        if date_from: df = df[df["_dt"] >= date_from]
-        if date_to:   df = df[df["_dt"] <= date_to]
-        df = df.drop(columns=["_dt"])
 
     sort_map = {
         "KP ↓":("kill_points",False),"Power ↓":("power",False),
@@ -639,7 +561,6 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
         st.download_button("⬇ Download CSV", data=df.to_csv(index=False).encode(),
                             file_name="ranking.csv", mime="text/csv", key=f"{key_prefix}_dl_csv")
 
-
 def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
     for i, (_, row) in enumerate(df.iterrows()):
         cls   = STATUS_CLS.get(row["status"], "er")
@@ -660,7 +581,7 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
           <div class="mrow-sum">
             <div class="mrow-rank">#{int(row['rank'])}</div>
             <div class="mrow-info">
-              <div class="mrow-name">{row['username']}</div>
+              <div class="mrow-name">{row['username']} {row.get('emblems', '')}</div>
               <div class="mrow-meta">{fmt_m(int(row['power']))}M power · {row.get('power_band','—')} · ID {row.get('character_id','—')}</div>
             </div>
             <div class="mrow-gauges">
@@ -768,7 +689,6 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
 
             st.markdown("</div>", unsafe_allow_html=True)
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — KvK
 # ══════════════════════════════════════════════════════════════════════════════
@@ -875,8 +795,6 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
         stats_window = compute_period_deltas(stats_last, stats_first)
         basis_note = "delta between first and last report in window"
 
-    st.caption(f"📐 Basis: {basis_note}")
-
     metrics_window = calculate_metrics(stats_window, group_power=group_power)
     ranked_window  = apply_goals(add_rank(metrics_window, "kill_points"))
 
@@ -903,6 +821,7 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
     pending  = int((ranked_window["status"]=="Pendente").sum())
     below    = int((ranked_window["status"]=="Abaixo da meta").sum())
     kp_total = int(ranked_window["kill_points"].sum())
+    aprov_pct = approved/total*100 if total else 0
 
     st.markdown('<div class="sec-label">Kingdom performance — this event</div>', unsafe_allow_html=True)
     st.markdown(f"""
@@ -940,6 +859,23 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
     </div>
     """, unsafe_allow_html=True)
 
+    if not ranked_window.empty:
+        top3 = ranked_window.sort_values("kill_points", ascending=False).head(3)
+        discord_text = f"""**🛡️ {event_row['name']} · Resumo do KvK 🛡️**
+
+**Performance do Reino (K1602)**
+⚔️ **Total KP Ganhos:** {fmt_k(kp_total)}
+✅ **Aprovação:** {aprov_pct:.1f}% ({approved}/{total} aprovados)
+⚠️ **Abaixo da meta:** {below} governadores
+
+**🏆 Top 3 Matadores (KP):**
+🥇 {top3.iloc[0]['username'] if len(top3)>0 else '-'} : {fmt_k(top3.iloc[0]['kill_points']) if len(top3)>0 else 0} KP
+🥈 {top3.iloc[1]['username'] if len(top3)>1 else '-'} : {fmt_k(top3.iloc[1]['kill_points']) if len(top3)>1 else 0} KP
+🥉 {top3.iloc[2]['username'] if len(top3)>2 else '-'} : {fmt_k(top3.iloc[2]['kill_points']) if len(top3)>2 else 0} KP"""
+        
+        with st.expander("💬 Gerar Resumo para o Discord"):
+            st.code(discord_text, language="markdown")
+
     if px is not None and not ranked_window.empty:
         st.markdown('<div class="sec-label">Top performers — this event</div>', unsafe_allow_html=True)
         top20 = ranked_window.sort_values("kill_points",ascending=True).tail(20)
@@ -957,7 +893,6 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
 
     st.markdown('<div class="sec-label">Individual ranking — this event</div>', unsafe_allow_html=True)
     show_ranking(ranked_window, key_prefix=f"kvk_{event_row['id']}")
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — Kingdom
@@ -1031,42 +966,6 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
             </div>
             """, unsafe_allow_html=True)
 
-    if px is not None:
-        st.markdown('<div class="sec-label">Kill Points distribution</div>', unsafe_allow_html=True)
-        g1, g2 = st.columns([3,2])
-        cmap = {"Aprovado":"#4ade80","Pendente":"#fbbf24","Abaixo da meta":"#f87171"}
-
-        with g1:
-            top20 = ranked.sort_values("kill_points",ascending=True).tail(20)
-            fig = px.bar(top20, x="kill_points", y="username", orientation="h",
-                         color="status", color_discrete_map=cmap,
-                         labels={"kill_points":"Kill Points","username":""})
-            fig.update_layout(
-                showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#7a7060", family="Inter"),
-                yaxis=dict(tickfont=dict(size=11,color="#9a9080"), gridcolor="rgba(200,146,42,0.06)"),
-                xaxis=dict(tickfont=dict(size=10), gridcolor="rgba(200,146,42,0.06)"),
-            )
-            fig.update_traces(marker_line_width=0)
-            st.plotly_chart(fig, use_container_width=True)
-
-        with g2:
-            fig2 = px.pie(
-                values=[approved,pending,below],
-                names=["Approved","Pending","Below goal"],
-                hole=0.65, color_discrete_sequence=["#4ade80","#fbbf24","#f87171"],
-            )
-            fig2.update_traces(textposition="inside", textinfo="percent", textfont_size=11,
-                               marker=dict(line=dict(color="#0d0f14",width=2)))
-            fig2.update_layout(
-                showlegend=True, margin=dict(t=10,b=0,l=0,r=0),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#7a7060", family="Inter"),
-                legend=dict(orientation="h",y=-0.08,font=dict(size=10,color="#7a7060")),
-            )
-            st.plotly_chart(fig2, use_container_width=True)
-
     st.markdown('<div class="sec-label">Power bands</div>', unsafe_allow_html=True)
     bands = []
     for pmin, pmax, dead_t4, _, kp in GOAL_TABLE:
@@ -1088,24 +987,75 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
                             for b in bands) +
                     '</table>', unsafe_allow_html=True)
 
-    st.markdown('<div class="sec-label">Need attention</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Need attention & Mailing List</div>', unsafe_allow_html=True)
+    
+    col_att, col_mail = st.columns([2, 1])
+    
     att = ranked[ranked["status"]!="Aprovado"].sort_values("kp_pct").head(8)
-    if att.empty:
-        st.success("All members are approved!")
-    else:
-        for _, row in att.iterrows():
-            cls  = STATUS_CLS.get(row["status"],"er")
-            kp_p = min(float(row.get("kp_pct",0))*100, 100)
-            dp_p = min(float(row.get("dead_pct",0))*100, 100)
-            st.markdown(f"""
-            <div class="att-row {cls}">
-              <div class="att-name">{row['username']}</div>
-              <div class="att-pow">{fmt_m(int(row['power']))}M</div>
-              <div class="att-pcts">KP {kp_p:.0f}% · Deaths {dp_p:.0f}%</div>
-              <div class="sbadge sbadge-{cls}">{STATUS_ICON.get(row['status'],'○')} {STATUS_LABEL.get(row['status'],'—')}</div>
-            </div>
-            """, unsafe_allow_html=True)
+    with col_att:
+        if att.empty:
+            st.success("All members are approved!")
+        else:
+            for _, row in att.iterrows():
+                cls  = STATUS_CLS.get(row["status"],"er")
+                kp_p = min(float(row.get("kp_pct",0))*100, 100)
+                dp_p = min(float(row.get("dead_pct",0))*100, 100)
+                st.markdown(f"""
+                <div class="att-row {cls}">
+                  <div class="att-name">{row['username']}</div>
+                  <div class="att-pow">{fmt_m(int(row['power']))}M</div>
+                  <div class="att-pcts">KP {kp_p:.0f}% · Deaths {dp_p:.0f}%</div>
+                  <div class="sbadge sbadge-{cls}">{STATUS_ICON.get(row['status'],'○')} {STATUS_LABEL.get(row['status'],'—')}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
+    with col_mail:
+        st.markdown("<div style='font-size:0.75rem; color:#9a9080; margin-bottom:10px;'>Lista de IDs de jogadores pendentes ou abaixo da meta para enviar Mails no jogo:</div>", unsafe_allow_html=True)
+        abaixo_da_meta = ranked[ranked['status'] != 'Aprovado']
+        if not abaixo_da_meta.empty:
+            ids_correio = ",".join(abaixo_da_meta['character_id'].astype(str).tolist())
+            st.code(ids_correio, language="text")
+        else:
+            st.success("Nenhum mail necessário.")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Tab — Profile (Tracker)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def show_profile(storage, imports, gp):
+    st.markdown('<div class="sec-label">Player Tracker</div>', unsafe_allow_html=True)
+    st.caption("Busque o histórico completo de desempenho de um jogador.")
+    
+    hist_df = get_all_history_metrics(storage, imports, gp)
+    if hist_df.empty:
+        st.info("Importe mais relatórios para rastrear a evolução.")
+        return
+
+    player_list = hist_df['username'].unique().tolist()
+    selected_player = st.selectbox("Selecione ou busque o Governador:", player_list)
+
+    if selected_player and px is not None:
+        player_data = hist_df[hist_df['username'] == selected_player].sort_values('report_date')
+        
+        c1, c2, c3 = st.columns(3)
+        with c1: st.metric("Power Atual", f"{fmt_m(int(player_data.iloc[-1]['power']))}M")
+        with c2: st.metric("Kill Points (Último)", fmt_k(int(player_data.iloc[-1]['kill_points'])))
+        with c3: st.metric("Status Atual", player_data.iloc[-1]['status'])
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['kill_points'],
+                                 mode='lines+markers', name='Kill Points', line=dict(color='#c8922a')))
+        fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['dead_equiv'],
+                                 mode='lines+markers', name='Deaths (T4eq)', line=dict(color='#60a5fa')))
+        
+        fig.update_layout(
+            title=f"Evolução de {selected_player}",
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#7a7060", family="Inter"),
+            yaxis=dict(gridcolor="rgba(200,146,42,0.06)"),
+            xaxis=dict(gridcolor="rgba(200,146,42,0.06)")
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — Hall of Fame
@@ -1135,19 +1085,17 @@ def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
         return
 
     kvks = list_kvks(hof)
-
     col_sel, col_info = st.columns([3,3])
     with col_sel:
         selected_kvk = st.selectbox("KVK", kvks, key="hof_kvk", label_visibility="collapsed")
     with col_info:
         total_kvks = len(kvks)
         st.markdown(
-            f'<div style="font-size:.68rem;color:#5a5448;padding-top:8px">'            f'<span style="color:#c8922a;font-weight:700">{total_kvks}</span> KVK(s) archived'            f'</div>',
+            f'<div style="font-size:.68rem;color:#5a5448;padding-top:8px">' f'<span style="color:#c8922a;font-weight:700">{total_kvks}</span> KVK(s) archived' f'</div>',
             unsafe_allow_html=True,
         )
 
     kvk_data = hof[hof["kvk_name"] == selected_kvk]
-
     kp_df    = kvk_data[kvk_data["category"] == "kp"   ].sort_values("position")
     dead_df  = kvk_data[kvk_data["category"] == "deaths"].sort_values("position")
 
@@ -1156,41 +1104,19 @@ def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
     c1, c2 = st.columns(2)
 
     with c1:
-        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;'                    'letter-spacing:.14em;color:#c8922a;margin-bottom:10px">⚔ Top 10 Kill Points</div>',
+        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#c8922a;margin-bottom:10px">⚔ Top 10 Kill Points</div>',
                     unsafe_allow_html=True)
         _render_hof_list(kp_df, "kp")
 
     with c2:
-        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;'                    'letter-spacing:.14em;color:#60a5fa;margin-bottom:10px">💀 Top 10 Deaths</div>',
+        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#60a5fa;margin-bottom:10px">💀 Top 10 Deaths</div>',
                     unsafe_allow_html=True)
         _render_hof_list(dead_df, "deaths")
-
-    if len(kvks) > 1:
-        st.markdown('<div class="sec-label">Full history</div>', unsafe_allow_html=True)
-        with st.expander("View all KVKs →", expanded=False):
-            for kvk in kvks:
-                sub = hof[hof["kvk_name"] == kvk]
-                kp_top3 = sub[sub["category"]=="kp"].sort_values("position").head(3)
-                st.markdown(f'<div style="font-size:.7rem;font-weight:700;color:#7a7060;margin:10px 0 4px">{kvk}</div>',
-                            unsafe_allow_html=True)
-                if not kp_top3.empty:
-                    medals = ["🥇","🥈","🥉"]
-                    for i,(_, r) in enumerate(kp_top3.iterrows()):
-                        st.markdown(
-                            f'<div style="font-size:.75rem;color:#9a9080;margin-left:8px">'                            f'{medals[i]} {r["username"]} — '                            f'<span style="color:#c8922a;font-family:monospace">{fmt_k(int(r["value"]))} KP</span>'                            f'</div>',
-                            unsafe_allow_html=True,
-                        )
-
-    if admin_enabled and is_admin:
-        st.markdown('<div class="sec-label">Admin</div>', unsafe_allow_html=True)
-        st.caption("Re-archiving overwrites the Hall of Fame for the selected import.")
-
 
 def _render_hof_list(df: pd.DataFrame, category: str) -> None:
     if df.empty:
         st.caption("No data for this KVK.")
         return
-
     medals = {1:"🥇", 2:"🥈", 3:"🥉"}
     color  = "#c8922a" if category == "kp" else "#60a5fa"
     unit   = "KP" if category == "kp" else "T4eq"
@@ -1208,18 +1134,12 @@ def _render_hof_list(df: pd.DataFrame, category: str) -> None:
                     border-radius:8px;margin-bottom:5px;">
           <div style="font-size:{'1.2rem' if is_top else '.85rem'};min-width:28px;text-align:center">{medal}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:{'0.88rem' if is_top else '0.82rem'};
-                        font-weight:{'700' if is_top else '500'};
-                        color:#e8e0cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            <div style="font-size:{'0.88rem' if is_top else '0.82rem'}; font-weight:{'700' if is_top else '500'}; color:#e8e0cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
               {row["username"]}
             </div>
-            <div style="font-size:.62rem;color:#4a4438;margin-top:1px">
-              {fmt_m(int(row["power"]))}M power
-            </div>
+            <div style="font-size:.62rem;color:#4a4438;margin-top:1px">{fmt_m(int(row["power"]))}M power</div>
           </div>
-          <div style="font-family:'JetBrains Mono',monospace;
-                      font-size:{'1rem' if is_top else '0.85rem'};
-                      font-weight:600;color:{color};white-space:nowrap">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:{'1rem' if is_top else '0.85rem'}; font-weight:600;color:{color};white-space:nowrap">
             {fmt_k(int(row["value"]))} {unit}
           </div>
         </div>
@@ -1241,36 +1161,42 @@ def show_history(storage, imports, group_power):
     ca, cb  = st.columns(2)
     with ca: la = st.selectbox("Base",      labels, index=0,                   key="ha")
     with cb: lb = st.selectbox("Compare to", labels, index=min(1,len(labels)-1),key="hb")
-    if la == lb: st.warning("Select two different reports."); return
+    if la != lb:
+        id_a = ordered.loc[ordered["label"].eq(la),"id"].iloc[0]
+        id_b = ordered.loc[ordered["label"].eq(lb),"id"].iloc[0]
+        delta = compute_period_deltas(storage.load_stats(id_b), storage.load_stats(id_a))
+        met   = calculate_metrics(delta, group_power=group_power)
+        top   = met.sort_values("kill_points",ascending=False).head(15)
 
-    id_a = ordered.loc[ordered["label"].eq(la),"id"].iloc[0]
-    id_b = ordered.loc[ordered["label"].eq(lb),"id"].iloc[0]
-    delta = compute_period_deltas(storage.load_stats(id_b), storage.load_stats(id_a))
-    met   = calculate_metrics(delta, group_power=group_power)
-    top   = met.sort_values("kill_points",ascending=False).head(15)
+        if not top.empty and px is not None:
+            fig = px.bar(top.sort_values("kill_points",ascending=True),
+                         x="kill_points", y="username", orientation="h",
+                         color_discrete_sequence=["#c8922a"],
+                         labels={"kill_points":"Kill Points Gained","username":""})
+            fig.update_layout(
+                showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#7a7060",family="Inter"),
+                yaxis=dict(tickfont=dict(size=11,color="#9a9080"),gridcolor="rgba(200,146,42,0.06)"),
+                xaxis=dict(gridcolor="rgba(200,146,42,0.06)"),
+            )
+            fig.update_traces(marker_line_width=0)
+            st.plotly_chart(fig, use_container_width=True)
 
-    if not top.empty and px is not None:
-        fig = px.bar(top.sort_values("kill_points",ascending=True),
-                     x="kill_points", y="username", orientation="h",
-                     color_discrete_sequence=["#c8922a"],
-                     labels={"kill_points":"Kill Points Gained","username":""})
-        fig.update_layout(
-            showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#7a7060",family="Inter"),
-            yaxis=dict(tickfont=dict(size=11,color="#9a9080"),gridcolor="rgba(200,146,42,0.06)"),
-            xaxis=dict(gridcolor="rgba(200,146,42,0.06)"),
-        )
-        fig.update_traces(marker_line_width=0)
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.dataframe(
-        met[["username","power","kill_points","t5_kills","t4_kills","t3_kills","t2_kills","t1_kills"]]
-           .sort_values("kill_points",ascending=False)
-           .rename(columns={"username":"Governor","power":"Power","kill_points":"KP",
-                             "t5_kills":"T5","t4_kills":"T4","t3_kills":"T3","t2_kills":"T2","t1_kills":"T1"}),
-        use_container_width=True, hide_index=True)
-
+    # NOVO: Deadweight Tracker
+    st.markdown('<div class="sec-label">Rastreador de "Deadweight" (Peso Morto)</div>', unsafe_allow_html=True)
+    st.caption("Jogadores que ficaram 'Abaixo da meta' em 2 ou mais relatórios importados.")
+    
+    hist_df = get_all_history_metrics(storage, imports, group_power)
+    if not hist_df.empty:
+        deadweight_df = hist_df[hist_df['status'] == 'Abaixo da meta']
+        infratores = deadweight_df.groupby(['character_id', 'username']).size().reset_index(name='Falhas na Meta')
+        infratores_frequentes = infratores[infratores['Falhas na Meta'] >= 2].sort_values('Falhas na Meta', ascending=False)
+        
+        if not infratores_frequentes.empty:
+            st.dataframe(infratores_frequentes, use_container_width=True, hide_index=True)
+        else:
+            st.success("Nenhum peso morto repetido detectado! Seu reino está saudável.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — Imports (admin only)
@@ -1295,7 +1221,6 @@ def show_imports(imports, storage, *, is_admin, admin_enabled):
                     st.success("Deleted."); st.rerun()
                 else: st.error("Not found.")
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — Help
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1313,26 +1238,9 @@ The system converts automatically: `equiv = (T5deaths × 2) + T4deaths`
 - 🟡 Pending — ≥75% on both goals
 - ❌ Below goal — <75% on either goal
 
-**Dual gauge in ranking:** each member shows two bars — KP (amber) and Deaths (blue) — always visible without expanding, for fast reading.
-
-**KvK tab:** an admin creates an event with a name and a date range. The system automatically pulls every report inside that window and computes the individual ranking and kingdom summary for that specific period.
-
-**Theme toggle:** use the ☀️/🌙 button next to the header to switch between dark and light mode. Colors, contrast and accents adapt automatically across the whole app.
+**Gamification:**
+- 🛡️ Top 5% Mortes  |  🔥 2x Meta de KP  |  🐋 Mais de 100M Poder
 """)
-
-    st.markdown('<div class="sec-label">Goal table</div>', unsafe_allow_html=True)
-    st.markdown("""
-| City Power | Death Goal | KP Goal |
-|---|---|---|
-| ≤49M | 900k T4 / 450k T5 | 80M |
-| 50–59M | 900k T4 / 450k T5 | 100M |
-| 60–69M | 1M T4 / 500k T5 | 140M |
-| 70–79M | 1.4M T4 / 700k T5 | 180M |
-| 80–89M | 1.6M T4 / 800k T5 | 200M |
-| 90–99M | 2M T4 / 1M T5 | 280M |
-| ≥100M | 2M T4 / 1M T5 | 320M |
-""")
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Formatters
