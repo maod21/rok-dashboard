@@ -12,6 +12,7 @@ from rok_metrics import (
     extract_report_date_from_name, file_sha256, load_stats_file,
 )
 from security import is_admin_authenticated
+from hall_of_fame import maybe_archive, load_hall, list_kvks
 from storage import create_storage
 
 try:
@@ -28,422 +29,484 @@ st.set_page_config(
 )
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  DESIGN SYSTEM — Dual-theme (Dark / Light)
-#  Dark:  Obsidian (#0d0f14) + Stone (#1c1f2b) + Parchment (#e8e0cc) + Amber
-#  Light: Parchment (#f5f0e8) + White (#ffffff) + Ink (#1a1410) + Amber dark
-#  Signature: dual-gauge row sempre visível, sem expand
+#  DESIGN SYSTEM
+#  Paleta: Obsidian (#0d0f14) + Stone (#1c1f2b) + Parchment (#e8e0cc)
+#  Accent:  Amber (#c8922a) + Ember (#e84545)
+#  Data:    Inter (via Google Fonts) + JetBrains Mono para números
+#  Assinatura: dual-gauge row — KP bar + Deaths bar visíveis sem expand
 # ══════════════════════════════════════════════════════════════════════════════
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  DESIGN SYSTEM — Executive Dual Theme
-#  Dark:  Midnight Navy + Slate surfaces + Imperial Gold accent
-#  Light: Cloud White + Slate ink + Warm Gold accent
-#  Objetivo: contraste alto, visual premium e leitura confortável nos 2 modos.
-# ══════════════════════════════════════════════════════════════════════════════
-
-def ui_tokens(dark: bool | None = None) -> dict:
-    """Tokens visuais centralizados para CSS, gráficos e pequenos componentes HTML."""
-    if dark is None:
-        dark = bool(st.session_state.get("dark_mode", True))
-
-    if dark:
-        return {
-            "mode": "dark",
-            "bg": "#080D1A",
-            "bg_soft": "#0D1424",
-            "surface": "#111827",
-            "surface2": "#172033",
-            "surface3": "#1E293B",
-            "sidebar_bg": "#0B1020",
-            "sidebar_text": "#CBD5E1",
-            "sidebar_dim": "#64748B",
-            "sidebar_border": "rgba(245,158,11,0.18)",
-            "input_bg": "#0F172A",
-            "border": "rgba(148,163,184,0.16)",
-            "border_hi": "rgba(245,158,11,0.38)",
-            "shadow": "0 18px 55px rgba(0,0,0,.38)",
-            "shadow_sm": "0 10px 28px rgba(0,0,0,.24)",
-            "text": "#F8FAFC",
-            "text_sub": "#CBD5E1",
-            "text_dim": "#94A3B8",
-            "text_muted": "#64748B",
-            "text_faint": "#475569",
-            "accent": "#F59E0B",
-            "accent_hi": "#FBBF24",
-            "accent_soft": "rgba(245,158,11,.12)",
-            "green": "#22C55E",
-            "yellow": "#FACC15",
-            "red": "#F87171",
-            "blue": "#38BDF8",
-            "blue_dark": "#2563EB",
-            "purple": "#A78BFA",
-            "gauge_bg": "rgba(226,232,240,.08)",
-            "gauge_bdr": "rgba(226,232,240,.05)",
-            "plot_grid": "rgba(148,163,184,.14)",
-            "plot_axis": "#94A3B8",
-            "pie_line": "#080D1A",
-            "button_text": "#111827",
-            "table_header": "#CBD5E1",
-            "table_cell": "#CBD5E1",
-            "table_dim": "#94A3B8",
-        }
-
-    return {
-        "mode": "light",
-        "bg": "#F6F8FC",
-        "bg_soft": "#EEF2F7",
-        "surface": "#FFFFFF",
-        "surface2": "#F1F5F9",
-        "surface3": "#E2E8F0",
-        "sidebar_bg": "#FFFFFF",
-        "sidebar_text": "#334155",
-        "sidebar_dim": "#64748B",
-        "sidebar_border": "rgba(15,23,42,0.10)",
-        "input_bg": "#FFFFFF",
-        "border": "rgba(15,23,42,0.10)",
-        "border_hi": "rgba(180,83,9,0.28)",
-        "shadow": "0 18px 45px rgba(15,23,42,.09)",
-        "shadow_sm": "0 8px 22px rgba(15,23,42,.07)",
-        "text": "#0F172A",
-        "text_sub": "#334155",
-        "text_dim": "#64748B",
-        "text_muted": "#94A3B8",
-        "text_faint": "#CBD5E1",
-        "accent": "#B45309",
-        "accent_hi": "#D97706",
-        "accent_soft": "rgba(180,83,9,.09)",
-        "green": "#15803D",
-        "yellow": "#B45309",
-        "red": "#B91C1C",
-        "blue": "#0369A1",
-        "blue_dark": "#1D4ED8",
-        "purple": "#6D28D9",
-        "gauge_bg": "rgba(15,23,42,.08)",
-        "gauge_bdr": "rgba(15,23,42,.06)",
-        "plot_grid": "rgba(100,116,139,.18)",
-        "plot_axis": "#64748B",
-        "pie_line": "#FFFFFF",
-        "button_text": "#FFFFFF",
-        "table_header": "#334155",
-        "table_cell": "#334155",
-        "table_dim": "#64748B",
-    }
-
-
-def _css(dark: bool) -> str:
-    t = ui_tokens(dark)
-
-    bg = t["bg"]; bg_soft = t["bg_soft"]
-    surface = t["surface"]; surface2 = t["surface2"]; surface3 = t["surface3"]
-    sidebar_bg = t["sidebar_bg"]; sidebar_text = t["sidebar_text"]; sidebar_dim = t["sidebar_dim"]; sidebar_border = t["sidebar_border"]
-    input_bg = t["input_bg"]
-    border = t["border"]; border_hi = t["border_hi"]
-    shadow = t["shadow"]; shadow_sm = t["shadow_sm"]
-    text = t["text"]; text_sub = t["text_sub"]; text_dim = t["text_dim"]; text_muted = t["text_muted"]; text_faint = t["text_faint"]
-    accent = t["accent"]; accent_hi = t["accent_hi"]; accent_soft = t["accent_soft"]
-    green = t["green"]; yellow = t["yellow"]; red = t["red"]
-    blue = t["blue"]; blue_dark = t["blue_dark"]; purple = t["purple"]
-    gauge_bg = t["gauge_bg"]; gauge_bdr = t["gauge_bdr"]
-    plot_grid = t["plot_grid"]
-    button_text = t["button_text"]
-    table_header = t["table_header"]; table_cell = t["table_cell"]; table_dim = t["table_dim"]
-
-    ok_bg = "rgba(34,197,94,.13)" if dark else "rgba(21,128,61,.10)"
-    ok_br = "rgba(34,197,94,.32)" if dark else "rgba(21,128,61,.24)"
-    wa_bg = "rgba(250,204,21,.14)" if dark else "rgba(180,83,9,.10)"
-    wa_br = "rgba(250,204,21,.34)" if dark else "rgba(180,83,9,.24)"
-    er_bg = "rgba(248,113,113,.14)" if dark else "rgba(185,28,28,.10)"
-    er_br = "rgba(248,113,113,.34)" if dark else "rgba(185,28,28,.24)"
-
-    return f"""
+st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-:root {{
-  --rok-bg: {bg};
-  --rok-bg-soft: {bg_soft};
-  --rok-surface: {surface};
-  --rok-surface-2: {surface2};
-  --rok-surface-3: {surface3};
-  --rok-border: {border};
-  --rok-border-hi: {border_hi};
-  --rok-text: {text};
-  --rok-text-sub: {text_sub};
-  --rok-text-dim: {text_dim};
-  --rok-text-muted: {text_muted};
-  --rok-accent: {accent};
-  --rok-accent-hi: {accent_hi};
-  --rok-green: {green};
-  --rok-yellow: {yellow};
-  --rok-red: {red};
-  --rok-blue: {blue};
-  --rok-blue-dark: {blue_dark};
-}}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
+<style>
 /* ─── RESET / BASE ─────────────────────────────────────── */
-*, *::before, *::after {{ box-sizing: border-box; }}
-html, body, [class*="css"], .stApp {{
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
-  background:
-    radial-gradient(circle at 12% 0%, {accent_soft} 0, transparent 32%),
-    radial-gradient(circle at 90% 0%, rgba(56,189,248,.08) 0, transparent 28%),
-    {bg} !important;
-  color: {text} !important;
-}}
-.main .block-container {{
-  padding: 1.35rem 2rem 3.2rem !important;
-  max-width: 1540px !important;
-}}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, [class*="css"], .stApp {
+  font-family: 'Inter', system-ui, sans-serif !important;
+  background: #0d0f14 !important;
+  color: #e8e0cc !important;
+}
+
+.main .block-container {
+  padding: 1.2rem 2rem 3rem !important;
+  max-width: 1500px !important;
+}
 
 /* ─── SIDEBAR ───────────────────────────────────────────── */
-section[data-testid="stSidebar"] {{
-  background: {sidebar_bg} !important;
-  border-right: 1px solid {sidebar_border} !important;
-  box-shadow: {shadow_sm};
-}}
-section[data-testid="stSidebar"] > div {{ padding: 1.35rem .95rem !important; }}
-section[data-testid="stSidebar"] * {{ color: {sidebar_text} !important; }}
-section[data-testid="stSidebar"] small,
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] .stCaption,
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {{ color: {sidebar_dim} !important; }}
-section[data-testid="stSidebar"] .stSuccess p {{ color: {green} !important; }}
-section[data-testid="stSidebar"] .stError p {{ color: {red} !important; }}
-section[data-testid="stSidebar"] .stWarning p {{ color: {yellow} !important; }}
-.sidebar-storage {{ font-size:.70rem; color:{sidebar_dim}; margin-bottom:12px; }}
-.sidebar-storage span {{ color:{accent_hi}; font-weight:800; }}
+section[data-testid="stSidebar"] {
+  background: #0d0f14 !important;
+  border-right: 1px solid rgba(200,146,42,0.15) !important;
+}
+section[data-testid="stSidebar"] > div { padding: 1.5rem 1rem !important; }
 
-/* ─── STREAMLIT CORE COMPONENTS ─────────────────────────── */
-[data-testid="stMetric"], [data-testid="stDataFrame"], .stAlert {{
-  background: {surface} !important;
-  border: 1px solid {border} !important;
-  border-radius: 14px !important;
-  box-shadow: {shadow_sm};
-}}
-[data-testid="stMetric"] {{ padding: 18px 20px !important; position: relative; overflow: hidden; }}
-[data-testid="stMetric"]::after {{
-  content:''; position:absolute; left:0; right:0; bottom:0; height:3px;
-  background: linear-gradient(90deg,{accent},{accent_hi},transparent);
-}}
-[data-testid="stMetricLabel"] {{
-  font-size:.64rem !important; font-weight:800 !important; text-transform:uppercase;
-  letter-spacing:.12em; color:{text_dim} !important;
-}}
-[data-testid="stMetricValue"] {{
-  font-family:'JetBrains Mono', monospace !important; font-size:1.55rem !important;
-  font-weight:700 !important; color:{text} !important; letter-spacing:-.04em;
-}}
+/* ─── METRICS ───────────────────────────────────────────── */
+[data-testid="stMetric"] {
+  background: #1c1f2b !important;
+  border: 1px solid rgba(200,146,42,0.18) !important;
+  border-radius: 10px !important;
+  padding: 18px 20px !important;
+  position: relative; overflow: hidden;
+}
+[data-testid="stMetric"]::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, #c8922a 0%, transparent 100%);
+}
+[data-testid="stMetricLabel"] {
+  font-size: .62rem !important; font-weight: 600 !important;
+  text-transform: uppercase; letter-spacing: .12em;
+  color: #7a7060 !important;
+}
+[data-testid="stMetricValue"] {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 1.5rem !important; font-weight: 600 !important;
+  color: #e8e0cc !important; letter-spacing: -.03em;
+}
 
-[data-testid="stTabs"] [role="tablist"] {{
-  border-bottom:1px solid {border}; gap:4px; background:transparent;
-}}
-[data-testid="stTabs"] button[role="tab"] {{
-  font-size:.70rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em;
-  color:{text_dim} !important; padding:11px 18px; border-bottom:2px solid transparent;
-  border-radius:10px 10px 0 0; background:transparent !important;
-  transition:color .2s, background .2s, border-color .2s;
-}}
-[data-testid="stTabs"] button[role="tab"]:hover {{ color:{accent} !important; background:{accent_soft} !important; }}
-[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{
-  color:{accent} !important; border-bottom-color:{accent} !important; background:{surface} !important;
-}}
+/* ─── TABS ──────────────────────────────────────────────── */
+[data-testid="stTabs"] [role="tablist"] {
+  border-bottom: 1px solid rgba(200,146,42,0.20);
+  gap: 0; background: transparent;
+}
+[data-testid="stTabs"] button[role="tab"] {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .10em; color: #5a5448 !important;
+  padding: 10px 20px; border-bottom: 2px solid transparent;
+  border-radius: 0; background: transparent !important;
+  transition: color .2s, border-color .2s;
+}
+[data-testid="stTabs"] button[role="tab"]:hover { color: #c8922a !important; }
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+  color: #c8922a !important;
+  border-bottom-color: #c8922a !important;
+  background: transparent !important;
+}
 
+/* ─── INPUTS ────────────────────────────────────────────── */
 [data-testid="stTextInput"] input,
 [data-testid="stSelectbox"] > div > div,
-[data-testid="stNumberInput"] input,
-[data-testid="stDateInput"] input {{
-  background:{input_bg} !important; border:1px solid {border} !important; border-radius:10px !important;
-  color:{text} !important; font-family:'Inter', sans-serif !important; font-size:.84rem !important;
-  min-height: 38px;
-}}
-[data-testid="stTextInput"] input::placeholder {{ color:{text_muted} !important; }}
+[data-testid="stNumberInput"] input {
+  background: #1c1f2b !important;
+  border: 1px solid rgba(200,146,42,0.20) !important;
+  border-radius: 8px !important;
+  color: #e8e0cc !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: .82rem !important;
+}
+[data-testid="stTextInput"] input::placeholder { color: #4a4438 !important; }
 [data-testid="stTextInput"] input:focus,
-[data-testid="stSelectbox"] > div > div:focus-within,
-[data-testid="stNumberInput"] input:focus,
-[data-testid="stDateInput"] input:focus {{
-  border-color:{accent} !important; box-shadow:0 0 0 3px {accent_soft} !important;
-}}
-[data-testid="stButton"] button {{
-  background:linear-gradient(135deg,{accent},{accent_hi}) !important; color:{button_text} !important;
-  border:none !important; border-radius:10px !important; font-weight:800 !important; font-size:.76rem !important;
-  text-transform:uppercase; letter-spacing:.07em; box-shadow:0 10px 24px {accent_soft};
-  transition: transform .12s ease, opacity .2s ease, box-shadow .2s ease;
-}}
-[data-testid="stButton"] button:hover {{ opacity:.92; transform:translateY(-1px); box-shadow:0 14px 30px {accent_soft}; }}
-[data-testid="stButton"] button[kind="secondary"] {{
-  background:{surface} !important; border:1px solid {border_hi} !important; color:{accent} !important; box-shadow:none;
-}}
-[data-testid="stExpander"] {{ border:none !important; border-radius:0 !important; background:transparent !important; }}
-[data-testid="stExpander"] > details > summary {{
-  background:transparent !important; border:none !important; padding:0 !important; color:{text_sub} !important;
-}}
-hr {{ border-color:{border} !important; margin:1.2rem 0 !important; }}
-::-webkit-scrollbar {{ width:8px; height:8px; }}
-::-webkit-scrollbar-track {{ background:{bg_soft}; }}
-::-webkit-scrollbar-thumb {{ background:{text_faint}; border-radius:999px; }}
-::-webkit-scrollbar-thumb:hover {{ background:{accent}; }}
-[data-testid="stRadio"] label, [data-testid="stCheckbox"] label {{ color:{text_sub} !important; font-size:.78rem !important; }}
+[data-testid="stSelectbox"] > div > div:focus-within {
+  border-color: #c8922a !important;
+  box-shadow: 0 0 0 2px rgba(200,146,42,0.15) !important;
+}
+
+/* ─── BUTTONS ───────────────────────────────────────────── */
+[data-testid="stButton"] button {
+  background: #c8922a !important; color: #0d0f14 !important;
+  border: none !important; border-radius: 8px !important;
+  font-weight: 700 !important; font-size: .78rem !important;
+  text-transform: uppercase; letter-spacing: .08em;
+  transition: opacity .2s, transform .1s;
+}
+[data-testid="stButton"] button:hover { opacity: .85; transform: translateY(-1px); }
+[data-testid="stButton"] button[kind="secondary"] {
+  background: transparent !important;
+  border: 1px solid rgba(200,146,42,0.35) !important;
+  color: #c8922a !important;
+}
+
+/* ─── EXPANDER ──────────────────────────────────────────── */
+[data-testid="stExpander"] {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+[data-testid="stExpander"] > details > summary {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* ─── DATAFRAME ─────────────────────────────────────────── */
+[data-testid="stDataFrame"] {
+  border: 1px solid rgba(200,146,42,0.15) !important;
+  border-radius: 10px !important; overflow: hidden;
+}
+
+/* ─── DIVIDER ───────────────────────────────────────────── */
+hr { border-color: rgba(200,146,42,0.15) !important; margin: 1.2rem 0 !important; }
+
+/* ─── SCROLLBAR ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0d0f14; }
+::-webkit-scrollbar-thumb { background: rgba(200,146,42,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #c8922a; }
+
+
+/* ══════════════════════════════════════════════════════════
+   COMPONENT LIBRARY
+   ══════════════════════════════════════════════════════════ */
 
 /* ─── HEADER ────────────────────────────────────────────── */
-.rok-header {{
-  display:flex; align-items:center; gap:18px; padding:20px 24px; margin-bottom:18px;
-  background:
-    linear-gradient(135deg, {surface} 0%, {surface2} 100%);
-  border:1px solid {border_hi}; border-radius:18px; position:relative; overflow:hidden;
-  box-shadow:{shadow};
-}}
-.rok-header::before {{ content:''; position:absolute; inset:0 0 auto 0; height:1px; background:linear-gradient(90deg,transparent,{accent_hi},transparent); }}
-.rok-header::after {{ content:''; position:absolute; width:220px; height:220px; right:-90px; top:-120px; background:{accent_soft}; border-radius:50%; filter:blur(2px); }}
-.rok-header-emblem {{
-  width:56px; height:56px; flex-shrink:0; background:linear-gradient(135deg,{accent},{accent_hi});
-  border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:1.75rem;
-  box-shadow:0 12px 30px {accent_soft}; position:relative; z-index:1;
-}}
-.rok-header-title {{ font-size:1.55rem; font-weight:900; color:{text}; letter-spacing:-.045em; line-height:1; position:relative; z-index:1; }}
-.rok-header-sub {{ font-size:.72rem; color:{text_dim}; letter-spacing:.08em; margin-top:6px; text-transform:uppercase; position:relative; z-index:1; }}
-.rok-header-right {{ margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }}
+.rok-header {
+  display: flex; align-items: center; gap: 18px;
+  padding: 18px 24px; margin-bottom: 18px;
+  background: linear-gradient(135deg, #1c1f2b 0%, #15181f 100%);
+  border: 1px solid rgba(200,146,42,0.22);
+  border-radius: 12px;
+  position: relative; overflow: hidden;
+}
+.rok-header::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, #c8922a, transparent);
+}
+.rok-header-emblem {
+  width: 52px; height: 52px; flex-shrink: 0;
+  background: linear-gradient(135deg, #c8922a, #b07820);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+}
+.rok-header-title {
+  font-size: 1.4rem; font-weight: 900; color: #e8e0cc;
+  letter-spacing: -.03em; line-height: 1;
+}
+.rok-header-sub {
+  font-size: .7rem; color: #7a7060;
+  letter-spacing: .05em; margin-top: 4px; text-transform: uppercase;
+}
+.rok-header-right { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
 
-/* ─── GLOBAL LABELS / PILLS ─────────────────────────────── */
-.tier-pills {{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }}
-.tier-pill {{
-  padding:5px 11px; border-radius:999px; font-size:.66rem; font-weight:800; letter-spacing:.055em;
-  text-transform:uppercase; white-space:nowrap; border:1px solid; background:{surface}; box-shadow:{shadow_sm};
-}}
-.tp-t5 {{ color:{accent_hi}; border-color:rgba(245,158,11,.34); background:{accent_soft}; }}
-.tp-t4 {{ color:{accent}; border-color:rgba(217,119,6,.30); background:{accent_soft}; }}
-.tp-t3 {{ color:{purple}; border-color:rgba(167,139,250,.28); background:rgba(167,139,250,.10); }}
-.tp-t2 {{ color:{blue}; border-color:rgba(56,189,248,.28); background:rgba(56,189,248,.10); }}
-.tp-t1 {{ color:{text_dim}; border-color:{border}; background:{surface2}; }}
-.tp-eq {{ color:{text_sub}; border-color:{border_hi}; background:{surface}; }}
-.sec-label {{
-  font-size:.62rem; font-weight:900; letter-spacing:.16em; text-transform:uppercase; color:{text_dim};
-  display:flex; align-items:center; gap:12px; margin:22px 0 12px;
-}}
-.sec-label::after {{ content:''; flex:1; height:1px; background:linear-gradient(90deg,{border},transparent); }}
-.page-hint {{ font-size:.66rem; color:{text_dim}; padding-top:8px; }}
+/* ─── WEIGHT PILLS ──────────────────────────────────────── */
+.tier-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.tier-pill {
+  padding: 3px 10px; border-radius: 4px;
+  font-size: .64rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; white-space: nowrap;
+  border: 1px solid;
+}
+.tp-t5 { color: #f59e0b; border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.08); }
+.tp-t4 { color: #fb923c; border-color: rgba(251,146,60,.35); background: rgba(251,146,60,.08); }
+.tp-t3 { color: #a78bfa; border-color: rgba(167,139,250,.35); background: rgba(167,139,250,.08); }
+.tp-t2 { color: #60a5fa; border-color: rgba(96,165,250,.35); background: rgba(96,165,250,.08); }
+.tp-t1 { color: #6b7280; border-color: rgba(107,114,128,.35); background: rgba(107,114,128,.08); }
+.tp-eq { color: #7a7060; border-color: rgba(122,112,96,.35); background: rgba(122,112,96,.08); }
 
-/* ─── STAT / BADGE / CARD COMPONENTS ────────────────────── */
-.stat-box, .kd-card, .sm-card, .mrow, .att-row, .upload-lock {{
-  background:{surface}; border:1px solid {border}; box-shadow:{shadow_sm};
-}}
-.stat-box {{ border-radius:14px; padding:17px 18px; position:relative; overflow:hidden; height:100%; }}
-.stat-box-label, .kd-card-label, .sm-label, .mdet-block-label {{
-  font-size:.60rem; font-weight:900; text-transform:uppercase; letter-spacing:.12em; color:{text_dim};
-}}
-.stat-box-value, .kd-card-value, .sm-count, .mdet-block-val {{
-  font-family:'JetBrains Mono', monospace; font-weight:700; color:{text}; letter-spacing:-.045em; line-height:1;
-}}
-.stat-box-value {{ font-size:1.45rem; }}
-.stat-box-sub, .kd-card-sub, .sm-pct, .mrow-meta, .mdet-block-sub, .mdet-gap {{ font-size:.67rem; color:{text_dim}; }}
-.stat-box-bar {{ position:absolute; bottom:0; left:0; height:3px; background:linear-gradient(90deg,{accent},transparent); }}
-.sbadge {{
-  display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px;
-  font-size:.64rem; font-weight:900; letter-spacing:.045em; text-transform:uppercase; white-space:nowrap; border:1px solid;
-}}
-.sbadge-ok {{ color:{green}; border-color:{ok_br}; background:{ok_bg}; }}
-.sbadge-wa {{ color:{yellow}; border-color:{wa_br}; background:{wa_bg}; }}
-.sbadge-er {{ color:{red}; border-color:{er_br}; background:{er_bg}; }}
+/* ─── SECTION LABEL ─────────────────────────────────────── */
+.sec-label {
+  font-size: .6rem; font-weight: 800; letter-spacing: .16em;
+  text-transform: uppercase; color: #5a5448;
+  display: flex; align-items: center; gap: 10px;
+  margin: 20px 0 12px;
+}
+.sec-label::after {
+  content: ''; flex: 1; height: 1px;
+  background: rgba(200,146,42,0.15);
+}
+
+/* ─── KPI STAT BOX ──────────────────────────────────────── */
+.stat-box {
+  background: #1c1f2b;
+  border: 1px solid rgba(200,146,42,0.15);
+  border-radius: 10px; padding: 16px 18px;
+  position: relative; overflow: hidden;
+  height: 100%;
+}
+.stat-box-icon { font-size: 1.3rem; margin-bottom: 8px; }
+.stat-box-label {
+  font-size: .6rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: #5a5448; margin-bottom: 4px;
+}
+.stat-box-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.4rem; font-weight: 600;
+  color: #e8e0cc; line-height: 1; letter-spacing: -.03em;
+}
+.stat-box-sub { font-size: .67rem; color: #5a5448; margin-top: 5px; }
+.stat-box-bar {
+  position: absolute; bottom: 0; left: 0; height: 2px;
+  background: linear-gradient(90deg, #c8922a, transparent);
+}
+
+/* ─── STATUS BADGE ──────────────────────────────────────── */
+.sbadge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 4px;
+  font-size: .63rem; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; white-space: nowrap; border: 1px solid;
+}
+.sbadge-ok  { color: #4ade80; border-color: rgba(74,222,128,.3); background: rgba(74,222,128,.08); }
+.sbadge-wa  { color: #fbbf24; border-color: rgba(251,191,36,.3); background: rgba(251,191,36,.08); }
+.sbadge-er  { color: #f87171; border-color: rgba(248,113,113,.3); background: rgba(248,113,113,.08); }
 
 /* ─── MEMBER ROW ────────────────────────────────────────── */
-.mrow {{ border-radius:14px; margin-bottom:8px; overflow:hidden; transition:border-color .2s, background .2s, transform .15s; }}
-.mrow:hover {{ border-color:{border_hi}; background:{surface2}; transform:translateY(-1px); }}
-.mrow.ok {{ border-left:4px solid {green}; }}
-.mrow.wa {{ border-left:4px solid {yellow}; }}
-.mrow.er {{ border-left:4px solid {red}; }}
-.mrow-sum {{ display:grid; grid-template-columns:42px 1fr 110px 92px auto; align-items:center; gap:14px; padding:13px 16px; }}
-.mrow-rank {{ font-family:'JetBrains Mono', monospace; font-size:.86rem; font-weight:700; color:{text_muted}; text-align:right; }}
-.mrow-name {{ font-size:.91rem; font-weight:800; color:{text}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-.mrow-kp {{ font-family:'JetBrains Mono', monospace; font-size:.92rem; font-weight:700; color:{accent}; text-align:right; white-space:nowrap; }}
-.gauge-head {{ display:flex; justify-content:space-between; font-size:.59rem; color:{text_dim}; margin-bottom:3px; }}
-.gauge-track {{ height:6px; background:{gauge_bg}; border-radius:999px; overflow:hidden; border:1px solid {gauge_bdr}; }}
-.gauge-fill {{ height:100%; border-radius:999px; transition:width .6s cubic-bezier(.4,0,.2,1); }}
-.gauge-fill.kp {{ background:linear-gradient(90deg,{accent},{accent_hi}); }}
-.gauge-fill.dead {{ background:linear-gradient(90deg,{blue_dark},{blue}); }}
-.gauge-fill.full {{ background:linear-gradient(90deg,{green},{green}); }}
+.mrow {
+  background: #1c1f2b;
+  border: 1px solid rgba(200,146,42,0.12);
+  border-radius: 10px; margin-bottom: 6px;
+  overflow: hidden;
+  transition: border-color .2s, background .2s;
+}
+.mrow:hover { border-color: rgba(200,146,42,0.35); background: #20232f; }
+.mrow.ok { border-left: 3px solid #4ade80; }
+.mrow.wa { border-left: 3px solid #fbbf24; }
+.mrow.er { border-left: 3px solid #f87171; }
+
+/* summary — always visible */
+.mrow-sum {
+  display: grid;
+  grid-template-columns: 36px 1fr 90px 80px auto;
+  align-items: center; gap: 12px;
+  padding: 12px 16px;
+}
+.mrow-rank {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .85rem; font-weight: 600;
+  color: #3a3428; text-align: right;
+}
+.mrow-info { min-width: 0; }
+.mrow-name {
+  font-size: .88rem; font-weight: 700;
+  color: #e8e0cc; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.mrow-meta { font-size: .64rem; color: #5a5448; margin-top: 2px; }
+
+/* dual gauge — the signature element */
+.mrow-gauges { display: flex; flex-direction: column; gap: 5px; }
+.gauge-wrap {}
+.gauge-head {
+  display: flex; justify-content: space-between;
+  font-size: .58rem; color: #4a4438; margin-bottom: 2px;
+}
+.gauge-track {
+  height: 5px; background: rgba(255,255,255,0.05);
+  border-radius: 99px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.gauge-fill {
+  height: 100%; border-radius: 99px;
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+.gauge-fill.kp   { background: linear-gradient(90deg, #c8922a, #f0b040); }
+.gauge-fill.dead { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.gauge-fill.full { background: linear-gradient(90deg, #15803d, #4ade80); }
+
+.mrow-kp {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .9rem; font-weight: 600;
+  color: #c8922a; text-align: right; white-space: nowrap;
+}
 
 /* detail panel */
-.mdet {{ border-top:1px solid {border}; background:{surface2}; padding:17px 20px 20px; }}
-.mdet-accent-bar {{ height:2px; margin-bottom:16px; border-radius:999px; }}
-.mdet-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:16px; }}
-.mdet-block-val {{ font-size:1.65rem; }}
-.mdet-prog {{ margin-top:9px; }}
-.mdet-prog-head {{ display:flex; justify-content:space-between; font-size:.62rem; color:{text_dim}; margin-bottom:4px; }}
-.mdet-prog-track {{ height:9px; background:{gauge_bg}; border-radius:999px; overflow:hidden; }}
-.mdet-prog-fill {{ height:100%; border-radius:999px; transition:width .6s cubic-bezier(.4,0,.2,1); }}
-.mdet-prog-fill.kp {{ background:linear-gradient(90deg,{accent},{accent_hi}); }}
-.mdet-prog-fill.dead {{ background:linear-gradient(90deg,{blue_dark},{blue}); }}
-.mdet-prog-fill.full-kp, .mdet-prog-fill.full-dead {{ background:linear-gradient(90deg,{green},{green}); }}
-.mdet-gap.warn {{ color:{red}; }}
-.mdet-gap.ok {{ color:{green}; }}
+.mdet {
+  border-top: 1px solid rgba(200,146,42,0.10);
+  background: #15181f;
+  padding: 16px 20px 20px;
+}
+.mdet-accent-bar { height: 1px; margin-bottom: 16px; }
+.mdet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }
+.mdet-block-label {
+  font-size: .58rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: #4a4438; margin-bottom: 6px;
+}
+.mdet-block-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.6rem; font-weight: 600; color: #e8e0cc;
+  letter-spacing: -.04em; line-height: 1;
+}
+.mdet-block-sub { font-size: .65rem; color: #5a5448; margin-top: 4px; }
+.mdet-prog { margin-top: 8px; }
+.mdet-prog-head {
+  display: flex; justify-content: space-between;
+  font-size: .6rem; color: #4a4438; margin-bottom: 3px;
+}
+.mdet-prog-track {
+  height: 8px; background: rgba(255,255,255,0.05);
+  border-radius: 99px; overflow: hidden;
+}
+.mdet-prog-fill {
+  height: 100%; border-radius: 99px;
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+.mdet-prog-fill.kp   { background: linear-gradient(90deg, #c8922a, #f0b040); }
+.mdet-prog-fill.dead { background: linear-gradient(90deg, #1d4ed8, #60a5fa); }
+.mdet-prog-fill.full-kp   { background: linear-gradient(90deg, #15803d, #4ade80); }
+.mdet-prog-fill.full-dead { background: linear-gradient(90deg, #15803d, #4ade80); }
+.mdet-gap { font-size: .62rem; color: #5a5448; margin-top: 4px; }
+.mdet-gap.warn { color: #f87171; }
+.mdet-gap.ok   { color: #4ade80; }
 
-/* tables */
-.tier-table, .band-table {{ width:100%; border-collapse:collapse; }}
-.tier-table th, .band-table th {{
-  font-size:.59rem; font-weight:900; text-transform:uppercase; letter-spacing:.10em; color:{table_header};
-  padding:7px 9px; text-align:right; border-bottom:1px solid {border};
-}}
-.tier-table th:first-child, .band-table th:first-child {{ text-align:left; }}
-.tier-table td, .band-table td {{
-  font-family:'JetBrains Mono', monospace; font-size:.76rem; color:{table_cell}; padding:7px 9px;
-  text-align:right; border-bottom:1px solid {border};
-}}
-.tier-table td:first-child, .band-table td:first-child {{ text-align:left; color:{table_dim}; font-weight:800; }}
-.band-table td:first-child {{ font-family:'Inter', sans-serif; font-size:.80rem; }}
-.tier-table tr:last-child td, .band-table tr:last-child td {{ border-bottom:none; }}
-.tier-table td.amber {{ color:{accent}; }}
-.tier-table td.blue {{ color:{blue}; }}
-.tier-table td.equiv {{ color:{text_dim}; font-size:.69rem; }}
+/* tier table in detail */
+.tier-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+.tier-table th {
+  font-size: .58rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .10em; color: #3a3428;
+  padding: 5px 8px; text-align: right; border-bottom: 1px solid rgba(200,146,42,0.10);
+}
+.tier-table th:first-child { text-align: left; }
+.tier-table td {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .75rem; color: #b0a898;
+  padding: 5px 8px; text-align: right;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.tier-table td:first-child { text-align: left; color: #6a6050; font-weight: 600; }
+.tier-table tr:last-child td { border-bottom: none; }
+.tier-table td.amber { color: #c8922a; }
+.tier-table td.blue  { color: #60a5fa; }
+.tier-table td.equiv { color: #4a4438; font-size: .68rem; }
 
-/* ─── KINGDOM AREA ──────────────────────────────────────── */
-.kd-row {{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }}
-.kd-card {{ border-radius:16px; padding:17px 18px; position:relative; overflow:hidden; }}
-.kd-card::before {{ content:''; position:absolute; top:0; left:0; right:0; height:3px; }}
-.kd-card.amber::before {{ background:linear-gradient(90deg,{accent},transparent); }}
-.kd-card.green::before {{ background:linear-gradient(90deg,{green},transparent); }}
-.kd-card.yellow::before {{ background:linear-gradient(90deg,{yellow},transparent); }}
-.kd-card.red::before {{ background:linear-gradient(90deg,{red},transparent); }}
-.kd-card.blue::before {{ background:linear-gradient(90deg,{blue},transparent); }}
-.kd-card-icon {{ font-size:1.25rem; margin-bottom:9px; opacity:.84; }}
-.kd-card-value {{ font-size:1.48rem; }}
-.sm-card {{ border-radius:16px; padding:17px 18px; }}
-.sm-count {{ font-size:2.05rem; }}
-.sm-denom {{ font-size:1rem; color:{text_muted}; }}
-.sm-bar {{ background:{gauge_bg}; border-radius:999px; height:7px; overflow:hidden; margin-top:11px; }}
-.sm-fill {{ height:100%; border-radius:999px; }}
-.att-row {{ display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; margin-bottom:7px; }}
-.att-row.er {{ border-left:4px solid {red}; }}
-.att-row.wa {{ border-left:4px solid {yellow}; }}
-.att-name {{ flex:1; font-size:.84rem; font-weight:800; color:{text}; }}
-.att-pow, .att-pcts {{ font-size:.68rem; color:{text_dim}; white-space:nowrap; }}
+/* ─── KINGDOM CARDS ─────────────────────────────────────── */
+.kd-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 18px; }
+.kd-card {
+  background: #1c1f2b;
+  border: 1px solid rgba(200,146,42,0.15);
+  border-radius: 10px; padding: 16px 18px;
+  position: relative; overflow: hidden;
+}
+.kd-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+}
+.kd-card.amber::before { background: linear-gradient(90deg,#c8922a,transparent); }
+.kd-card.green::before { background: linear-gradient(90deg,#4ade80,transparent); }
+.kd-card.yellow::before{ background: linear-gradient(90deg,#fbbf24,transparent); }
+.kd-card.red::before   { background: linear-gradient(90deg,#f87171,transparent); }
+.kd-card.blue::before  { background: linear-gradient(90deg,#60a5fa,transparent); }
+.kd-card-icon { font-size: 1.2rem; margin-bottom: 8px; opacity: .7; }
+.kd-card-label {
+  font-size: .58rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: #5a5448; margin-bottom: 5px;
+}
+.kd-card-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.45rem; font-weight: 600;
+  color: #e8e0cc; letter-spacing: -.03em; line-height: 1;
+}
+.kd-card-sub { font-size: .65rem; color: #4a4438; margin-top: 4px; }
 
-/* ─── SIDEBAR / STATES / CAPTION ────────────────────────── */
-.upload-lock {{ border-radius:12px; padding:15px; text-align:center; margin-bottom:10px; background:{surface2}; }}
-.upload-lock-icon {{ font-size:1.35rem; margin-bottom:6px; }}
-.upload-lock-text {{ font-size:.74rem; color:{text_dim}; margin-bottom:10px; }}
-.sb-sec {{
-  font-size:.59rem; font-weight:900; text-transform:uppercase; letter-spacing:.14em; color:{sidebar_dim};
-  border-bottom:1px solid {sidebar_border}; padding-bottom:7px; margin:15px 0 10px;
-}}
-.rok-caption {{
-  display:flex; align-items:center; gap:14px; padding:10px 14px; margin-bottom:18px;
-  background:{surface}; border:1px solid {border}; border-radius:12px; flex-wrap:wrap; box-shadow:{shadow_sm};
-}}
-.rok-caption-item {{ font-size:.70rem; color:{text_dim}; }}
-.rok-caption-val {{ color:{accent}; font-weight:900; }}
-.rok-caption-sep {{ color:{text_muted}; font-size:.72rem; }}
-.empty-state {{ text-align:center; padding:64px 20px; }}
-.empty-state-icon {{ font-size:3rem; margin-bottom:14px; opacity:.45; }}
-.empty-state-title {{ font-size:1.05rem; font-weight:800; color:{text_sub}; margin-bottom:6px; }}
-.empty-state-sub {{ font-size:.78rem; color:{text_dim}; }}
+/* status meter card */
+.sm-card {
+  background: #1c1f2b;
+  border: 1px solid rgba(200,146,42,0.12);
+  border-radius: 10px; padding: 16px 18px;
+}
+.sm-label { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: #5a5448; margin-bottom: 8px; }
+.sm-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem; font-weight: 600; color: #e8e0cc;
+  letter-spacing: -.04em; line-height: 1;
+}
+.sm-denom { font-size: 1rem; color: #3a3428; }
+.sm-bar { background: rgba(255,255,255,0.05); border-radius: 99px; height: 6px; overflow: hidden; margin-top: 10px; }
+.sm-fill { height: 100%; border-radius: 99px; }
+.sm-pct { font-size: .6rem; color: #4a4438; margin-top: 4px; }
 
-@media (max-width: 1100px) {{
-  .kd-row {{ grid-template-columns:repeat(2,1fr); }}
-  .mrow-sum {{ grid-template-columns:34px 1fr; }}
-  .mrow-gauges, .mrow-kp, .mrow-sum > div:last-child {{ grid-column:2; }}
-  .mdet-grid {{ grid-template-columns:1fr; }}
-}}
+/* attention row */
+.att-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: #1c1f2b;
+  border: 1px solid rgba(200,146,42,0.10);
+  border-radius: 8px; margin-bottom: 5px;
+}
+.att-row.er { border-left: 3px solid #f87171; }
+.att-row.wa { border-left: 3px solid #fbbf24; }
+.att-name { flex: 1; font-size: .82rem; font-weight: 600; color: #e8e0cc; }
+.att-pow  { font-size: .68rem; color: #5a5448; white-space: nowrap; }
+.att-pcts { font-size: .65rem; color: #4a4438; white-space: nowrap; }
+
+/* power band table */
+.band-table { width: 100%; border-collapse: collapse; }
+.band-table th {
+  font-size: .58rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .10em; color: #4a4438;
+  padding: 8px 12px; text-align: right;
+  border-bottom: 1px solid rgba(200,146,42,0.15);
+}
+.band-table th:first-child { text-align: left; }
+.band-table td {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .76rem; color: #9a9080;
+  padding: 8px 12px; text-align: right;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.band-table td:first-child { text-align: left; color: #7a7060; font-weight: 600; font-family: 'Inter', sans-serif; font-size: .78rem; }
+.band-table tr:last-child td { border-bottom: none; }
+
+/* ─── UPLOAD LOCK ───────────────────────────────────────── */
+.upload-lock {
+  background: #15181f;
+  border: 1px solid rgba(200,146,42,0.18);
+  border-radius: 8px; padding: 14px;
+  text-align: center; margin-bottom: 10px;
+}
+.upload-lock-icon { font-size: 1.3rem; margin-bottom: 6px; }
+.upload-lock-text { font-size: .72rem; color: #5a5448; margin-bottom: 10px; }
+
+/* ─── SIDEBAR SECTION LABEL ─────────────────────────────── */
+.sb-sec {
+  font-size: .58rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .14em; color: #3a3428;
+  border-bottom: 1px solid rgba(200,146,42,0.12);
+  padding-bottom: 6px; margin: 14px 0 10px;
+}
+
+/* ─── CAPTION ───────────────────────────────────────────── */
+.rok-caption {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px; margin-bottom: 16px;
+  background: #15181f;
+  border: 1px solid rgba(200,146,42,0.10);
+  border-radius: 6px; flex-wrap: wrap;
+}
+.rok-caption-item { font-size: .68rem; color: #5a5448; }
+.rok-caption-val  { color: #9a8060; font-weight: 600; }
+.rok-caption-sep  { color: #2a2418; font-size: .7rem; }
+
+/* ─── HISTORY COMPARE ───────────────────────────────────── */
+.compare-header {
+  background: #1c1f2b;
+  border: 1px solid rgba(200,146,42,0.15);
+  border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;
+  font-size: .72rem; color: #7a7060;
+}
+
+/* ─── EMPTY STATE ───────────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  color: #3a3428;
+}
+.empty-state-icon { font-size: 3rem; margin-bottom: 14px; opacity: .4; }
+.empty-state-title { font-size: 1rem; font-weight: 700; color: #5a5448; margin-bottom: 6px; }
+.empty-state-sub   { font-size: .75rem; color: #3a3428; }
 </style>
-"""
+""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Storage / State
@@ -464,53 +527,22 @@ def get_secret(name):
     except: v = None
     return str(v) if v else None
 
-def inject_css(dark: bool) -> None:
-    """Injeta o CSS do app sem deixar o código aparecer como texto na tela."""
-    css = _css(dark).strip()
-
-    # Streamlit mais novo: melhor forma para HTML/CSS puro.
-    if hasattr(st, "html"):
-        st.html(css)
-    else:
-        # Compatibilidade com versões antigas do Streamlit.
-        st.markdown(css, unsafe_allow_html=True)
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Main
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main() -> None:
-    # ── Theme state ──────────────────────────────────────────────────────────
-    if "dark_mode" not in st.session_state:
-        st.session_state.dark_mode = True
-    dark = st.session_state.dark_mode
-
-    # inject CSS before anything renders
-    inject_css(dark)
-
     storage = get_storage()
 
-    # ── Header with theme toggle ─────────────────────────────────────────────
-    moon_sun = "☀️ Claro" if dark else "🌙 Escuro"
-    h1, h2 = st.columns([6, 1])
-    with h1:
-        st.markdown("""
-        <div class="rok-header">
-          <div class="rok-header-emblem">⚔️</div>
-          <div>
-            <div class="rok-header-title">K1602 · KP Dashboard</div>
-            <div class="rok-header-sub">Kill Points Operations Center · Rise of Kingdoms</div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-    with h2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button(moon_sun, key="theme_toggle", use_container_width=True):
-            st.session_state.dark_mode = not dark
-            st.rerun()
-
+    # Header
     st.markdown("""
+    <div class="rok-header">
+      <div class="rok-header-emblem">⚔️</div>
+      <div>
+        <div class="rok-header-title">K1602 · KP Dashboard</div>
+        <div class="rok-header-sub">Kill Points Operations Center · Rise of Kingdoms</div>
+      </div>
+    </div>
     <div class="tier-pills">
       <span class="tier-pill tp-t5">T5 ×20</span>
       <span class="tier-pill tp-t4">T4 ×10</span>
@@ -524,7 +556,7 @@ def main() -> None:
     # Sidebar
     with st.sidebar:
         st.markdown(f'<div class="sb-sec">Sistema</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="sidebar-storage">Storage: <span>{storage.label}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:.68rem;color:#5a5448;margin-bottom:12px">Storage: <span style="color:#c8922a">{storage.label}</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="sb-sec">Relatórios</div>', unsafe_allow_html=True)
         handle_upload(storage)
 
@@ -578,16 +610,17 @@ def main() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    tabs = st.tabs(["⚔ Ranking", "🏰 Reino", "📈 Histórico", "📁 Imports", "❓ Ajuda"])
+    tabs = st.tabs(["⚔ Ranking", "🏰 Reino", "🏆 Hall da Fama", "📈 Histórico", "📁 Imports", "❓ Ajuda"])
     with tabs[0]: show_ranking(ranked)
     with tabs[1]: show_kingdom(ranked, imports, storage, gp)
-    with tabs[2]: show_history(storage, imports, gp)
-    with tabs[3]: show_imports(imports, storage, is_admin=is_admin, admin_enabled=admin_enabled)
-    with tabs[4]: show_help()
+    with tabs[2]: show_hof(storage, is_admin=is_admin, admin_enabled=admin_enabled)
+    with tabs[3]: show_history(storage, imports, gp)
+    with tabs[4]: show_imports(imports, storage, is_admin=is_admin, admin_enabled=admin_enabled)
+    with tabs[5]: show_help()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Sidebar helpers  (idênticos ao original)
+# Sidebar helpers
 # ══════════════════════════════════════════════════════════════════════════════
 
 def handle_upload(storage):
@@ -625,11 +658,24 @@ def handle_upload(storage):
             fb = uploaded.getvalue()
             if len(fb) > 50*1024*1024: st.error("Arquivo muito grande (max 50 MB)."); return
             stats = load_stats_file(BytesIO(fb), filename=safe_name)
-            _, created = storage.save_import(filename=safe_name, report_date=report_date.isoformat(),
-                                              file_hash=file_sha256(fb), stats=stats)
+            import_id_saved, created = storage.save_import(filename=safe_name, report_date=report_date.isoformat(),
+                                                             file_hash=file_sha256(fb), stats=stats)
         except Exception as e: st.error(f"Erro: {e}"); return
-    if created: st.success(f"✓ {len(stats):,} membros salvos")
-    else: st.warning("Arquivo já importado")
+    if created:
+        # Archive Hall of Fame for this import
+        try:
+            imports_df = storage.list_imports()
+            imports_df = prepare_imports(imports_df)
+            prev = load_previous_report(storage, imports_df,
+                                        imports_df.loc[imports_df["id"].eq(import_id_saved)].iloc[0])                    if not imports_df.empty else None
+            archived = maybe_archive(storage, import_id_saved, stats, prev)
+            if archived:
+                st.info(f"🏆 Hall da Fama: {archived} entradas arquivadas")
+        except Exception as _hof_err:
+            pass  # HOF é best-effort, não bloqueia o upload
+        st.success(f"✓ {len(stats):,} membros salvos")
+    else:
+        st.warning("Arquivo já importado")
     st.rerun()
 
 
@@ -674,10 +720,12 @@ def admin_panel():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab 1 — Ranking  (idêntico ao original)
+# Tab 1 — Ranking
 # ══════════════════════════════════════════════════════════════════════════════
 
 def show_ranking(ranked_full: pd.DataFrame) -> None:
+
+    # Filter bar
     fc1, fc2, fc3 = st.columns([5, 2, 2])
     with fc1:
         search = st.text_input("search", placeholder="Buscar membro ou Character ID…",
@@ -699,6 +747,7 @@ def show_ranking(ranked_full: pd.DataFrame) -> None:
             if st.button("Limpar", key="clr_dt"):
                 st.session_state.df_from = None; st.session_state.df_to = None; st.rerun()
 
+    # Apply
     df = ranked_full.copy()
     if search.strip():
         n = search.strip().lower()
@@ -723,13 +772,14 @@ def show_ranking(ranked_full: pd.DataFrame) -> None:
     st.markdown(f'<div class="sec-label">Governors · {len(df):,} de {len(ranked_full):,}</div>',
                 unsafe_allow_html=True)
 
+    # Pagination
     page_size = st.selectbox("Por página",[25,50,100],index=0,key="rank_ps",label_visibility="collapsed")
     total_pg  = max(1,-(-len(df)//page_size))
     col_pg1, col_pg2 = st.columns([1,5])
     with col_pg1:
         page = st.number_input("Página",min_value=1,max_value=total_pg,value=1,key="rank_pg",label_visibility="collapsed")
     with col_pg2:
-        st.markdown(f'<div class="page-hint">Página {page} de {total_pg}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:.65rem;color:#3a3428;padding-top:8px">Página {page} de {total_pg}</div>',unsafe_allow_html=True)
 
     start = (page-1)*page_size
     _render_members(df.iloc[start:start+page_size])
@@ -750,17 +800,22 @@ def show_ranking(ranked_full: pd.DataFrame) -> None:
 
 def _render_members(df: pd.DataFrame) -> None:
     for _, row in df.iterrows():
-        cls    = STATUS_CLS.get(row["status"], "er")
+        cls   = STATUS_CLS.get(row["status"], "er")
         kp_w   = min(float(row.get("kp_pct",0))*100, 100)
         dead_w = min(float(row.get("dead_pct",0))*100, 100)
         kp_gap   = int(row.get("kp_gap",0))
         dead_gap = int(row.get("dead_gap_t4",0))
+
+        # gauge fill class
         kp_fc   = "full" if kp_w   >= 100 else "kp"
         dead_fc = "full" if dead_w >= 100 else "dead"
+
+        # badge html
         badge_cls = f"sbadge-{cls}"
         badge = (f'<span class="sbadge {badge_cls}">'
                  f'{STATUS_ICON.get(row["status"],"○")} {STATUS_LABEL.get(row["status"],"—")}</span>')
 
+        # summary row HTML
         st.markdown(f"""
         <div class="mrow {cls}">
           <div class="mrow-sum">
@@ -785,12 +840,18 @@ def _render_members(df: pd.DataFrame) -> None:
         </div>
         """, unsafe_allow_html=True)
 
+        # Expander for detail
         with st.expander(f"↳ detalhes · {row['username']}", expanded=False):
-            t5d = int(row.get("t5_deaths",0)); t4d = int(row.get("t4_deaths",0))
-            t3d = int(row.get("t3_deaths",0)); t2d = int(row.get("t2_deaths",0)); t1d = int(row.get("t1_deaths",0))
+            t5d = int(row.get("t5_deaths",0))
+            t4d = int(row.get("t4_deaths",0))
+            t3d = int(row.get("t3_deaths",0))
+            t2d = int(row.get("t2_deaths",0))
+            t1d = int(row.get("t1_deaths",0))
             dead_equiv = int(row.get("dead_equiv",0))
+
             kp_fc_det   = "full-kp"   if kp_w   >= 100 else "kp"
             dead_fc_det = "full-dead" if dead_w >= 100 else "dead"
+
             kp_gap_html   = (f'<div class="mdet-gap ok">✓ Meta de KP atingida</div>'
                              if kp_gap == 0
                              else f'<div class="mdet-gap warn">⚠ Faltam {fmt_k(kp_gap)} KP</div>')
@@ -800,8 +861,9 @@ def _render_members(df: pd.DataFrame) -> None:
 
             st.markdown(f"""
             <div class="mdet">
-              <div class="mdet-accent-bar" style="background:{ui_tokens()['green'] if cls=='ok' else ui_tokens()['yellow'] if cls=='wa' else ui_tokens()['red']}"></div>
+              <div class="mdet-accent-bar" style="background:{'#4ade80' if cls=='ok' else '#fbbf24' if cls=='wa' else '#f87171'}"></div>
               <div class="mdet-grid">
+                <!-- KP block -->
                 <div>
                   <div class="mdet-block-label">Kill Points</div>
                   <div class="mdet-block-val">{fmt_int(int(row['kill_points']))}</div>
@@ -817,6 +879,7 @@ def _render_members(df: pd.DataFrame) -> None:
                   </div>
                   {kp_gap_html}
                 </div>
+                <!-- Deaths block -->
                 <div>
                   <div class="mdet-block-label">Mortes (equiv. T4)</div>
                   <div class="mdet-block-val">{fmt_int(dead_equiv)}</div>
@@ -835,10 +898,11 @@ def _render_members(df: pd.DataFrame) -> None:
               </div>
             """, unsafe_allow_html=True)
 
+            # Tier tables side by side
             dc1, dc2 = st.columns(2)
             with dc1:
-                t5k=int(row.get("t5_kills",0)); t4k=int(row.get("t4_kills",0))
-                t3k=int(row.get("t3_kills",0)); t2k=int(row.get("t2_kills",0)); t1k=int(row.get("t1_kills",0))
+                t5k = int(row.get("t5_kills",0)); t4k = int(row.get("t4_kills",0))
+                t3k = int(row.get("t3_kills",0)); t2k = int(row.get("t2_kills",0)); t1k = int(row.get("t1_kills",0))
                 st.markdown(f"""
                 <div class="mdet-block-label" style="margin-top:0">Kills por Tier</div>
                 <table class="tier-table">
@@ -862,8 +926,8 @@ def _render_members(df: pd.DataFrame) -> None:
                   <tr><td>T1</td><td>{fmt_k(t1d)}</td><td class="equiv">—</td></tr>
                 </table>
                 <div style="font-size:.62rem;color:#4a4438;margin-top:8px">
-                  Total equiv: <span style="font-family:monospace">{fmt_int(dead_equiv)}</span>
-                  / Meta: <span style="font-family:monospace">{fmt_int(int(row['dead_t4_goal']))}</span>
+                  Total equiv: <span style="color:#60a5fa;font-family:monospace">{fmt_int(dead_equiv)}</span>
+                  / Meta: <span style="color:#7a7060;font-family:monospace">{fmt_int(int(row['dead_t4_goal']))}</span>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -871,7 +935,7 @@ def _render_members(df: pd.DataFrame) -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab 2 — Reino  (idêntico ao original)
+# Tab 2 — Reino
 # ══════════════════════════════════════════════════════════════════════════════
 
 def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> None:
@@ -886,6 +950,7 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
 
     st.markdown('<div class="sec-label">Operações do Reino</div>', unsafe_allow_html=True)
 
+    # KPI cards
     st.markdown(f"""
     <div class="kd-row">
       <div class="kd-card amber">
@@ -921,13 +986,13 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
     </div>
     """, unsafe_allow_html=True)
 
+    # Status meters
     st.markdown('<div class="sec-label">Status das metas</div>', unsafe_allow_html=True)
-    theme = ui_tokens()
     m1, m2, m3 = st.columns(3)
     for col, lbl, count, color in [
-        (m1,"Aprovados",  approved, theme["green"]),
-        (m2,"Pendentes",  pending, theme["yellow"]),
-        (m3,"Abaixo da meta", below, theme["red"]),
+        (m1,"Aprovados",  approved,"#4ade80"),
+        (m2,"Pendentes",  pending, "#fbbf24"),
+        (m3,"Abaixo da meta", below, "#f87171"),
     ]:
         pct = count/total*100 if total else 0
         with col:
@@ -943,36 +1008,44 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
             </div>
             """, unsafe_allow_html=True)
 
+    # Charts
     if px is not None:
         st.markdown('<div class="sec-label">Distribuição de Kill Points</div>', unsafe_allow_html=True)
         g1, g2 = st.columns([3,2])
-        cmap = {"Aprovado": theme["green"], "Pendente": theme["yellow"], "Abaixo da meta": theme["red"]}
+        cmap = {"Aprovado":"#4ade80","Pendente":"#fbbf24","Abaixo da meta":"#f87171"}
 
         with g1:
             top20 = ranked.sort_values("kill_points",ascending=True).tail(20)
             fig = px.bar(top20, x="kill_points", y="username", orientation="h",
                          color="status", color_discrete_map=cmap,
                          labels={"kill_points":"Kill Points","username":""})
-            fig.update_layout(showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
+            fig.update_layout(
+                showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color=theme["plot_axis"], family="Inter"),
-                yaxis=dict(tickfont=dict(size=11, color=theme["plot_axis"]), gridcolor=theme["plot_grid"]),
-                xaxis=dict(tickfont=dict(size=10, color=theme["plot_axis"]), gridcolor=theme["plot_grid"]))
+                font=dict(color="#7a7060", family="Inter"),
+                yaxis=dict(tickfont=dict(size=11,color="#9a9080"), gridcolor="rgba(200,146,42,0.06)"),
+                xaxis=dict(tickfont=dict(size=10), gridcolor="rgba(200,146,42,0.06)"),
+            )
             fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
 
         with g2:
-            fig2 = px.pie(values=[approved,pending,below],
+            fig2 = px.pie(
+                values=[approved,pending,below],
                 names=["Aprovado","Pendente","Abaixo da meta"],
-                hole=0.65, color_discrete_sequence=[theme["green"], theme["yellow"], theme["red"]])
-            fig2.update_traces(textposition="inside",textinfo="percent",textfont_size=11,
-                               marker=dict(line=dict(color=theme["pie_line"], width=2)))
-            fig2.update_layout(showlegend=True,margin=dict(t=10,b=0,l=0,r=0),
-                paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color=theme["plot_axis"], family="Inter"),
-                legend=dict(orientation="h", y=-0.08, font=dict(size=10, color=theme["plot_axis"])))
+                hole=0.65, color_discrete_sequence=["#4ade80","#fbbf24","#f87171"],
+            )
+            fig2.update_traces(textposition="inside", textinfo="percent", textfont_size=11,
+                               marker=dict(line=dict(color="#0d0f14",width=2)))
+            fig2.update_layout(
+                showlegend=True, margin=dict(t=10,b=0,l=0,r=0),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#7a7060", family="Inter"),
+                legend=dict(orientation="h",y=-0.08,font=dict(size=10,color="#7a7060")),
+            )
             st.plotly_chart(fig2, use_container_width=True)
 
+    # Historical
     if len(imports) >= 2:
         st.markdown('<div class="sec-label">Evolução histórica</div>', unsafe_allow_html=True)
         ordered = imports.sort_values(["report_date","imported_at"]).reset_index(drop=True)
@@ -982,49 +1055,60 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
                 s  = storage.load_stats(imp["id"])
                 m  = calculate_metrics(s, group_power=group_power)
                 gm = apply_goals(m)
-                hist_rows.append({"Data":imp["report_date"],"KP":int(m["kill_points"].sum()),
-                    "Aprovados":int((gm["status"]=="Aprovado").sum()),
-                    "Pendentes":int((gm["status"]=="Pendente").sum()),
-                    "Abaixo":int((gm["status"]=="Abaixo da meta").sum())})
+                hist_rows.append({
+                    "Data": imp["report_date"],
+                    "KP":   int(m["kill_points"].sum()),
+                    "Aprovados": int((gm["status"]=="Aprovado").sum()),
+                    "Pendentes": int((gm["status"]=="Pendente").sum()),
+                    "Abaixo":    int((gm["status"]=="Abaixo da meta").sum()),
+                })
         hist = pd.DataFrame(hist_rows)
         if px is not None and len(hist) >= 2:
             hc1, hc2 = st.columns(2)
-            plot_cfg = dict(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color=theme["plot_axis"], family="Inter"), margin=dict(t=10,b=0,l=0,r=0),
-                xaxis=dict(gridcolor=theme["plot_grid"], tickfont=dict(color=theme["plot_axis"])),
-                yaxis=dict(gridcolor=theme["plot_grid"], tickfont=dict(color=theme["plot_axis"])))
+            plot_cfg = dict(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#7a7060",family="Inter"), margin=dict(t=10,b=0,l=0,r=0),
+                xaxis=dict(gridcolor="rgba(200,146,42,0.06)"),
+                yaxis=dict(gridcolor="rgba(200,146,42,0.06)"),
+            )
             with hc1:
-                fig3 = px.line(hist, x="Data", y="KP", markers=True, color_discrete_sequence=[theme["accent"]])
+                fig3 = px.line(hist, x="Data", y="KP", markers=True,
+                               color_discrete_sequence=["#c8922a"])
                 fig3.update_layout(**plot_cfg)
-                fig3.update_traces(line_width=2,marker_size=6)
-                st.plotly_chart(fig3,use_container_width=True)
+                fig3.update_traces(line_width=2, marker_size=6)
+                st.plotly_chart(fig3, use_container_width=True)
             with hc2:
                 melt = hist[["Data","Aprovados","Pendentes","Abaixo"]].melt(id_vars="Data",var_name="Status",value_name="N")
-                fig4 = px.bar(melt,x="Data",y="N",color="Status",barmode="stack",
-                    color_discrete_map={"Aprovados": theme["green"], "Pendentes": theme["yellow"], "Abaixo": theme["red"]})
+                fig4 = px.bar(melt, x="Data", y="N", color="Status", barmode="stack",
+                              color_discrete_map={"Aprovados":"#4ade80","Pendentes":"#fbbf24","Abaixo":"#f87171"})
                 fig4.update_layout(**{**plot_cfg,"showlegend":True,
-                    "legend":dict(orientation="h",y=-0.15,font=dict(size=10))})
+                                       "legend":dict(orientation="h",y=-0.15,font=dict(size=10))})
                 fig4.update_traces(marker_line_width=0)
-                st.plotly_chart(fig4,use_container_width=True)
+                st.plotly_chart(fig4, use_container_width=True)
 
+    # Power bands
     st.markdown('<div class="sec-label">Faixas de power</div>', unsafe_allow_html=True)
     bands = []
     for pmin, pmax, dead_t4, _, kp in GOAL_TABLE:
         lbl = f"{pmin//1_000_000}M–{(pmax+1)//1_000_000}M" if pmax!=float("inf") else f"{pmin//1_000_000}M+"
         sub = ranked[ranked["power_band"]==lbl] if "power_band" in ranked else pd.DataFrame()
         if sub.empty: continue
-        ok=int((sub["status"]=="Aprovado").sum()); wa=int((sub["status"]=="Pendente").sum()); er=int((sub["status"]=="Abaixo da meta").sum())
+        ok  = int((sub["status"]=="Aprovado").sum())
+        wa  = int((sub["status"]=="Pendente").sum())
+        er  = int((sub["status"]=="Abaixo da meta").sum())
         bands.append({"Faixa":lbl,"Total":len(sub),"✅":ok,"🟡":wa,"❌":er,
-                      "KP Total":fmt_k(int(sub["kill_points"].sum())),"Meta KP":fmt_k(kp)})
+                      "KP Total":fmt_k(int(sub["kill_points"].sum())), "Meta KP":fmt_k(kp)})
     if bands:
         st.markdown('<table class="band-table"><tr>'
                     '<th>Faixa</th><th>Total</th><th>✅</th><th>🟡</th><th>❌</th><th>KP Total</th><th>Meta KP</th>'
                     '</tr>' +
                     "".join(f'<tr><td>{b["Faixa"]}</td><td>{b["Total"]}</td>'
                             f'<td>{b["✅"]}</td><td>{b["🟡"]}</td><td>{b["❌"]}</td>'
-                            f'<td>{b["KP Total"]}</td><td>{b["Meta KP"]}</td></tr>' for b in bands) +
+                            f'<td>{b["KP Total"]}</td><td>{b["Meta KP"]}</td></tr>'
+                            for b in bands) +
                     '</table>', unsafe_allow_html=True)
 
+    # Attention
     st.markdown('<div class="sec-label">Precisam de atenção</div>', unsafe_allow_html=True)
     att = ranked[ranked["status"]!="Aprovado"].sort_values("kp_pct").head(8)
     if att.empty:
@@ -1032,8 +1116,9 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
     else:
         for _, row in att.iterrows():
             cls  = STATUS_CLS.get(row["status"],"er")
-            kp_p = min(float(row.get("kp_pct",0))*100,100)
-            dp_p = min(float(row.get("dead_pct",0))*100,100)
+            kp_p = min(float(row.get("kp_pct",0))*100, 100)
+            dp_p = min(float(row.get("dead_pct",0))*100, 100)
+            color = "#f87171" if cls=="er" else "#fbbf24"
             st.markdown(f"""
             <div class="att-row {cls}">
               <div class="att-name">{row['username']}</div>
@@ -1045,13 +1130,139 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab 3 — Histórico  (idêntico ao original)
+# Tab 3 — Histórico
 # ══════════════════════════════════════════════════════════════════════════════
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Tab 3 — Hall da Fama
+# ══════════════════════════════════════════════════════════════════════════════
+
+def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
+    st.markdown('''
+    <div class="rok-header" style="border-left-color:#c8922a">
+      <div class="rok-header-emblem" style="background:linear-gradient(135deg,#c8922a,#a07018)">🏆</div>
+      <div>
+        <div class="rok-header-title">Hall da Fama — K1602</div>
+        <div class="rok-header-sub">Top 10 KP · Top 10 Mortes · Por KVK</div>
+      </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    hof = load_hall(storage)
+
+    if hof.empty:
+        st.markdown('''
+        <div class="empty-state">
+          <div class="empty-state-icon">🏆</div>
+          <div class="empty-state-title">Nenhum KVK arquivado ainda</div>
+          <div class="empty-state-sub">O Hall da Fama é preenchido automaticamente ao importar um relatório.</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        return
+
+    kvks = list_kvks(hof)
+
+    # KVK selector
+    col_sel, col_info = st.columns([3,3])
+    with col_sel:
+        selected_kvk = st.selectbox("KVK", kvks, key="hof_kvk", label_visibility="collapsed")
+    with col_info:
+        total_kvks = len(kvks)
+        st.markdown(
+            f'<div style="font-size:.68rem;color:#5a5448;padding-top:8px">'            f'<span style="color:#c8922a;font-weight:700">{total_kvks}</span> KVK(s) arquivados'            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    kvk_data = hof[hof["kvk_name"] == selected_kvk]
+
+    kp_df    = kvk_data[kvk_data["category"] == "kp"   ].sort_values("position")
+    dead_df  = kvk_data[kvk_data["category"] == "deaths"].sort_values("position")
+
+    st.markdown(f'<div class="sec-label">{selected_kvk}</div>', unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+
+    # ── TOP 10 KP ──
+    with c1:
+        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;'                    'letter-spacing:.14em;color:#c8922a;margin-bottom:10px">⚔ Top 10 Kill Points</div>',
+                    unsafe_allow_html=True)
+        _render_hof_list(kp_df, "kp")
+
+    # ── TOP 10 MORTES ──
+    with c2:
+        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;'                    'letter-spacing:.14em;color:#60a5fa;margin-bottom:10px">💀 Top 10 Mortes</div>',
+                    unsafe_allow_html=True)
+        _render_hof_list(dead_df, "deaths")
+
+    # ── Histórico de todos os KVKs ──
+    if len(kvks) > 1:
+        st.markdown('<div class="sec-label">Histórico completo</div>', unsafe_allow_html=True)
+        with st.expander("Ver todos os KVKs →", expanded=False):
+            for kvk in kvks:
+                sub = hof[hof["kvk_name"] == kvk]
+                kp_top3 = sub[sub["category"]=="kp"].sort_values("position").head(3)
+                st.markdown(f'<div style="font-size:.7rem;font-weight:700;color:#7a7060;margin:10px 0 4px">{kvk}</div>',
+                            unsafe_allow_html=True)
+                if not kp_top3.empty:
+                    medals = ["🥇","🥈","🥉"]
+                    for i,(_, r) in enumerate(kp_top3.iterrows()):
+                        st.markdown(
+                            f'<div style="font-size:.75rem;color:#9a9080;margin-left:8px">'                            f'{medals[i]} {r["username"]} — '                            f'<span style="color:#c8922a;font-family:monospace">{fmt_k(int(r["value"]))} KP</span>'                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
+
+    # Admin — re-archive
+    if admin_enabled and is_admin:
+        st.markdown('<div class="sec-label">Admin</div>', unsafe_allow_html=True)
+        st.caption("Re-arquivar sobrescreve o Hall da Fama para o import selecionado.")
+
+
+def _render_hof_list(df: pd.DataFrame, category: str) -> None:
+    if df.empty:
+        st.caption("Sem dados para este KVK.")
+        return
+
+    medals = {1:"🥇", 2:"🥈", 3:"🥉"}
+    color  = "#c8922a" if category == "kp" else "#60a5fa"
+    unit   = "KP" if category == "kp" else "T4eq"
+
+    for _, row in df.iterrows():
+        pos    = int(row["position"])
+        medal  = medals.get(pos, f"#{pos}")
+        is_top = pos <= 3
+
+        st.markdown(f'''
+        <div style="display:flex;align-items:center;gap:10px;
+                    padding:{'12px 14px' if is_top else '9px 14px'};
+                    background:{"rgba(200,146,42,0.06)" if is_top else "#15181f"};
+                    border:1px solid {"rgba(200,146,42,0.25)" if is_top else "rgba(255,255,255,0.04)"};
+                    border-radius:8px;margin-bottom:5px;">
+          <div style="font-size:{'1.2rem' if is_top else '.85rem'};min-width:28px;text-align:center">{medal}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:{'0.88rem' if is_top else '0.82rem'};
+                        font-weight:{'700' if is_top else '500'};
+                        color:#e8e0cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              {row["username"]}
+            </div>
+            <div style="font-size:.62rem;color:#4a4438;margin-top:1px">
+              {fmt_m(int(row["power"]))}M power
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;
+                      font-size:{'1rem' if is_top else '0.85rem'};
+                      font-weight:600;color:{color};white-space:nowrap">
+            {fmt_k(int(row["value"]))} {unit}
+          </div>
+        </div>
+        ''', unsafe_allow_html=True)
+
 
 def show_history(storage, imports, group_power):
     st.markdown('<div class="sec-label">Comparar dois relatórios</div>', unsafe_allow_html=True)
     if len(imports) < 2:
-        st.info("Importe pelo menos 2 relatórios para comparar."); return
+        st.info("Importe pelo menos 2 relatórios para comparar.")
+        return
 
     ordered = imports.sort_values(["report_date","imported_at"]).reset_index(drop=True)
     labels  = ordered["label"].tolist()
@@ -1067,29 +1278,30 @@ def show_history(storage, imports, group_power):
     top   = met.sort_values("kill_points",ascending=False).head(15)
 
     if not top.empty and px is not None:
-        theme = ui_tokens()
         fig = px.bar(top.sort_values("kill_points",ascending=True),
-                     x="kill_points",y="username",orientation="h",
-                     color_discrete_sequence=[theme["accent"]],
+                     x="kill_points", y="username", orientation="h",
+                     color_discrete_sequence=["#c8922a"],
                      labels={"kill_points":"Kill Points Ganhos","username":""})
-        fig.update_layout(showlegend=False,margin=dict(t=10,b=0,l=0,r=0),
-            paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color=theme["plot_axis"], family="Inter"),
-            yaxis=dict(tickfont=dict(size=11, color=theme["plot_axis"]), gridcolor=theme["plot_grid"]),
-            xaxis=dict(tickfont=dict(color=theme["plot_axis"]), gridcolor=theme["plot_grid"]))
+        fig.update_layout(
+            showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#7a7060",family="Inter"),
+            yaxis=dict(tickfont=dict(size=11,color="#9a9080"),gridcolor="rgba(200,146,42,0.06)"),
+            xaxis=dict(gridcolor="rgba(200,146,42,0.06)"),
+        )
         fig.update_traces(marker_line_width=0)
-        st.plotly_chart(fig,use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(
         met[["username","power","kill_points","t5_kills","t4_kills","t3_kills","t2_kills","t1_kills"]]
            .sort_values("kill_points",ascending=False)
            .rename(columns={"username":"Governor","power":"Power","kill_points":"KP",
                              "t5_kills":"T5","t4_kills":"T4","t3_kills":"T3","t2_kills":"T2","t1_kills":"T1"}),
-        use_container_width=True,hide_index=True)
+        use_container_width=True, hide_index=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab 4 — Imports  (idêntico ao original)
+# Tab 4 — Imports
 # ══════════════════════════════════════════════════════════════════════════════
 
 def show_imports(imports, storage, *, is_admin, admin_enabled):
@@ -1097,7 +1309,7 @@ def show_imports(imports, storage, *, is_admin, admin_enabled):
     st.dataframe(
         imports[["report_date","filename","row_count","imported_at"]].rename(columns={
             "report_date":"Data","filename":"Arquivo","row_count":"Membros","imported_at":"Importado em"}),
-        use_container_width=True,hide_index=True)
+        use_container_width=True, hide_index=True)
 
     if admin_enabled and is_admin:
         st.markdown('<div class="sec-label">Deletar import</div>', unsafe_allow_html=True)
@@ -1106,14 +1318,14 @@ def show_imports(imports, storage, *, is_admin, admin_enabled):
         to_del = st.selectbox("Selecionar",["— —",*labels])
         if to_del != "— —":
             row = imports.loc[imports["label"].eq(to_del)].iloc[0]
-            if st.button("Confirmar exclusão",type="secondary"):
+            if st.button("Confirmar exclusão", type="secondary"):
                 if storage.delete_import(row["id"]):
                     st.success("Deletado."); st.rerun()
                 else: st.error("Não encontrado.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab 5 — Ajuda  (idêntico ao original)
+# Tab 5 — Ajuda
 # ══════════════════════════════════════════════════════════════════════════════
 
 def show_help():
@@ -1128,6 +1340,8 @@ O sistema converte automaticamente: `equiv = (T5deaths × 2) + T4deaths`
 - ✅ Aprovado — atingiu KP e mortes
 - 🟡 Pendente — ≥75% em ambas as metas
 - ❌ Abaixo da meta — <75% em alguma meta
+
+**Dual gauge no ranking:** cada membro exibe duas barras — KP (âmbar) e Mortes (azul) — visíveis sem expandir, para leitura rápida da sala de operações.
 """)
 
     st.markdown('<div class="sec-label">Tabela de metas</div>', unsafe_allow_html=True)
@@ -1145,10 +1359,10 @@ O sistema converte automaticamente: `equiv = (T5deaths × 2) + T4deaths`
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Formatters  (idênticos ao original)
+# Formatters
 # ══════════════════════════════════════════════════════════════════════════════
 
-def fmt_int(v) -> str: return f"{int(v):,}"
+def fmt_int(v) -> str:   return f"{int(v):,}"
 def fmt_k(v: int) -> str:
     if v >= 1_000_000: return f"{v/1_000_000:.1f}M"
     if v >= 1_000:     return f"{v/1_000:.0f}k"
