@@ -153,6 +153,44 @@ class SQLiteStorage:
             self.connection,
         )
 
+    # ── KvK Events ────────────────────────────────────────────────────
+
+    def save_kvk_event(self, *, name: str, start_date: str, end_date: str) -> str:
+        """Create a new KvK event window. Returns event_id."""
+        event_id   = str(uuid.uuid4())
+        created_at = datetime.now(timezone.utc).isoformat()
+        with self.connection:
+            self.connection.execute(
+                """
+                insert into rok_kvk_events (id, name, start_date, end_date, created_at)
+                values (?, ?, ?, ?, ?)
+                """,
+                (event_id, name, start_date, end_date, created_at),
+            )
+        return event_id
+
+    def list_kvk_events(self) -> pd.DataFrame:
+        return pd.read_sql_query(
+            """
+            select id, name, start_date, end_date, created_at
+            from rok_kvk_events
+            order by start_date desc, created_at desc
+            """,
+            self.connection,
+        )
+
+    def load_kvk_event(self, event_id: str) -> dict | None:
+        row = self.connection.execute(
+            "select id, name, start_date, end_date, created_at from rok_kvk_events where id = ?",
+            (event_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def delete_kvk_event(self, event_id: str) -> bool:
+        with self.connection:
+            cursor = self.connection.execute("delete from rok_kvk_events where id = ?", (event_id,))
+        return cursor.rowcount > 0
+
     def close(self) -> None:
         self.connection.close()
 
@@ -184,6 +222,22 @@ class SQLiteStorage:
                     max_power integer, target_dkpi real not null, sort_order integer not null
                 )
             """)
+            self.connection.execute("""
+                create table if not exists rok_hall_of_fame (
+                    id text primary key, import_id text not null, kvk_name text,
+                    category text not null, position integer not null,
+                    username text not null, character_id text not null,
+                    power integer not null, value integer not null, created_at text not null
+                )
+            """)
+            self.connection.execute("""
+                create table if not exists rok_kvk_events (
+                    id text primary key, name text not null,
+                    start_date text not null, end_date text not null,
+                    created_at text not null
+                )
+            """)
+            self.connection.execute("create index if not exists rok_kvk_events_date_idx on rok_kvk_events (start_date desc)")
 
 
 class SupabaseStorage:
@@ -246,7 +300,6 @@ class SupabaseStorage:
     # ── Hall of Fame ──────────────────────────────────────────────────
 
     def save_hof_entries(self, entries: list) -> None:
-        import json as _json
         for start in range(0, len(entries), 500):
             self.client.table("rok_hall_of_fame").upsert(
                 entries[start: start + 500], on_conflict="id"
@@ -268,6 +321,38 @@ class SupabaseStorage:
             df = df.sort_values(["kvk_name","category","position"],
                                 ascending=[False, True, True]).reset_index(drop=True)
         return df
+
+    # ── KvK Events ────────────────────────────────────────────────────
+
+    def save_kvk_event(self, *, name: str, start_date: str, end_date: str) -> str:
+        event_id   = str(uuid.uuid4())
+        created_at = datetime.now(timezone.utc).isoformat()
+        self.client.table("rok_kvk_events").insert({
+            "id": event_id, "name": name,
+            "start_date": start_date, "end_date": end_date,
+            "created_at": created_at,
+        }).execute()
+        return event_id
+
+    def list_kvk_events(self) -> pd.DataFrame:
+        data = self._select_all(
+            "rok_kvk_events", "id, name, start_date, end_date, created_at",
+            order=("start_date", True),
+        )
+        cols = ["id", "name", "start_date", "end_date", "created_at"]
+        frame = pd.DataFrame(data)
+        for c in cols:
+            if c not in frame:
+                frame[c] = pd.Series(dtype="object")
+        return frame[cols] if not frame.empty else frame.reindex(columns=cols)
+
+    def load_kvk_event(self, event_id: str) -> dict | None:
+        data = self.client.table("rok_kvk_events").select("*").eq("id", event_id).limit(1).execute().data
+        return data[0] if data else None
+
+    def delete_kvk_event(self, event_id: str) -> bool:
+        result = self.client.table("rok_kvk_events").delete().eq("id", event_id).execute()
+        return bool(result.data)
 
     def _select_all(self, table, columns, *, filters=None, order=None):
         rows  = []
