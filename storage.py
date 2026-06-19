@@ -118,6 +118,41 @@ class SQLiteStorage:
             self.connection,
         )
 
+    # ── Hall of Fame ──────────────────────────────────────────────────
+
+    def save_hof_entries(self, entries: list) -> None:
+        with self.connection:
+            self.connection.executemany(
+                """
+                insert or ignore into rok_hall_of_fame
+                    (id, import_id, kvk_name, category, position,
+                     username, character_id, power, value, created_at)
+                values
+                    (:id, :import_id, :kvk_name, :category, :position,
+                     :username, :character_id, :power, :value, :created_at)
+                """,
+                entries,
+            )
+
+    def load_hof(self, import_id: str | None = None) -> "pd.DataFrame":
+        import pandas as pd
+        if import_id:
+            return pd.read_sql_query(
+                "select * from rok_hall_of_fame where import_id = ? order by category, position",
+                self.connection, params=(import_id,),
+            )
+        return pd.read_sql_query(
+            """
+            select * from rok_hall_of_fame
+            order by
+                created_at desc,
+                kvk_name   desc,
+                category   asc,
+                position   asc
+            """,
+            self.connection,
+        )
+
     def close(self) -> None:
         self.connection.close()
 
@@ -207,6 +242,32 @@ class SupabaseStorage:
 
     def reset_goal_bands(self) -> None:
         self.save_goal_bands(default_goal_bands())
+
+    # ── Hall of Fame ──────────────────────────────────────────────────
+
+    def save_hof_entries(self, entries: list) -> None:
+        import json as _json
+        for start in range(0, len(entries), 500):
+            self.client.table("rok_hall_of_fame").upsert(
+                entries[start: start + 500], on_conflict="id"
+            ).execute()
+
+    def load_hof(self, import_id: str | None = None) -> "pd.DataFrame":
+        import pandas as pd
+        filters = {"import_id": import_id} if import_id else None
+        data = self._select_all(
+            "rok_hall_of_fame", "*",
+            filters=filters,
+            order=("created_at", True),
+        )
+        if not data:
+            from hall_of_fame import HOF_COLUMNS
+            return pd.DataFrame(columns=HOF_COLUMNS)
+        df = pd.DataFrame(data)
+        if not df.empty:
+            df = df.sort_values(["kvk_name","category","position"],
+                                ascending=[False, True, True]).reset_index(drop=True)
+        return df
 
     def _select_all(self, table, columns, *, filters=None, order=None):
         rows  = []
