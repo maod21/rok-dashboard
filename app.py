@@ -352,7 +352,8 @@ def main() -> None:
         st.session_state.dark_mode = True
     dark = st.session_state.dark_mode
 
-    st.markdown(_css(dark), unsafe_allow_html=True)
+    # SOLUÇÃO APLICADA AQUI:
+    st.html(_css(dark))
 
     storage = get_storage()
 
