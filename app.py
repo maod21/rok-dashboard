@@ -34,203 +34,193 @@ st.set_page_config(
 
 def _css(dark: bool) -> str:
     if dark:
-        bg, surface, surface2 = "#0d0f14", "#1c1f2b", "#15181f"
-        border    = "rgba(200,146,42,0.15)"
-        border_hi = "rgba(200,146,42,0.35)"
-        text      = "#e8e0cc"
-        text_sub  = "#9a9080"
-        text_dim  = "#5a5448"
-        text_mut  = "#3a3428"
-        amber     = "#c8922a"
-        amber_hi  = "#f0b040"
-        green, yellow, red, blue = "#4ade80", "#fbbf24", "#f87171", "#60a5fa"
-        blue_dark = "#1d4ed8"
-        gauge_bg, gauge_bdr = "rgba(255,255,255,0.05)", "rgba(255,255,255,0.04)"
-        scroll_th = "rgba(200,146,42,0.30)"
-        plot_font = "#7a7060"; plot_grid = "rgba(200,146,42,0.06)"
-        sidebar_bg = bg
-        btn_text  = "#0d0f14"
-        ok_bg,ok_br,ok_tx = "rgba(74,222,128,0.08)","rgba(74,222,128,0.30)","#4ade80"
-        wa_bg,wa_br,wa_tx = "rgba(251,191,36,0.08)","rgba(251,191,36,0.30)","#fbbf24"
-        er_bg,er_br,er_tx = "rgba(248,113,113,0.08)","rgba(248,113,113,0.30)","#f87171"
-        t5_tx,t5_br,t5_bg = "#f59e0b","rgba(245,158,11,.35)","rgba(245,158,11,.08)"
-        t4_tx,t4_br,t4_bg = "#fb923c","rgba(251,146,60,.35)","rgba(251,146,60,.08)"
-        t3_tx,t3_br,t3_bg = "#a78bfa","rgba(167,139,250,.35)","rgba(167,139,250,.08)"
-        t2_tx,t2_br,t2_bg = "#60a5fa","rgba(96,165,250,.35)","rgba(96,165,250,.08)"
-        t1_tx,t1_br,t1_bg = "#6b7280","rgba(107,114,128,.35)","rgba(107,114,128,.08)"
-        eq_tx,eq_br,eq_bg = "#7a7060","rgba(122,112,96,.35)","rgba(122,112,96,.08)"
-        hdr1,hdr2 = "#1c1f2b","#15181f"
-        metric_line = "linear-gradient(90deg,#c8922a 0%,transparent 100%)"
-        tbl_th,tbl_td,tbl_td1 = "#3a3428","#b0a898","#6a6050"
-        tbl_sep, tbl_rowsep = "rgba(200,146,42,0.10)","rgba(255,255,255,0.03)"
-        band_th,band_td,band_td1 = "#4a4438","#9a9080","#7a7060"
-        att_bg, att_br = surface, "rgba(200,146,42,0.10)"
-        sb_sec_color = "#3a3428"
+        # Tema "Obsidian & Azul Celeste" (Foco esportivo/competitivo)
+        bg, surface, surface2 = "#050505", "#0f1115", "#16191f" # Fundo quase preto para contraste extremo
+        border    = "rgba(255,255,255,0.08)"
+        border_hi = "rgba(0, 174, 239, 0.3)" # Azul celeste nas bordas ativas
+        text      = "#f8f9fa"
+        text_sub  = "#adb5bd"
+        text_dim  = "#6c757d"
+        text_mut  = "#495057"
+        
+        # Cores de Ação (Ouro para KP, Azul Celeste para Mortes)
+        amber     = "#d4af37" 
+        amber_hi  = "#f1c40f"
+        blue      = "#00AEEF" # Azul vibrante 
+        blue_dark = "#007bb5"
+        green, yellow, red = "#20c997", "#f5a623", "#fa5252"
+        
+        gauge_bg, gauge_bdr = "rgba(255,255,255,0.05)", "rgba(255,255,255,0.02)"
+        scroll_th = "rgba(212, 175, 55, 0.3)"
+        sidebar_bg = "#0a0b0e"
+        btn_text  = "#000000"
+        
+        # Badges refinados (fundo translúcido, borda sólida)
+        ok_bg,ok_br,ok_tx = "rgba(32,201,151,0.1)","rgba(32,201,151,0.4)","#20c997"
+        wa_bg,wa_br,wa_tx = "rgba(245,166,35,0.1)","rgba(245,166,35,0.4)","#f5a623"
+        er_bg,er_br,er_tx = "rgba(250,82,82,0.1)","rgba(250,82,82,0.4)","#fa5252"
+        
+        t5_tx,t5_br,t5_bg = "#f1c40f","rgba(241,196,15,.4)","rgba(241,196,15,.1)"
+        t4_tx,t4_br,t4_bg = "#fd7e14","rgba(253,126,20,.4)","rgba(253,126,20,.1)"
+        t3_tx,t3_br,t3_bg = "#b197fc","rgba(177,151,252,.4)","rgba(177,151,252,.1)"
+        t2_tx,t2_br,t2_bg = "#339af0","rgba(51,154,240,.4)","rgba(51,154,240,.1)"
+        t1_tx,t1_br,t1_bg = "#868e96","rgba(134,142,150,.4)","rgba(134,142,150,.1)"
+        eq_tx,eq_br,eq_bg = "#adb5bd","rgba(173,181,189,.4)","rgba(173,181,189,.1)"
+        
+        hdr1,hdr2 = "#0f1115","#050505"
+        metric_line = "linear-gradient(90deg, #00AEEF 0%, transparent 100%)"
+        tbl_th,tbl_td,tbl_td1 = "#6c757d","#dee2e6","#adb5bd"
+        tbl_sep, tbl_rowsep = "rgba(255,255,255,0.05)","rgba(255,255,255,0.02)"
+        att_bg, att_br = surface, "rgba(255,255,255,0.05)"
+        sb_sec_color = "#495057"
     else:
-        bg, surface, surface2 = "#f5f0e8", "#ffffff", "#ede8dc"
-        border    = "rgba(120,80,20,0.15)"
-        border_hi = "rgba(120,80,20,0.38)"
-        text      = "#1a1410"
-        text_sub  = "#5a4a30"
-        text_dim  = "#8a7a60"
-        text_mut  = "#b0a080"
-        amber     = "#96600a"
-        amber_hi  = "#c8922a"
-        green, yellow, red, blue = "#15803d", "#92400e", "#991b1b", "#1d4ed8"
-        blue_dark = "#1e40af"
-        gauge_bg, gauge_bdr = "rgba(0,0,0,0.07)", "rgba(0,0,0,0.06)"
-        scroll_th = "rgba(120,80,20,0.25)"
-        plot_font = "#6a5a40"; plot_grid = "rgba(120,80,20,0.08)"
-        sidebar_bg = "#1a1410"
+        # Light Mode (Clean & Minimalist)
+        bg, surface, surface2 = "#f4f6f8", "#ffffff", "#f8f9fa"
+        border    = "rgba(0,0,0,0.08)"
+        border_hi = "rgba(0, 174, 239, 0.4)"
+        text      = "#212529"
+        text_sub  = "#495057"
+        text_dim  = "#868e96"
+        text_mut  = "#adb5bd"
+        amber     = "#d4af37"
+        amber_hi  = "#b5952f"
+        blue      = "#00AEEF"
+        blue_dark = "#007bb5"
+        green, yellow, red = "#0ca678", "#f08c00", "#e03131"
+        
+        gauge_bg, gauge_bdr = "rgba(0,0,0,0.05)", "rgba(0,0,0,0.02)"
+        scroll_th = "rgba(0,0,0,0.2)"
+        sidebar_bg = "#ffffff"
         btn_text  = "#ffffff"
-        ok_bg,ok_br,ok_tx = "rgba(21,128,61,0.10)","rgba(21,128,61,0.30)","#15803d"
-        wa_bg,wa_br,wa_tx = "rgba(146,64,14,0.10)","rgba(146,64,14,0.30)","#92400e"
-        er_bg,er_br,er_tx = "rgba(153,27,27,0.10)","rgba(153,27,27,0.30)","#991b1b"
-        t5_tx,t5_br,t5_bg = "#92400e","rgba(146,64,14,.35)","rgba(146,64,14,.08)"
-        t4_tx,t4_br,t4_bg = "#9a3412","rgba(154,52,18,.35)","rgba(154,52,18,.08)"
-        t3_tx,t3_br,t3_bg = "#5b21b6","rgba(91,33,182,.30)","rgba(91,33,182,.07)"
-        t2_tx,t2_br,t2_bg = "#1e40af","rgba(30,64,175,.30)","rgba(30,64,175,.07)"
-        t1_tx,t1_br,t1_bg = "#374151","rgba(55,65,81,.30)","rgba(55,65,81,.07)"
-        eq_tx,eq_br,eq_bg = "#6a5a40","rgba(106,90,64,.30)","rgba(106,90,64,.07)"
-        hdr1,hdr2 = "#ffffff","#f5f0e8"
-        metric_line = "linear-gradient(90deg,#96600a 0%,transparent 100%)"
-        tbl_th,tbl_td,tbl_td1 = "#6a5a40","#5a4a30","#8a7a60"
-        tbl_sep, tbl_rowsep = "rgba(120,80,20,0.12)","rgba(0,0,0,0.04)"
-        band_th,band_td,band_td1 = "#8a7a60","#5a4a30","#7a6a50"
-        att_bg, att_br = surface, "rgba(120,80,20,0.12)"
-        sb_sec_color = "#9a8060"
+        
+        ok_bg,ok_br,ok_tx = "rgba(12,166,120,0.1)","rgba(12,166,120,0.3)","#0ca678"
+        wa_bg,wa_br,wa_tx = "rgba(240,140,0,0.1)","rgba(240,140,0,0.3)","#f08c00"
+        er_bg,er_br,er_tx = "rgba(224,49,49,0.1)","rgba(224,49,49,0.3)","#e03131"
+        
+        t5_tx,t5_br,t5_bg = "#d4af37","rgba(212,175,55,.4)","rgba(212,175,55,.1)"
+        t4_tx,t4_br,t4_bg = "#e8590c","rgba(232,89,12,.4)","rgba(232,89,12,.1)"
+        t3_tx,t3_br,t3_bg = "#845ef7","rgba(132,94,247,.4)","rgba(132,94,247,.1)"
+        t2_tx,t2_br,t2_bg = "#1c7ed6","rgba(28,126,214,.4)","rgba(28,126,214,.1)"
+        t1_tx,t1_br,t1_bg = "#495057","rgba(73,80,87,.4)","rgba(73,80,87,.1)"
+        eq_tx,eq_br,eq_bg = "#868e96","rgba(134,142,150,.4)","rgba(134,142,150,.1)"
+        
+        hdr1,hdr2 = "#ffffff","#f4f6f8"
+        metric_line = "linear-gradient(90deg, #00AEEF 0%, transparent 100%)"
+        tbl_th,tbl_td,tbl_td1 = "#868e96","#495057","#212529"
+        tbl_sep, tbl_rowsep = "rgba(0,0,0,0.05)","rgba(0,0,0,0.02)"
+        att_bg, att_br = surface, "rgba(0,0,0,0.05)"
+        sb_sec_color = "#868e96"
 
     return f"""
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
 html, body, [class*="css"], .stApp {{ font-family: 'Inter', system-ui, sans-serif !important; background: {bg} !important; color: {text} !important; }}
-.main .block-container {{ padding: 1.2rem 2rem 3rem !important; max-width: 1500px !important; background:{bg} !important; }}
-section[data-testid="stSidebar"] {{ background: {sidebar_bg} !important; border-right: 1px solid rgba(200,146,42,0.20) !important; }}
-section[data-testid="stSidebar"] > div {{ padding: 1.5rem 1rem !important; }}
-section[data-testid="stSidebar"] * {{ color: #9a8060 !important; }}
-[data-testid="stMetric"] {{ background: {surface} !important; border: 1px solid {border} !important; border-radius: 10px !important; padding: 18px 20px !important; position: relative; overflow: hidden; }}
-[data-testid="stMetric"]::after {{ content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:{metric_line}; }}
-[data-testid="stTabs"] [role="tablist"] {{ border-bottom: 1px solid {border}; gap: 0; background: transparent; flex-wrap: wrap; }}
-[data-testid="stTabs"] button[role="tab"] {{ font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {text_dim} !important; padding: 10px 20px; border-bottom: 2px solid transparent; border-radius: 0; background: transparent !important; transition: color .2s, border-color .2s; }}
-[data-testid="stTabs"] button[role="tab"]:hover {{ color: {amber} !important; }}
-[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{ color: {amber} !important; border-bottom-color: {amber} !important; background: transparent !important; }}
-[data-testid="stTextInput"] input, [data-testid="stSelectbox"] > div > div, [data-testid="stNumberInput"] input {{ background: {surface} !important; border: 1px solid {border} !important; border-radius: 8px !important; color: {text} !important; font-size: .82rem !important; }}
-[data-testid="stButton"] button {{ background: {amber} !important; color: {btn_text} !important; border: none !important; border-radius: 8px !important; font-weight: 700 !important; font-size: .78rem !important; text-transform: uppercase; letter-spacing: .08em; transition: opacity .2s, transform .1s; }}
-[data-testid="stButton"] button[kind="secondary"] {{ background: transparent !important; border: 1px solid {border_hi} !important; color: {amber} !important; }}
-[data-testid="stExpander"] {{ border: none !important; border-radius: 0 !important; background: transparent !important; }}
-[data-testid="stExpander"] > details > summary {{ background: transparent !important; border: none !important; padding: 0 !important; color: {text_sub} !important; }}
-[data-testid="stDataFrame"] {{ border: 1px solid {border} !important; border-radius: 10px !important; overflow: hidden; }}
-hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
-.rok-header {{ display: flex; align-items: center; gap: 18px; padding: 18px 24px; margin-bottom: 18px; background: linear-gradient(135deg, {hdr1} 0%, {hdr2} 100%); border: 1px solid {border_hi}; border-radius: 12px; position: relative; overflow: hidden; }}
-.rok-header::before {{ content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,{amber},transparent); }}
-.rok-header-emblem {{ width: 52px; height: 52px; flex-shrink: 0; background: linear-gradient(135deg, {amber}, {amber_hi}); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: 0 4px 16px rgba(200,146,42,0.25); }}
-.rok-header-title {{ font-size: 1.4rem; font-weight: 900; color: {text}; letter-spacing: -.03em; line-height: 1; }}
-.rok-header-sub {{ font-size: .7rem; color: {text_dim}; letter-spacing: .05em; margin-top: 4px; text-transform: uppercase; }}
-.tier-pills {{ display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }}
-.tier-pill {{ padding: 3px 10px; border-radius: 4px; font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; border: 1px solid; }}
+.main .block-container {{ padding: 1.5rem 2.5rem 3rem !important; max-width: 1500px !important; background:{bg} !important; }}
+section[data-testid="stSidebar"] {{ background: {sidebar_bg} !important; border-right: 1px solid {border} !important; box-shadow: 2px 0 12px rgba(0,0,0,0.1); }}
+section[data-testid="stSidebar"] > div {{ padding: 2rem 1.5rem !important; }}
+section[data-testid="stSidebar"] * {{ color: {text_sub} !important; }}
+
+/* Cartões de Métrica Refinados */
+[data-testid="stMetric"] {{ 
+  background: {surface} !important; 
+  border: 1px solid {border} !important; 
+  border-radius: 12px !important; 
+  padding: 20px 24px !important; 
+  position: relative; 
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}}
+[data-testid="stMetric"]:hover {{
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}}
+[data-testid="stMetric"]::after {{ content:''; position:absolute; bottom:0; left:0; right:0; height:3px; background:{metric_line}; }}
+[data-testid="stMetricLabel"] {{ font-size:0.7rem !important; font-weight:700 !important; text-transform:uppercase; letter-spacing:0.15em; color:{text_dim} !important; }}
+[data-testid="stMetricValue"] {{ font-family:'JetBrains Mono',monospace !important; font-size:1.8rem !important; font-weight:800 !important; color:{text} !important; letter-spacing:-0.04em; }}
+
+/* Abas (Tabs) Modernizadas */
+[data-testid="stTabs"] [role="tablist"] {{ border-bottom: 2px solid {border}; gap: 1rem; background: transparent; padding-bottom: 4px; }}
+[data-testid="stTabs"] button[role="tab"] {{ 
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; 
+  color: {text_dim} !important; padding: 8px 12px; border: none; border-radius: 6px;
+  background: transparent !important; transition: all 0.2s ease;
+}}
+[data-testid="stTabs"] button[role="tab"]:hover {{ color: {blue} !important; background: {surface2} !important; }}
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{ color: {blue} !important; background: {surface} !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-bottom: 2px solid {blue} !important; }}
+
+/* Inputs e Botões */
+[data-testid="stTextInput"] input, [data-testid="stSelectbox"] > div > div, [data-testid="stNumberInput"] input {{ 
+  background: {surface} !important; border: 1px solid {border} !important; border-radius: 8px !important; 
+  color: {text} !important; font-size: 0.85rem !important; transition: border-color 0.2s ease;
+}}
+[data-testid="stTextInput"] input:focus, [data-testid="stSelectbox"] > div > div:focus-within {{ border-color: {blue} !important; box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15) !important; }}
+[data-testid="stButton"] button {{ background: {blue} !important; color: #fff !important; border: none !important; border-radius: 8px !important; font-weight: 800 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.5rem 1rem !important; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 174, 239, 0.2); }}
+[data-testid="stButton"] button:hover {{ transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 174, 239, 0.3); }}
+
+/* Expander Clean */
+[data-testid="stExpander"] {{ border: 1px solid {border} !important; border-radius: 12px !important; background: {surface} !important; overflow: hidden; }}
+[data-testid="stExpander"] > details > summary {{ background: {surface2} !important; padding: 12px 16px !important; color: {text} !important; font-weight: 600 !important; }}
+
+/* Header Principal */
+.rok-header {{ display: flex; align-items: center; gap: 20px; padding: 24px; margin-bottom: 24px; background: linear-gradient(135deg, {hdr1} 0%, {hdr2} 100%); border: 1px solid {border}; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); position: relative; overflow: hidden; }}
+.rok-header::before {{ content:''; position:absolute; top:0; left:0; width: 4px; height: 100%; background: {blue}; }}
+.rok-header-emblem {{ width: 60px; height: 60px; flex-shrink: 0; background: linear-gradient(135deg, {blue}, {blue_dark}); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 24px rgba(0, 174, 239, 0.3); color: white; }}
+.rok-header-title {{ font-size: 1.8rem; font-weight: 900; color: {text}; letter-spacing: -0.04em; line-height: 1; }}
+.rok-header-sub {{ font-size: 0.8rem; font-weight: 600; color: {text_dim}; letter-spacing: 0.08em; margin-top: 6px; text-transform: uppercase; }}
+
+/* Badges e Pílulas */
+.tier-pills {{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }}
+.tier-pill {{ padding: 4px 12px; border-radius: 6px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; border: 1px solid; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }}
 .tp-t5 {{ color:{t5_tx}; border-color:{t5_br}; background:{t5_bg}; }}
 .tp-t4 {{ color:{t4_tx}; border-color:{t4_br}; background:{t4_bg}; }}
 .tp-t3 {{ color:{t3_tx}; border-color:{t3_br}; background:{t3_bg}; }}
 .tp-t2 {{ color:{t2_tx}; border-color:{t2_br}; background:{t2_bg}; }}
 .tp-t1 {{ color:{t1_tx}; border-color:{t1_br}; background:{t1_bg}; }}
 .tp-eq {{ color:{eq_tx}; border-color:{eq_br}; background:{eq_bg}; }}
-.sec-label {{ font-size: .6rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: {text_dim}; display: flex; align-items: center; gap: 10px; margin: 20px 0 12px; }}
-.sec-label::after {{ content: ''; flex: 1; height: 1px; background: {border}; }}
-.sbadge {{ display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 4px; font-size: .63rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; border: 1px solid; }}
-.sbadge-ok {{ color:{ok_tx}; border-color:{ok_br}; background:{ok_bg}; }}
-.sbadge-wa {{ color:{wa_tx}; border-color:{wa_br}; background:{wa_bg}; }}
-.sbadge-er {{ color:{er_tx}; border-color:{er_br}; background:{er_bg}; }}
-.mrow {{ background: {surface}; border: 1px solid {border}; border-radius: 10px; margin-bottom: 6px; overflow: hidden; transition: border-color .2s, background .2s; }}
-.mrow:hover {{ border-color: {border_hi}; background: {surface2}; }}
-.mrow.ok {{ border-left: 3px solid {ok_tx}; }}
-.mrow.wa {{ border-left: 3px solid {wa_tx}; }}
-.mrow.er {{ border-left: 3px solid {er_tx}; }}
-.mrow-sum {{ display: grid; grid-template-columns: 36px 1fr 90px 80px auto; align-items: center; gap: 12px; padding: 12px 16px; }}
-.mrow-rank {{ font-family: 'JetBrains Mono', monospace; font-size: .85rem; font-weight: 600; color: {text_mut}; text-align: right; }}
-.mrow-info {{ min-width: 0; }}
-.mrow-name {{ font-size: .88rem; font-weight: 700; color: {text}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
-.mrow-meta {{ font-size: .64rem; color: {text_dim}; margin-top: 2px; }}
-.mrow-gauges {{ display: flex; flex-direction: column; gap: 5px; }}
-.gauge-head {{ display: flex; justify-content: space-between; font-size: .58rem; color: {text_dim}; margin-bottom: 2px; }}
-.gauge-track {{ height: 5px; background: {gauge_bg}; border-radius: 99px; overflow: hidden; border: 1px solid {gauge_bdr}; }}
-.gauge-fill {{ height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1); }}
-.gauge-fill.kp {{ background: linear-gradient(90deg, {amber}, {amber_hi}); }}
-.gauge-fill.dead {{ background: linear-gradient(90deg, {blue_dark}, {blue}); }}
-.gauge-fill.full {{ background: linear-gradient(90deg, {green}, {green}); }}
-.mrow-kp {{ font-family: 'JetBrains Mono', monospace; font-size: .9rem; font-weight: 600; color: {amber}; text-align: right; white-space: nowrap; }}
-.mdet {{ border-top: 1px solid {border}; background: {surface2}; padding: 16px 20px 20px; }}
-.mdet-accent-bar {{ height: 1px; margin-bottom: 16px; }}
-.mdet-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }}
-.mdet-block-label {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: {text_dim}; margin-bottom: 6px; }}
-.mdet-block-val {{ font-family: 'JetBrains Mono', monospace; font-size: 1.6rem; font-weight: 600; color: {text}; letter-spacing: -.04em; line-height: 1; }}
-.mdet-block-sub {{ font-size: .65rem; color: {text_dim}; margin-top: 4px; }}
-.mdet-prog {{ margin-top: 8px; }}
-.mdet-prog-head {{ display: flex; justify-content: space-between; font-size: .6rem; color: {text_dim}; margin-bottom: 3px; }}
-.mdet-prog-track {{ height: 8px; background: {gauge_bg}; border-radius: 99px; overflow: hidden; }}
-.mdet-prog-fill {{ height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1); }}
-.mdet-prog-fill.kp {{ background: linear-gradient(90deg,{amber},{amber_hi}); }}
-.mdet-prog-fill.dead {{ background: linear-gradient(90deg,{blue_dark},{blue}); }}
-.mdet-prog-fill.full-kp {{ background: linear-gradient(90deg,{green},{green}); }}
-.mdet-prog-fill.full-dead {{ background: linear-gradient(90deg,{green},{green}); }}
-.mdet-gap {{ font-size: .62rem; color: {text_dim}; margin-top: 4px; }}
-.mdet-gap.warn {{ color: {red}; }}
-.mdet-gap.ok {{ color: {green}; }}
-.tier-table {{ width: 100%; border-collapse: collapse; margin-top: 4px; }}
-.tier-table th {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {tbl_th}; padding: 5px 8px; text-align: right; border-bottom: 1px solid {tbl_sep}; }}
-.tier-table th:first-child {{ text-align: left; }}
-.tier-table td {{ font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: {tbl_td}; padding: 5px 8px; text-align: right; border-bottom: 1px solid {tbl_rowsep}; }}
-.tier-table td:first-child {{ text-align: left; color: {tbl_td1}; font-weight: 600; }}
-.tier-table td.amber {{ color: {amber}; }}
-.tier-table td.blue  {{ color: {blue}; }}
-.tier-table td.equiv {{ color: {text_dim}; font-size: .68rem; }}
-.kd-row {{ display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 18px; }}
-.kd-card {{ background: {surface}; border: 1px solid {border}; border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }}
-.kd-card::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }}
-.kd-card.amber::before {{ background: linear-gradient(90deg,{amber},transparent); }}
-.kd-card.green::before {{ background: linear-gradient(90deg,{green},transparent); }}
-.kd-card.yellow::before{{ background: linear-gradient(90deg,{yellow},transparent); }}
-.kd-card.red::before   {{ background: linear-gradient(90deg,{red},transparent); }}
-.kd-card.blue::before  {{ background: linear-gradient(90deg,{blue},transparent); }}
-.kd-card-icon {{ font-size: 1.2rem; margin-bottom: 8px; opacity: .7; }}
-.kd-card-label {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: {text_dim}; margin-bottom: 5px; }}
-.kd-card-value {{ font-family: 'JetBrains Mono', monospace; font-size: 1.45rem; font-weight: 600; color: {text}; letter-spacing: -.03em; line-height: 1; }}
-.kd-card-sub {{ font-size: .65rem; color: {text_mut}; margin-top: 4px; }}
-.sm-card {{ background: {surface}; border: 1px solid {border}; border-radius: 10px; padding: 16px 18px; }}
-.sm-label {{ font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {text_dim}; margin-bottom: 8px; }}
-.sm-count {{ font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 600; color: {text}; letter-spacing: -.04em; line-height: 1; }}
-.sm-denom {{ font-size: 1rem; color: {text_mut}; }}
-.sm-bar {{ background: {gauge_bg}; border-radius: 99px; height: 6px; overflow: hidden; margin-top: 10px; }}
-.sm-fill {{ height: 100%; border-radius: 99px; }}
-.sm-pct {{ font-size: .6rem; color: {text_dim}; margin-top: 4px; }}
-.att-row {{ display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: {att_bg}; border: 1px solid {att_br}; border-radius: 8px; margin-bottom: 5px; }}
-.att-row.er {{ border-left: 3px solid {er_tx}; }}
-.att-row.wa {{ border-left: 3px solid {wa_tx}; }}
-.att-name {{ flex: 1; font-size: .82rem; font-weight: 600; color: {text}; }}
-.att-pow  {{ font-size: .68rem; color: {text_dim}; white-space: nowrap; }}
-.att-pcts {{ font-size: .65rem; color: {text_dim}; white-space: nowrap; }}
-.band-table {{ width: 100%; border-collapse: collapse; }}
-.band-table th {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {band_th}; padding: 8px 12px; text-align: right; border-bottom: 1px solid {tbl_sep}; }}
+
+/* Linha de Jogador (Ranking) */
+.mrow {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; margin-bottom: 8px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }}
+.mrow:hover {{ transform: scale(1.002) translateX(4px); border-color: {border_hi}; box-shadow: 0 6px 16px rgba(0,0,0,0.08); background: {surface2}; z-index: 2; position: relative; }}
+.mrow.ok {{ border-left: 4px solid {ok_tx}; }}
+.mrow.wa {{ border-left: 4px solid {wa_tx}; }}
+.mrow.er {{ border-left: 4px solid {er_tx}; }}
+.mrow-sum {{ display: grid; grid-template-columns: 40px 1fr 120px 90px auto; align-items: center; gap: 16px; padding: 14px 20px; }}
+.mrow-rank {{ font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 800; color: {text_mut}; text-align: left; }}
+.mrow-name {{ font-size: 0.95rem; font-weight: 700; color: {text}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+.mrow-meta {{ font-size: 0.68rem; font-weight: 500; color: {text_dim}; margin-top: 4px; }}
+
+/* Barras de Progresso Embutidas (Gauges) */
+.mrow-gauges {{ display: flex; flex-direction: column; gap: 8px; }}
+.gauge-head {{ display: flex; justify-content: space-between; font-size: 0.6rem; font-weight: 700; color: {text_sub}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }}
+.gauge-track {{ height: 6px; background: {gauge_bg}; border-radius: 99px; overflow: hidden; border: 1px solid {gauge_bdr}; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }}
+.gauge-fill {{ height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }}
+.gauge-fill.kp {{ background: linear-gradient(90deg, {amber}, {amber_hi}); box-shadow: 0 0 8px rgba(212,175,55,0.4); }}
+.gauge-fill.dead {{ background: linear-gradient(90deg, {blue_dark}, {blue}); box-shadow: 0 0 8px rgba(0,174,239,0.4); }}
+.gauge-fill.full {{ background: linear-gradient(90deg, {green}, #38d9a9); box-shadow: 0 0 8px rgba(32,201,151,0.4); }}
+
+.mrow-kp {{ font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 800; color: {amber}; text-align: right; white-space: nowrap; }}
+
+/* Seções e Separadores */
+.sec-label {{ font-size: 0.7rem; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; color: {blue}; display: flex; align-items: center; gap: 12px; margin: 32px 0 16px; }}
+.sec-label::after {{ content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, {blue} 0%, transparent 100%); opacity: 0.3; }}
+
+/* Tabela de Bandas */
+.band-table {{ width: 100%; border-collapse: separate; border-spacing: 0; background: {surface}; border-radius: 12px; overflow: hidden; border: 1px solid {border}; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }}
+.band-table th {{ font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; background: {surface2}; color: {text_sub}; padding: 12px 16px; text-align: right; border-bottom: 1px solid {border}; }}
 .band-table th:first-child {{ text-align: left; }}
-.band-table td {{ font-family: 'JetBrains Mono', monospace; font-size: .76rem; color: {band_td}; padding: 8px 12px; text-align: right; border-bottom: 1px solid {tbl_rowsep}; }}
-.band-table td:first-child {{ text-align: left; color: {band_td1}; font-weight: 600; font-family: 'Inter', sans-serif; font-size: .78rem; }}
-.upload-lock {{ background: {surface2}; border: 1px solid {border}; border-radius: 8px; padding: 14px; text-align: center; margin-bottom: 10px; }}
-.upload-lock-icon {{ font-size: 1.3rem; margin-bottom: 6px; }}
-.upload-lock-text {{ font-size: .72rem; color: {text_dim}; margin-bottom: 10px; }}
-.sb-sec {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: {sb_sec_color}; border-bottom: 1px solid rgba(200,146,42,0.15); padding-bottom: 6px; margin: 14px 0 10px; }}
-.rok-caption {{ display: flex; align-items: center; gap: 14px; padding: 8px 14px; margin-bottom: 16px; background: {surface2}; border: 1px solid {border}; border-radius: 6px; flex-wrap: wrap; }}
-.rok-caption-item {{ font-size: .68rem; color: {text_dim}; }}
-.rok-caption-val  {{ color: {amber_hi}; font-weight: 600; }}
-.rok-caption-sep  {{ color: {text_mut}; font-size: .7rem; }}
-.kvk-event-card {{ background: linear-gradient(135deg,{surface},{surface2}); border: 1px solid {border_hi}; border-radius: 10px; padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; }}
-.kvk-event-name {{ font-size: .92rem; font-weight: 700; color: {text}; }}
-.kvk-event-dates {{ font-size: .68rem; color: {text_dim}; margin-top: 2px; }}
-.kvk-event-badge {{ margin-left: auto; padding: 4px 10px; border-radius: 4px; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; background: rgba(200,146,42,0.1); color: {amber}; border: 1px solid rgba(200,146,42,0.3); white-space: nowrap; }}
-.empty-state {{ text-align: center; padding: 60px 20px; }}
-.empty-state-icon {{ font-size: 3rem; margin-bottom: 14px; opacity: .4; }}
-.empty-state-title {{ font-size: 1rem; font-weight: 700; color: {text_sub}; margin-bottom: 6px; }}
-.empty-state-sub   {{ font-size: .75rem; color: {text_dim}; }}
+.band-table td {{ font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: {text}; padding: 12px 16px; text-align: right; border-bottom: 1px solid {tbl_rowsep}; }}
+.band-table td:first-child {{ text-align: left; font-family: 'Inter', sans-serif; font-weight: 700; }}
+
+/* Cards de Resumo */
+.kd-card {{ background: {surface}; border: 1px solid {border}; border-radius: 12px; padding: 20px; position: relative; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04); transition: transform 0.2s; }}
+.kd-card:hover {{ transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }}
+.kd-card.amber::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{amber},transparent); }}
+.kd-card.blue::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,{blue},transparent); }}
+.kd-card-label {{ font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: {text_dim}; margin-bottom: 6px; }}
+.kd-card-value {{ font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 800; color: {text}; letter-spacing: -0.04em; line-height: 1; }}
 </style>
 """
 
@@ -1044,16 +1034,16 @@ def show_profile(storage, imports, gp):
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['kill_points'],
-                                 mode='lines+markers', name='Kill Points', line=dict(color='#c8922a')))
+                                 mode='lines+markers', name='Kill Points', line=dict(color='#d4af37')))
         fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['dead_equiv'],
-                                 mode='lines+markers', name='Deaths (T4eq)', line=dict(color='#60a5fa')))
+                                 mode='lines+markers', name='Deaths (T4eq)', line=dict(color='#00AEEF')))
         
         fig.update_layout(
             title=f"Evolução de {selected_player}",
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#7a7060", family="Inter"),
-            yaxis=dict(gridcolor="rgba(200,146,42,0.06)"),
-            xaxis=dict(gridcolor="rgba(200,146,42,0.06)")
+            yaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
+            xaxis=dict(gridcolor="rgba(255,255,255,0.05)")
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -1109,7 +1099,7 @@ def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
         _render_hof_list(kp_df, "kp")
 
     with c2:
-        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#60a5fa;margin-bottom:10px">💀 Top 10 Deaths</div>',
+        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#00AEEF;margin-bottom:10px">💀 Top 10 Deaths</div>',
                     unsafe_allow_html=True)
         _render_hof_list(dead_df, "deaths")
 
@@ -1118,7 +1108,7 @@ def _render_hof_list(df: pd.DataFrame, category: str) -> None:
         st.caption("No data for this KVK.")
         return
     medals = {1:"🥇", 2:"🥈", 3:"🥉"}
-    color  = "#c8922a" if category == "kp" else "#60a5fa"
+    color  = "#c8922a" if category == "kp" else "#00AEEF"
     unit   = "KP" if category == "kp" else "T4eq"
 
     for _, row in df.iterrows():
@@ -1129,8 +1119,8 @@ def _render_hof_list(df: pd.DataFrame, category: str) -> None:
         st.markdown(f'''
         <div style="display:flex;align-items:center;gap:10px;
                     padding:{'12px 14px' if is_top else '9px 14px'};
-                    background:{"rgba(200,146,42,0.06)" if is_top else "#15181f"};
-                    border:1px solid {"rgba(200,146,42,0.25)" if is_top else "rgba(255,255,255,0.04)"};
+                    background:{"rgba(255,255,255,0.03)" if is_top else "transparent"};
+                    border:1px solid {"rgba(255,255,255,0.08)" if is_top else "rgba(255,255,255,0.02)"};
                     border-radius:8px;margin-bottom:5px;">
           <div style="font-size:{'1.2rem' if is_top else '.85rem'};min-width:28px;text-align:center">{medal}</div>
           <div style="flex:1;min-width:0">
@@ -1171,14 +1161,14 @@ def show_history(storage, imports, group_power):
         if not top.empty and px is not None:
             fig = px.bar(top.sort_values("kill_points",ascending=True),
                          x="kill_points", y="username", orientation="h",
-                         color_discrete_sequence=["#c8922a"],
+                         color_discrete_sequence=["#d4af37"],
                          labels={"kill_points":"Kill Points Gained","username":""})
             fig.update_layout(
                 showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#7a7060",family="Inter"),
-                yaxis=dict(tickfont=dict(size=11,color="#9a9080"),gridcolor="rgba(200,146,42,0.06)"),
-                xaxis=dict(gridcolor="rgba(200,146,42,0.06)"),
+                yaxis=dict(tickfont=dict(size=11,color="#9a9080"),gridcolor="rgba(255,255,255,0.05)"),
+                xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
             )
             fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
