@@ -32,6 +32,7 @@ st.set_page_config(
 #  DESIGN SYSTEM — Single static theme, "Slate Command"
 # ══════════════════════════════════════════════════════════════════════════════
 
+@st.cache_resource
 def _css() -> str:
     primary       = "#5271ac"
     primary_dark  = "#3d5685"
@@ -299,11 +300,17 @@ hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
 .empty-state-sub   {{ font-size: .75rem; color: {text_dim}; }}
 
 /* date range filter bar */
-.date-filter-bar {{
-  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
-  background: {surface}; border: 1px solid {border}; border-radius: 8px; margin-bottom: 14px; flex-wrap: wrap;
+.filter-bar {{
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  background: {surface}; border: 1px solid {border}; border-radius: 10px; margin-bottom: 14px; flex-wrap: wrap;
 }}
-.date-filter-label {{ font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {primary}; white-space: nowrap; }}
+.filter-bar-label {{
+  font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {primary}; white-space: nowrap;
+}}
+.filter-tag {{
+  display: inline-block; padding: 3px 10px; border-radius: 4px;
+  font-size: .62rem; font-weight: 600; background: rgba(82,113,172,0.08); color: #5271ac;
+}}
 </style>
 """
 
@@ -328,19 +335,20 @@ def get_secret(name):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Accumulated ranking helpers
+# Accumulated ranking helpers — SOMATÓRIO REAL
 # ══════════════════════════════════════════════════════════════════════════════
 
-def compute_accumulated_ranking(storage, imports: pd.DataFrame, group_power: int,
-                                 date_from: date | None = None,
-                                 date_to: date | None = None) -> tuple[pd.DataFrame, str, str]:
+def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int,
+                            date_from: date | None = None,
+                            date_to: date | None = None) -> tuple[pd.DataFrame, str, str]:
     """
-    Compute accumulated ranking for all imports within [date_from, date_to].
-    Returns (ranked_df, first_date_str, last_date_str).
-
-    Logic: for each player, delta = value_in_last_import - value_in_first_import
-    within the selected window. This gives true accumulated gains, not just
-    a snapshot.
+    SOMA todos os KP e mortes de cada jogador em TODOS os relatórios dentro do período.
+    Para cada jogador: KP_total = soma dos KP de cada relatório no intervalo.
+    
+    Colunas somadas: kills, deaths, rallies, helps, resources, barbarians
+    Power: pega o valor do ÚLTIMO relatório no período
+    
+    Retorna (ranked_df, first_date_str, last_date_str).
     """
     ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
     ordered["_d"] = pd.to_datetime(ordered["report_date"]).dt.date
@@ -356,40 +364,84 @@ def compute_accumulated_ranking(storage, imports: pd.DataFrame, group_power: int
     first_date = str(ordered.iloc[0]["report_date"])
     last_date  = str(ordered.iloc[-1]["report_date"])
 
-    if len(ordered) == 1:
-        stats = storage.load_stats(ordered.iloc[0]["id"])
-        metrics = calculate_metrics(stats, group_power=group_power)
-        ranked  = apply_goals(add_rank(metrics, "kill_points"))
-        return ranked, first_date, last_date
+    # Colunas que serão SOMADAS em todos os relatórios
+    sum_columns = [
+        "t1_kills", "t2_kills", "t3_kills", "t4_kills", "t5_kills",
+        "t1_deaths", "t2_deaths", "t3_deaths", "t4_deaths", "t5_deaths",
+        "rallies_joined", "rallies_started", "helps",
+        "resources_gathered", "resources_assisted",
+        "barbarians_killed", "barbarians_killed_7", "barbarians_killed_8",
+    ]
 
-    # Delta: last import minus first import (accumulated gains in period)
-    stats_first = storage.load_stats(ordered.iloc[0]["id"])
-    stats_last  = storage.load_stats(ordered.iloc[-1]["id"])
-    delta       = compute_period_deltas(stats_last, stats_first)
-    metrics     = calculate_metrics(delta, group_power=group_power)
-    ranked      = apply_goals(add_rank(metrics, "kill_points"))
+    # Dicionário para acumular stats por character_id
+    accumulated = {}
+
+    for _, imp_row in ordered.iterrows():
+        stats = storage.load_stats(imp_row["id"])
+        for _, player in stats.iterrows():
+            cid = str(player["character_id"])
+            if cid not in accumulated:
+                accumulated[cid] = {
+                    "character_id": cid,
+                    "username": player["username"],
+                    "alliance": player.get("alliance", ""),
+                }
+                for col in sum_columns:
+                    accumulated[cid][col] = 0
+                accumulated[cid]["_report_count"] = 0
+            
+            # Soma os valores numéricos
+            for col in sum_columns:
+                if col in player:
+                    try:
+                        val = player[col]
+                        if pd.notna(val):
+                            accumulated[cid][col] += int(float(val))
+                    except (ValueError, TypeError):
+                        pass
+            
+            accumulated[cid]["_report_count"] += 1
+
+    if not accumulated:
+        return pd.DataFrame(), "", ""
+
+    # Converte para DataFrame
+    result_df = pd.DataFrame(list(accumulated.values()))
+    
+    # Para POWER: pegamos o valor do ÚLTIMO relatório, não a soma
+    last_import_id = ordered.iloc[-1]["id"]
+    last_stats = storage.load_stats(last_import_id)
+    last_power_map = {}
+    for _, player in last_stats.iterrows():
+        cid = str(player["character_id"])
+        try:
+            last_power_map[cid] = int(float(player["power"])) if pd.notna(player["power"]) else 0
+        except (ValueError, TypeError):
+            last_power_map[cid] = 0
+    
+    # Atualiza o power para o valor do último relatório
+    for idx, row in result_df.iterrows():
+        cid = str(row["character_id"])
+        if cid in last_power_map:
+            result_df.at[idx, "power"] = last_power_map[cid]
+        else:
+            result_df.at[idx, "power"] = 0
+
+    # Remove colunas auxiliares
+    result_df = result_df.drop(columns=["_report_count"], errors="ignore")
+    
+    # Calcula métricas (KP, dead_equiv, etc.)
+    metrics = calculate_metrics(result_df, group_power=group_power)
+    ranked  = apply_goals(add_rank(metrics, "kill_points"))
+    
     return ranked, first_date, last_date
 
 
 def compute_kvk_accumulated(storage, imports: pd.DataFrame, group_power: int,
                               start_d: date, end_d: date) -> pd.DataFrame:
-    """Same logic but for a KvK window — used by KvK tab and Hall of Fame."""
-    ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
-    ordered["_d"] = pd.to_datetime(ordered["report_date"]).dt.date
-    in_window = ordered[(ordered["_d"] >= start_d) & (ordered["_d"] <= end_d)]
-
-    if in_window.empty:
-        return pd.DataFrame()
-
-    if len(in_window) == 1:
-        stats = storage.load_stats(in_window.iloc[0]["id"])
-    else:
-        stats_first = storage.load_stats(in_window.iloc[0]["id"])
-        stats_last  = storage.load_stats(in_window.iloc[-1]["id"])
-        stats       = compute_period_deltas(stats_last, stats_first)
-
-    metrics = calculate_metrics(stats, group_power=group_power)
-    return apply_goals(add_rank(metrics, "kill_points"))
+    """Somatório de todos os relatórios na janela do KvK."""
+    result, _, _ = compute_accumulated_sum(storage, imports, group_power, start_d, end_d)
+    return result
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -443,30 +495,125 @@ def main() -> None:
 
     with st.sidebar:
         st.markdown('<div class="sb-sec">Settings</div>', unsafe_allow_html=True)
-        min_power = st.number_input("Minimum power", min_value=0, value=0, step=1_000_000, format="%d")
+        
+        # Filtro de Poder Mínimo
+        min_power = st.number_input(
+            "Power Min (Millions)", 
+            min_value=0, 
+            value=0, 
+            step=1, 
+            format="%d",
+            help="Filter governors with power below this value"
+        )
+        min_power_value = min_power * 1_000_000
+        
+        # Filtro de KP Mínimo
+        min_kp = st.number_input(
+            "KP Min", 
+            min_value=0, 
+            value=0, 
+            step=1000, 
+            format="%d",
+            help="Filter governors with KP below this value"
+        )
+        
+        # Filtro de % KP
+        min_kp_pct = st.slider(
+            "% KP Min", 
+            min_value=0, 
+            max_value=100, 
+            value=0, 
+            step=5,
+            help="Filter by minimum % of KP goal reached"
+        )
+        
+        # Filtro de % Mortes
+        min_dead_pct = st.slider(
+            "% Deaths Min", 
+            min_value=0, 
+            max_value=100, 
+            value=0, 
+            step=5,
+            help="Filter by minimum % of death goal reached"
+        )
+        
+        # Botão para resetar filtros
+        if st.button("🔄 Reset Filters", use_container_width=True, type="secondary"):
+            st.session_state.min_power = 0
+            st.session_state.min_kp = 0
+            st.session_state.min_kp_pct = 0
+            st.session_state.min_dead_pct = 0
+            st.rerun()
+        
         st.markdown('<div class="sb-sec">Admin</div>', unsafe_allow_html=True)
         admin_enabled, is_admin = admin_panel()
 
     gp = default_group_power(storage, imports)
 
-    # ── Date range filter for main ranking ──
+    # ── Date range filter (MELHORADO) ──
     all_dates = sorted(imports["report_date"].unique())
     min_d = pd.to_datetime(all_dates[0]).date()
     max_d = pd.to_datetime(all_dates[-1]).date()
 
-    dcol1, dcol2, dcol3 = st.columns([2, 2, 4])
-    with dcol1:
-        date_from = st.date_input("From", value=min_d, min_value=min_d, max_value=max_d, key="main_date_from")
-    with dcol2:
-        date_to   = st.date_input("To",   value=max_d, min_value=min_d, max_value=max_d, key="main_date_to")
-    with dcol3:
-        st.markdown(
-            '<div style="font-size:.65rem;color:#7b8499;padding-top:34px">'
-            'Accumulated delta between the first and last report in the selected range'
-            '</div>', unsafe_allow_html=True
-        )
+    st.markdown('<div class="sec-label" style="margin-top:0">Analysis Period</div>', unsafe_allow_html=True)
+    
+    with st.container():
+        dcol1, dcol2, dcol3, dcol4, dcol5 = st.columns([1.5, 1.5, 1, 1, 3])
+        
+        with dcol1:
+            date_from = st.date_input(
+                "Start Date", 
+                value=min_d, 
+                min_value=min_d, 
+                max_value=max_d, 
+                key="main_date_from",
+                format="YYYY-MM-DD"
+            )
+        with dcol2:
+            date_to = st.date_input(
+                "End Date", 
+                value=max_d, 
+                min_value=min_d, 
+                max_value=max_d, 
+                key="main_date_to",
+                format="YYYY-MM-DD"
+            )
+        with dcol3:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🔄 This Month", key="btn_this_month", use_container_width=True, 
+                         help="Set period to current month"):
+                today = date.today()
+                date_from = today.replace(day=1)
+                date_to = today
+                st.rerun()
+        with dcol4:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("📅 All Time", key="btn_all_time", use_container_width=True,
+                         help="Set period to all available data"):
+                date_from = min_d
+                date_to = max_d
+                st.rerun()
+        with dcol5:
+            n_imports_in_range = len(
+                imports[
+                    (pd.to_datetime(imports["report_date"]).dt.date >= date_from) &
+                    (pd.to_datetime(imports["report_date"]).dt.date <= date_to)
+                ]
+            )
+            st.markdown(f"""
+            <div style="padding-top:8px;font-size:.72rem;color:#7b8499">
+                <span style="color:#5271ac;font-weight:600">{n_imports_in_range}</span> reports in period
+                <br><span style="font-size:.62rem">Sum of KP and deaths across all reports</span>
+            </div>
+            """, unsafe_allow_html=True)
 
-    ranked, first_date, last_date = compute_accumulated_ranking(
+    # Validação de data
+    if date_from > date_to:
+        st.error("⚠️ Start date must be before end date.")
+        return
+
+    # Usa a nova função de SOMATÓRIO
+    ranked, first_date, last_date = compute_accumulated_sum(
         storage, imports, gp,
         date_from=date_from,
         date_to=date_to,
@@ -476,15 +623,45 @@ def main() -> None:
         st.warning("No reports found in the selected date range.")
         return
 
-    if min_power > 0:
-        ranked = ranked[pd.to_numeric(ranked["power"], errors="coerce").fillna(0) >= min_power]
+    # Aplica filtros da sidebar
+    filter_conditions = pd.Series(True, index=ranked.index)
+    
+    if min_power_value > 0:
+        filter_conditions &= pd.to_numeric(ranked["power"], errors="coerce").fillna(0) >= min_power_value
+    
+    if min_kp > 0:
+        filter_conditions &= pd.to_numeric(ranked["kill_points"], errors="coerce").fillna(0) >= min_kp
+    
+    if min_kp_pct > 0:
+        filter_conditions &= (pd.to_numeric(ranked["kp_pct"], errors="coerce").fillna(0) * 100) >= min_kp_pct
+    
+    if min_dead_pct > 0:
+        filter_conditions &= (pd.to_numeric(ranked["dead_pct"], errors="coerce").fillna(0) * 100) >= min_dead_pct
+    
+    ranked = ranked[filter_conditions]
+    
+    if ranked.empty:
+        st.warning("No governors match the selected filters.")
+        return
 
-    n_imports_in_range = len(
-        imports[
-            (pd.to_datetime(imports["report_date"]).dt.date >= date_from) &
-            (pd.to_datetime(imports["report_date"]).dt.date <= date_to)
-        ]
-    )
+    # Mostra filtros ativos
+    active_filters = []
+    if min_power_value > 0:
+        active_filters.append(f"Power ≥ {min_power}M")
+    if min_kp > 0:
+        active_filters.append(f"KP ≥ {fmt_k(min_kp)}")
+    if min_kp_pct > 0:
+        active_filters.append(f"KP ≥ {min_kp_pct}%")
+    if min_dead_pct > 0:
+        active_filters.append(f"Deaths ≥ {min_dead_pct}%")
+    
+    if active_filters:
+        st.markdown(f"""
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <span style="font-size:.62rem;color:#7b8499;font-weight:600">Active filters:</span>
+            {''.join(f'<span class="filter-tag">{f}</span>' for f in active_filters)}
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="rok-caption">
@@ -495,6 +672,8 @@ def main() -> None:
       <div class="rok-caption-item">Members <span class="rok-caption-val">{len(ranked):,}</span></div>
       <div class="rok-caption-sep">·</div>
       <div class="rok-caption-item">Reports in range <span class="rok-caption-val">{n_imports_in_range}</span></div>
+      <div class="rok-caption-sep">·</div>
+      <div class="rok-caption-item">Method <span class="rok-caption-val">Sum of all reports</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -624,6 +803,7 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
 
     df = ranked_full.copy()
 
+    # Emblemas
     top_5_pct_deaths = df['dead_equiv'].quantile(0.95) if 'dead_equiv' in df.columns else float('inf')
     df['emblems'] = ""
     for idx, row in df.iterrows():
@@ -656,7 +836,7 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
     st.markdown(f'<div class="sec-label">Governors · {len(df):,} of {len(ranked_full):,}</div>',
                 unsafe_allow_html=True)
 
-    page_size = st.selectbox("Per page",[25,50,100],index=0,
+    page_size = st.selectbox("Per page",[10,25,50,100],index=1,
                               key=f"{key_prefix}_rank_ps",label_visibility="collapsed")
     total_pg  = max(1,-(-len(df)//page_size))
     col_pg1, col_pg2 = st.columns([1,5])
@@ -690,7 +870,6 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
     """
     Renders each member as a clickable expander.
     Clicking the row label (governor name) opens the detail panel.
-    No separate 'details' button.
     """
     for i, (_, row) in enumerate(df.iterrows()):
         cls    = STATUS_CLS.get(row["status"], "er")
@@ -706,14 +885,10 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
         badge = (f'<span class="sbadge {badge_cls}">'
                  f'{STATUS_ICON.get(row["status"],"○")} {STATUS_LABEL.get(row["status"],"—")}</span>')
 
-        # The entire card is now rendered inside an expander.
-        # The expander label IS the member summary — clicking anywhere on it
-        # opens/closes the detail panel. No separate button needed.
         with st.expander(
             label=f"#{int(row['rank'])}  {row['username']}",
             expanded=False,
         ):
-            # Card header rendered as HTML inside the expander body
             st.markdown(f"""
             <div class="mrow {cls}" style="margin-bottom:10px">
               <div class="mrow-sum" style="cursor:default">
@@ -738,7 +913,6 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
             </div>
             """, unsafe_allow_html=True)
 
-            # Detail panel
             t5d = int(row.get("t5_deaths",0))
             t4d = int(row.get("t4_deaths",0))
             t3d = int(row.get("t3_deaths",0))
@@ -927,7 +1101,6 @@ def show_kvk(storage, imports: pd.DataFrame, group_power: int,
                 else:
                     st.error("Not found.")
 
-    # Find reports in window
     imports_cp = imports.copy()
     imports_cp["_d"] = pd.to_datetime(imports_cp["report_date"]).dt.date
     in_window = imports_cp[(imports_cp["_d"] >= start_d) & (imports_cp["_d"] <= end_d)].sort_values("_d")
@@ -939,13 +1112,14 @@ def show_kvk(storage, imports: pd.DataFrame, group_power: int,
             st.warning("No reports fall within this event's date range yet.")
         return
 
+    # Usa somatório real
     ranked_window = compute_kvk_accumulated(storage, imports, group_power, start_d, end_d)
 
     n_reports = len(in_window)
     st.caption(
         f"📊 **{n_reports}** report(s) in window · "
         f"**{in_window.iloc[0]['report_date']}** → **{in_window.iloc[-1]['report_date']}** · "
-        f"Accumulated delta (last − first)"
+        f"Sum of all reports"
     )
 
     if ranked_window.empty:
@@ -1027,7 +1201,7 @@ def show_kvk(storage, imports: pd.DataFrame, group_power: int,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab — Hall of Fame  (dynamic — reads KvK events, computes live)
+# Tab — Hall of Fame
 # ══════════════════════════════════════════════════════════════════════════════
 
 def show_hof(storage, imports: pd.DataFrame, group_power: int,
@@ -1074,7 +1248,6 @@ def show_hof(storage, imports: pd.DataFrame, group_power: int,
     start_d   = pd.to_datetime(event_row["start_date"]).date()
     end_d     = pd.to_datetime(event_row["end_date"]).date()
 
-    # Find imports in window
     imports_cp = imports.copy()
     imports_cp["_d"] = pd.to_datetime(imports_cp["report_date"]).dt.date
     in_window = imports_cp[(imports_cp["_d"] >= start_d) & (imports_cp["_d"] <= end_d)]
@@ -1087,7 +1260,7 @@ def show_hof(storage, imports: pd.DataFrame, group_power: int,
             st.warning("No reports uploaded within this KvK's date range yet.")
         return
 
-    # Compute accumulated ranking for this KvK
+    # Usa somatório real
     ranked = compute_kvk_accumulated(storage, imports, group_power, start_d, end_d)
 
     if ranked.empty:
@@ -1103,13 +1276,12 @@ def show_hof(storage, imports: pd.DataFrame, group_power: int,
       <div class="rok-caption-sep">·</div>
       <div class="rok-caption-item">Reports <span class="rok-caption-val">{n_reports}</span></div>
       <div class="rok-caption-sep">·</div>
-      <div class="rok-caption-item">Based on <span class="rok-caption-val">accumulated delta</span></div>
+      <div class="rok-caption-item">Method <span class="rok-caption-val">Sum of all reports</span></div>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f'<div class="sec-label">{event_row["name"]}</div>', unsafe_allow_html=True)
 
-    # Ensure dead_equiv exists
     if "dead_equiv" not in ranked.columns:
         ranked["dead_equiv"] = (
             ranked.get("t4_deaths", 0) + ranked.get("t5_deaths", 0) * 2
@@ -1308,7 +1480,6 @@ def show_profile(storage, imports, gp):
 
     ordered = imports.sort_values(["report_date","imported_at"]).reset_index(drop=True)
 
-    # Collect all player names from all imports (lazy — only load once)
     @st.cache_data(ttl=300)
     def _all_player_names(storage_label, import_ids_key):
         all_names = set()
@@ -1333,7 +1504,6 @@ def show_profile(storage, imports, gp):
     if not selected_player:
         return
 
-    # Load history for selected player only
     history_rows = []
     for _, imp_row in ordered.iterrows():
         try:
@@ -1383,7 +1553,6 @@ def show_profile(storage, imports, gp):
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # Full history table
     with st.expander("Full history table", expanded=False):
         cols = {
             "report_date":"Date","kill_points":"KP","dead_equiv":"Deaths T4eq",
@@ -1502,8 +1671,15 @@ def show_help():
 The system converts automatically: `equiv = (T5deaths × 2) + T4deaths`
 
 **Main Ranking (⚔ Ranking tab):**
-Uses the **accumulated delta** between the first and last report in the selected date range.
-Select a narrower range with the date pickers at the top to focus on a specific period.
+Uses **sum of all reports** in the selected date range.
+All KP and deaths are summed across every report in the period.
+Use the date pickers and sidebar filters to narrow down your analysis.
+
+**Sidebar Filters:**
+- **Power Min:** Minimum power to include (in millions)
+- **KP Min:** Minimum kill points to include
+- **% KP Min:** Minimum percentage of KP goal reached
+- **% Deaths Min:** Minimum percentage of death goal reached
 
 **Status:**
 - ✅ Approved — reached both KP and death goals
@@ -1515,8 +1691,8 @@ Select a narrower range with the date pickers at the top to focus on a specific 
 
 **Hall of Fame:**
 Automatically computed from the KvK events created in the 🛡 KvK tab.
-Each KvK shows the top 10 KP and top 10 Deaths as an accumulated delta
-between the first and last report within the event's date window.
+Each KvK shows the top 10 KP and top 10 Deaths as a sum of all reports
+within the event's date window.
 """)
 
 
