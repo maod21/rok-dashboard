@@ -45,15 +45,26 @@ CUMULATIVE_COLUMNS = [
     "resources_gathered",
 ]
 
-# Default scoring weights.
-# T3 kills/deaths are 0 by default; alliance leaders can enable them
-# without changing the schema by passing a custom `weights` dict.
-POINT_WEIGHTS: dict[str, int] = {
-    "t4_kills":   5,
-    "t5_kills":   10,
-    "t3_deaths":  0,   # set to e.g. 10 to enable T3 deaths
-    "t4_deaths":  30,
-    "t5_deaths":  70,
+# ══════════════════════════════════════════════════════════════════════════════
+# POINT WEIGHTS — CORRIGIDO
+# ══════════════════════════════════════════════════════════════════════════════
+# Kills  → geram Kill Points  (KP)
+# Deaths → equivalência T4    (1 T5 death = 2 T4 deaths)
+# ══════════════════════════════════════════════════════════════════════════════
+
+POINT_WEIGHTS: dict[str, int | float] = {
+    # ⚔️ Kills — Kill Points formula
+    "t5_kills":   20,
+    "t4_kills":   10,
+    "t3_kills":   4,
+    "t2_kills":   2,
+    "t1_kills":   0.2,
+    # 💀 Deaths — T4 equivalence (1 T5 = 2 T4)
+    "t5_deaths":  2,
+    "t4_deaths":  1,
+    "t3_deaths":  0,
+    "t2_deaths":  0,
+    "t1_deaths":  0,
 }
 
 # Maximum file size accepted (bytes) — guards against accidental huge uploads
@@ -168,7 +179,7 @@ def compute_period_deltas(current: pd.DataFrame, previous: pd.DataFrame | None) 
 def calculate_metrics(
     stats: pd.DataFrame,
     group_power: int | float | None = None,
-    weights: dict[str, int] | None = None,
+    weights: dict[str, int | float] | None = None,
 ) -> pd.DataFrame:
     """Compute kill/death/combined points and DKPi variants.
 
@@ -224,7 +235,7 @@ def add_rank(stats: pd.DataFrame, column: str) -> pd.DataFrame:
     return output
 
 
-def active_weights() -> dict[str, int]:
+def active_weights() -> dict[str, int | float]:
     """Return only the weight entries with a positive value."""
     return {k: v for k, v in POINT_WEIGHTS.items() if v > 0}
 
