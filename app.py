@@ -12,7 +12,7 @@ from rok_metrics import (
     extract_report_date_from_name, file_sha256, load_stats_file,
 )
 from security import is_admin_authenticated
-from hall_of_fame import maybe_archive, load_hall, list_kvks
+from hall_of_fame import load_hall, list_kvks
 from storage import create_storage
 
 try:
@@ -30,24 +30,17 @@ st.set_page_config(
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  DESIGN SYSTEM — Single static theme, "Slate Command"
-#  Primary:   #5271ac (slate blue, the requested anchor color)
-#  Neutrals:  cool slate-grey scale for surfaces and text
-#  Accents:   amber for Kill Points, teal-green for approved, coral-red for
-#             below-goal, soft violet for tier-3, all chosen to sit in clear
-#             contrast against the primary blue rather than competing with it.
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _css() -> str:
-    # ── Anchor ──
-    primary       = "#5271ac"   # requested brand color
-    primary_dark  = "#3d5685"   # pressed/hover, darker step of the same hue
-    primary_light = "#7891c2"   # lighter step, used for subtle accents
+    primary       = "#5271ac"
+    primary_dark  = "#3d5685"
+    primary_light = "#7891c2"
     primary_50    = "rgba(82,113,172,0.06)"
     primary_100   = "rgba(82,113,172,0.12)"
     primary_300   = "rgba(82,113,172,0.30)"
     primary_500   = "rgba(82,113,172,0.55)"
 
-    # ── Neutrals (cool, slate-leaning so they harmonize with the primary hue) ──
     bg        = "#f4f6fb"
     surface   = "#ffffff"
     surface2  = "#eaeef6"
@@ -58,18 +51,17 @@ def _css() -> str:
     text_dim  = "#7b8499"
     text_mut  = "#a7aec0"
 
-    # ── Semantic accents (deliberately distinct hues from primary blue) ──
-    amber      = "#c8821f"   # Kill Points — warm, contrasts the cool blue
+    amber      = "#c8821f"
     amber_hi   = "#e0993a"
-    green      = "#1f8f5f"   # Approved
-    yellow     = "#b8790f"   # Pending (warm amber-brown, distinct from green/red)
-    red        = "#c0463f"   # Below goal / errors
-    violet     = "#7c5cb0"   # T3 tier, decorative accent
-    teal       = "#2b8a8a"   # secondary accent for deaths/T2
+    green      = "#1f8f5f"
+    yellow     = "#b8790f"
+    red        = "#c0463f"
+    violet     = "#7c5cb0"
+    teal       = "#2b8a8a"
 
     gauge_bg, gauge_bdr = "rgba(82,113,172,0.08)", "rgba(82,113,172,0.14)"
     scroll_th = "rgba(82,113,172,0.30)"
-    sidebar_bg = "#1b2436"   # deep slate-ink, harmonizes with primary as its darkest neighbor
+    sidebar_bg = "#1b2436"
     btn_text   = "#ffffff"
 
     ok_bg, ok_br, ok_tx = "rgba(31,143,95,0.10)",  "rgba(31,143,95,0.30)",  green
@@ -198,16 +190,18 @@ hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
 .sbadge-wa {{ color:{wa_tx}; border-color:{wa_br}; background:{wa_bg}; }}
 .sbadge-er {{ color:{er_tx}; border-color:{er_br}; background:{er_bg}; }}
 
-.mrow {{ background: {surface}; border: 1px solid {border}; border-radius: 10px; margin-bottom: 6px; overflow: hidden; transition: border-color .2s, background .2s; }}
+/* ─── MEMBER ROWS — clickable, no separate details button ── */
+.mrow {{ background: {surface}; border: 1px solid {border}; border-radius: 10px; margin-bottom: 2px; overflow: hidden; transition: border-color .2s, background .2s; }}
 .mrow:hover {{ border-color: {border_hi}; background: {surface2}; }}
 .mrow.ok {{ border-left: 3px solid {ok_tx}; }}
 .mrow.wa {{ border-left: 3px solid {wa_tx}; }}
 .mrow.er {{ border-left: 3px solid {er_tx}; }}
 
-.mrow-sum {{ display: grid; grid-template-columns: 36px 1fr 90px 80px auto; align-items: center; gap: 12px; padding: 12px 16px; }}
+.mrow-sum {{ display: grid; grid-template-columns: 36px 1fr 90px 80px auto; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; }}
 .mrow-rank {{ font-family: 'JetBrains Mono', monospace; font-size: .85rem; font-weight: 600; color: {text_mut}; text-align: right; }}
 .mrow-info {{ min-width: 0; }}
 .mrow-name {{ font-size: .88rem; font-weight: 700; color: {text}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+.mrow-name-click {{ font-size: .72rem; color: {primary}; margin-top: 2px; opacity: .7; }}
 .mrow-meta {{ font-size: .64rem; color: {text_dim}; margin-top: 2px; }}
 
 .mrow-gauges {{ display: flex; flex-direction: column; gap: 5px; }}
@@ -303,6 +297,13 @@ hr {{ border-color: {border} !important; margin: 1.2rem 0 !important; }}
 .empty-state-icon {{ font-size: 3rem; margin-bottom: 14px; opacity: .4; }}
 .empty-state-title {{ font-size: 1rem; font-weight: 700; color: {text_sub}; margin-bottom: 6px; }}
 .empty-state-sub   {{ font-size: .75rem; color: {text_dim}; }}
+
+/* date range filter bar */
+.date-filter-bar {{
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: {surface}; border: 1px solid {border}; border-radius: 8px; margin-bottom: 14px; flex-wrap: wrap;
+}}
+.date-filter-label {{ font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {primary}; white-space: nowrap; }}
 </style>
 """
 
@@ -325,20 +326,71 @@ def get_secret(name):
     except: v = None
     return str(v) if v else None
 
-def get_all_history_metrics(storage, imports, gp):
-    all_data = []
-    for _, row in imports.iterrows():
-        try:
-            stats = storage.load_stats(row['id'])
-            mets = calculate_metrics(stats, group_power=gp)
-            ranked = apply_goals(add_rank(mets, "kill_points"))
-            ranked['report_date'] = row['report_date']
-            all_data.append(ranked)
-        except Exception:
-            continue
-    if all_data:
-        return pd.concat(all_data, ignore_index=True)
-    return pd.DataFrame()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Accumulated ranking helpers
+# ══════════════════════════════════════════════════════════════════════════════
+
+def compute_accumulated_ranking(storage, imports: pd.DataFrame, group_power: int,
+                                 date_from: date | None = None,
+                                 date_to: date | None = None) -> tuple[pd.DataFrame, str, str]:
+    """
+    Compute accumulated ranking for all imports within [date_from, date_to].
+    Returns (ranked_df, first_date_str, last_date_str).
+
+    Logic: for each player, delta = value_in_last_import - value_in_first_import
+    within the selected window. This gives true accumulated gains, not just
+    a snapshot.
+    """
+    ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
+    ordered["_d"] = pd.to_datetime(ordered["report_date"]).dt.date
+
+    if date_from:
+        ordered = ordered[ordered["_d"] >= date_from]
+    if date_to:
+        ordered = ordered[ordered["_d"] <= date_to]
+
+    if ordered.empty:
+        return pd.DataFrame(), "", ""
+
+    first_date = str(ordered.iloc[0]["report_date"])
+    last_date  = str(ordered.iloc[-1]["report_date"])
+
+    if len(ordered) == 1:
+        stats = storage.load_stats(ordered.iloc[0]["id"])
+        metrics = calculate_metrics(stats, group_power=group_power)
+        ranked  = apply_goals(add_rank(metrics, "kill_points"))
+        return ranked, first_date, last_date
+
+    # Delta: last import minus first import (accumulated gains in period)
+    stats_first = storage.load_stats(ordered.iloc[0]["id"])
+    stats_last  = storage.load_stats(ordered.iloc[-1]["id"])
+    delta       = compute_period_deltas(stats_last, stats_first)
+    metrics     = calculate_metrics(delta, group_power=group_power)
+    ranked      = apply_goals(add_rank(metrics, "kill_points"))
+    return ranked, first_date, last_date
+
+
+def compute_kvk_accumulated(storage, imports: pd.DataFrame, group_power: int,
+                              start_d: date, end_d: date) -> pd.DataFrame:
+    """Same logic but for a KvK window — used by KvK tab and Hall of Fame."""
+    ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
+    ordered["_d"] = pd.to_datetime(ordered["report_date"]).dt.date
+    in_window = ordered[(ordered["_d"] >= start_d) & (ordered["_d"] <= end_d)]
+
+    if in_window.empty:
+        return pd.DataFrame()
+
+    if len(in_window) == 1:
+        stats = storage.load_stats(in_window.iloc[0]["id"])
+    else:
+        stats_first = storage.load_stats(in_window.iloc[0]["id"])
+        stats_last  = storage.load_stats(in_window.iloc[-1]["id"])
+        stats       = compute_period_deltas(stats_last, stats_first)
+
+    metrics = calculate_metrics(stats, group_power=group_power)
+    return apply_goals(add_rank(metrics, "kill_points"))
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Main
@@ -349,7 +401,6 @@ def main() -> None:
 
     storage = get_storage()
 
-    # Header estático
     st.markdown("""
     <div class="rok-header">
       <div class="rok-header-emblem">⚔️</div>
@@ -371,9 +422,8 @@ def main() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    # Sidebar
     with st.sidebar:
-        st.markdown(f'<div class="sb-sec">System</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sb-sec">System</div>', unsafe_allow_html=True)
         st.markdown(f'<div style="font-size:.68rem;color:#aebbe0;margin-bottom:12px">Storage: <span style="color:#7891c2;font-weight:bold;">{storage.label}</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="sb-sec">Reports</div>', unsafe_allow_html=True)
         handle_upload(storage)
@@ -389,41 +439,62 @@ def main() -> None:
         """, unsafe_allow_html=True)
         return
 
-    imports  = prepare_imports(imports)
-    selected = select_report(imports)
-    current  = storage.load_stats(selected["id"])
-    previous = load_previous_report(storage, imports, selected)
-
-    basis_options = ["Report totals"]
-    if previous is not None and not previous.empty:
-        basis_options.insert(0, "Period delta")
+    imports = prepare_imports(imports)
 
     with st.sidebar:
         st.markdown('<div class="sb-sec">Settings</div>', unsafe_allow_html=True)
-        basis     = st.radio("Metrics basis", basis_options, index=0)
         min_power = st.number_input("Minimum power", min_value=0, value=0, step=1_000_000, format="%d")
         st.markdown('<div class="sb-sec">Admin</div>', unsafe_allow_html=True)
         admin_enabled, is_admin = admin_panel()
 
-    stats_basis = compute_period_deltas(current, previous) if basis == "Period delta" else current
-    gp          = default_group_power(storage, imports)
-    metrics_raw = calculate_metrics(stats_basis, group_power=gp)
+    gp = default_group_power(storage, imports)
+
+    # ── Date range filter for main ranking ──
+    all_dates = sorted(imports["report_date"].unique())
+    min_d = pd.to_datetime(all_dates[0]).date()
+    max_d = pd.to_datetime(all_dates[-1]).date()
+
+    dcol1, dcol2, dcol3 = st.columns([2, 2, 4])
+    with dcol1:
+        date_from = st.date_input("From", value=min_d, min_value=min_d, max_value=max_d, key="main_date_from")
+    with dcol2:
+        date_to   = st.date_input("To",   value=max_d, min_value=min_d, max_value=max_d, key="main_date_to")
+    with dcol3:
+        st.markdown(
+            '<div style="font-size:.65rem;color:#7b8499;padding-top:34px">'
+            'Accumulated delta between the first and last report in the selected range'
+            '</div>', unsafe_allow_html=True
+        )
+
+    ranked, first_date, last_date = compute_accumulated_ranking(
+        storage, imports, gp,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    if ranked.empty:
+        st.warning("No reports found in the selected date range.")
+        return
+
     if min_power > 0:
-        metrics_raw = metrics_raw[pd.to_numeric(metrics_raw["power"],errors="coerce").fillna(0) >= min_power]
+        ranked = ranked[pd.to_numeric(ranked["power"], errors="coerce").fillna(0) >= min_power]
 
-    ranked = apply_goals(add_rank(metrics_raw, "kill_points"))
+    n_imports_in_range = len(
+        imports[
+            (pd.to_datetime(imports["report_date"]).dt.date >= date_from) &
+            (pd.to_datetime(imports["report_date"]).dt.date <= date_to)
+        ]
+    )
 
-    n  = len(imports)
-    dl = f"+{n-1} reports" if n > 1 else "1 report"
     st.markdown(f"""
     <div class="rok-caption">
-      <div class="rok-caption-item">Date <span class="rok-caption-val">{selected['report_date']}</span></div>
-      <div class="rok-caption-sep">·</div>
-      <div class="rok-caption-item">Basis <span class="rok-caption-val">{basis}</span></div>
+      <div class="rok-caption-item">From <span class="rok-caption-val">{first_date}</span></div>
+      <div class="rok-caption-sep">→</div>
+      <div class="rok-caption-item"><span class="rok-caption-val">{last_date}</span></div>
       <div class="rok-caption-sep">·</div>
       <div class="rok-caption-item">Members <span class="rok-caption-val">{len(ranked):,}</span></div>
       <div class="rok-caption-sep">·</div>
-      <div class="rok-caption-item">Imports <span class="rok-caption-val">{dl}</span></div>
+      <div class="rok-caption-item">Reports in range <span class="rok-caption-val">{n_imports_in_range}</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -434,8 +505,8 @@ def main() -> None:
 
     tabs = st.tabs(tab_labels)
     with tabs[0]: show_ranking(ranked, key_prefix="main")
-    with tabs[1]: show_kvk(storage, gp, is_admin=is_admin, admin_enabled=admin_enabled)
-    with tabs[2]: show_hof(storage, is_admin=is_admin, admin_enabled=admin_enabled)
+    with tabs[1]: show_kvk(storage, imports, gp, is_admin=is_admin, admin_enabled=admin_enabled)
+    with tabs[2]: show_hof(storage, imports, gp, is_admin=is_admin, admin_enabled=admin_enabled)
     with tabs[3]: show_kingdom(ranked, imports, storage, gp)
     with tabs[4]: show_profile(storage, imports, gp)
     with tabs[5]: show_help()
@@ -460,7 +531,8 @@ def handle_upload(storage):
           <div class="upload-lock-text">Upload restricted to leadership</div>
         </div>
         """, unsafe_allow_html=True)
-        up_pwd = st.text_input("Password", type="password", key="up_pwd", label_visibility="collapsed", placeholder="Access password...")
+        up_pwd = st.text_input("Password", type="password", key="up_pwd",
+                                label_visibility="collapsed", placeholder="Access password...")
         if st.button("Unlock", use_container_width=True):
             if (not pwd) or is_admin_authenticated(pwd, up_pwd):
                 st.session_state.upload_auth = True; st.rerun()
@@ -475,7 +547,8 @@ def handle_upload(storage):
     uploaded = st.file_uploader("statsExport (.xlsx)", type=["xlsx","xls"])
     if not uploaded: return
     safe_name   = re.sub(r"[^\w.\-]","_", uploaded.name)
-    report_date = st.date_input("Report date", value=extract_report_date_from_name(safe_name) or date.today())
+    report_date = st.date_input("Report date",
+                                 value=extract_report_date_from_name(safe_name) or date.today())
     if not st.button("Save report", type="primary", use_container_width=True): return
 
     with st.spinner("Processing..."):
@@ -483,20 +556,13 @@ def handle_upload(storage):
             fb = uploaded.getvalue()
             if len(fb) > 50*1024*1024: st.error("File too large (max 50 MB)."); return
             stats = load_stats_file(BytesIO(fb), filename=safe_name)
-            import_id_saved, created = storage.save_import(filename=safe_name, report_date=report_date.isoformat(),
-                                                             file_hash=file_sha256(fb), stats=stats)
+            import_id_saved, created = storage.save_import(
+                filename=safe_name, report_date=report_date.isoformat(),
+                file_hash=file_sha256(fb), stats=stats,
+            )
         except Exception as e: st.error(f"Error: {e}"); return
+
     if created:
-        try:
-            imports_df = storage.list_imports()
-            imports_df = prepare_imports(imports_df)
-            prev = load_previous_report(storage, imports_df,
-                                        imports_df.loc[imports_df["id"].eq(import_id_saved)].iloc[0]) if not imports_df.empty else None
-            archived = maybe_archive(storage, import_id_saved, stats, prev)
-            if archived:
-                st.info(f"🏆 Hall of Fame: {archived} entries archived")
-        except Exception as _hof_err:
-            pass
         st.success(f"✓ {len(stats):,} members saved")
     else:
         st.warning("File already imported")
@@ -509,11 +575,6 @@ def prepare_imports(imports):
     out["imported_at"] = out["imported_at"].astype(str)
     out["label"]       = out["report_date"] + " — " + out["filename"].astype(str)
     return out
-
-def select_report(imports):
-    labels = imports["label"].tolist()
-    chosen = st.sidebar.selectbox("Report", labels, index=0)
-    return imports.loc[imports["label"].eq(chosen)].iloc[0]
 
 def load_previous_report(storage, imports, selected):
     ordered   = imports.sort_values(["report_date","imported_at"]).reset_index(drop=True)
@@ -536,7 +597,8 @@ def admin_panel():
     if not pwd:
         st.caption("Configure ADMIN_PASSWORD in Secrets.")
         return False, False
-    entered = st.text_input("Admin password", type="password", key="adm_pwd", label_visibility="collapsed", placeholder="Admin password...")
+    entered = st.text_input("Admin password", type="password", key="adm_pwd",
+                             label_visibility="collapsed", placeholder="Admin password...")
     if is_admin_authenticated(pwd, entered):
         st.success("✓ Admin active"); return True, True
     if entered: st.error("Incorrect")
@@ -562,17 +624,16 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
 
     df = ranked_full.copy()
 
-    # Pré-cálculo para badges de gamificação
     top_5_pct_deaths = df['dead_equiv'].quantile(0.95) if 'dead_equiv' in df.columns else float('inf')
     df['emblems'] = ""
     for idx, row in df.iterrows():
         emb = ""
         if row.get('dead_equiv', 0) >= top_5_pct_deaths and row.get('dead_equiv', 0) > 0:
-            emb += '<span title="Escudo de Carne (Top 5% Mortes)">🛡️</span> '
+            emb += '<span title="Top 5% Deaths">🛡️</span> '
         if row.get('kill_points', 0) >= (row.get('kp_goal', 1) * 2) and row.get('kp_goal', 0) > 0:
-            emb += '<span title="Máquina de Guerra (2x Meta KP)">🔥</span> '
+            emb += '<span title="2x KP Goal">🔥</span> '
         if row.get('power', 0) >= 100_000_000:
-            emb += '<span title="Baleia (100M+ Poder)">🐋</span> '
+            emb += '<span title="Whale (100M+ Power)">🐋</span> '
         df.at[idx, 'emblems'] = emb
 
     if search.strip():
@@ -595,13 +656,16 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
     st.markdown(f'<div class="sec-label">Governors · {len(df):,} of {len(ranked_full):,}</div>',
                 unsafe_allow_html=True)
 
-    page_size = st.selectbox("Per page",[25,50,100],index=0,key=f"{key_prefix}_rank_ps",label_visibility="collapsed")
+    page_size = st.selectbox("Per page",[25,50,100],index=0,
+                              key=f"{key_prefix}_rank_ps",label_visibility="collapsed")
     total_pg  = max(1,-(-len(df)//page_size))
     col_pg1, col_pg2 = st.columns([1,5])
     with col_pg1:
-        page = st.number_input("Page",min_value=1,max_value=total_pg,value=1,key=f"{key_prefix}_rank_pg",label_visibility="collapsed")
+        page = st.number_input("Page",min_value=1,max_value=total_pg,value=1,
+                                key=f"{key_prefix}_rank_pg",label_visibility="collapsed")
     with col_pg2:
-        st.markdown(f'<div style="font-size:.65rem;color:#7b8499;padding-top:8px">Page {page} of {total_pg}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:.65rem;color:#7b8499;padding-top:8px">Page {page} of {total_pg}</div>',
+                    unsafe_allow_html=True)
 
     start = (page-1)*page_size
     _render_members(df.iloc[start:start+page_size], key_prefix=key_prefix)
@@ -618,11 +682,18 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
         out   = df[list(avail.keys())].rename(columns=avail)
         st.dataframe(out, use_container_width=True, hide_index=True)
         st.download_button("⬇ Download CSV", data=df.to_csv(index=False).encode(),
-                            file_name="ranking.csv", mime="text/csv", key=f"{key_prefix}_dl_csv")
+                            file_name="ranking.csv", mime="text/csv",
+                            key=f"{key_prefix}_dl_csv")
+
 
 def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
+    """
+    Renders each member as a clickable expander.
+    Clicking the row label (governor name) opens the detail panel.
+    No separate 'details' button.
+    """
     for i, (_, row) in enumerate(df.iterrows()):
-        cls   = STATUS_CLS.get(row["status"], "er")
+        cls    = STATUS_CLS.get(row["status"], "er")
         kp_w   = min(float(row.get("kp_pct",0))*100, 100)
         dead_w = min(float(row.get("dead_pct",0))*100, 100)
         kp_gap   = int(row.get("kp_gap",0))
@@ -635,31 +706,39 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
         badge = (f'<span class="sbadge {badge_cls}">'
                  f'{STATUS_ICON.get(row["status"],"○")} {STATUS_LABEL.get(row["status"],"—")}</span>')
 
-        st.markdown(f"""
-        <div class="mrow {cls}">
-          <div class="mrow-sum">
-            <div class="mrow-rank">#{int(row['rank'])}</div>
-            <div class="mrow-info">
-              <div class="mrow-name">{row['username']} {row.get('emblems', '')}</div>
-              <div class="mrow-meta">{fmt_m(int(row['power']))}M power · {row.get('power_band','—')} · ID {row.get('character_id','—')}</div>
-            </div>
-            <div class="mrow-gauges">
-              <div class="gauge-wrap">
-                <div class="gauge-head"><span>KP {kp_w:.0f}%</span><span>{fmt_k(int(row['kill_points']))}</span></div>
-                <div class="gauge-track"><div class="gauge-fill {kp_fc}" style="width:{kp_w:.1f}%"></div></div>
+        # The entire card is now rendered inside an expander.
+        # The expander label IS the member summary — clicking anywhere on it
+        # opens/closes the detail panel. No separate button needed.
+        with st.expander(
+            label=f"#{int(row['rank'])}  {row['username']}",
+            expanded=False,
+        ):
+            # Card header rendered as HTML inside the expander body
+            st.markdown(f"""
+            <div class="mrow {cls}" style="margin-bottom:10px">
+              <div class="mrow-sum" style="cursor:default">
+                <div class="mrow-rank">#{int(row['rank'])}</div>
+                <div class="mrow-info">
+                  <div class="mrow-name">{row['username']} {row.get('emblems', '')}</div>
+                  <div class="mrow-meta">{fmt_m(int(row['power']))}M power · {row.get('power_band','—')} · ID {row.get('character_id','—')}</div>
+                </div>
+                <div class="mrow-gauges">
+                  <div>
+                    <div class="gauge-head"><span>KP {kp_w:.0f}%</span><span>{fmt_k(int(row['kill_points']))}</span></div>
+                    <div class="gauge-track"><div class="gauge-fill {kp_fc}" style="width:{kp_w:.1f}%"></div></div>
+                  </div>
+                  <div>
+                    <div class="gauge-head"><span>D {dead_w:.0f}%</span><span>{fmt_k(int(row.get('dead_equiv',0)))} T4eq</span></div>
+                    <div class="gauge-track"><div class="gauge-fill {dead_fc}" style="width:{dead_w:.1f}%"></div></div>
+                  </div>
+                </div>
+                <div class="mrow-kp">{fmt_k(int(row['kill_points']))}</div>
+                <div>{badge}</div>
               </div>
-              <div class="gauge-wrap">
-                <div class="gauge-head"><span>D {dead_w:.0f}%</span><span>{fmt_k(int(row.get('dead_equiv',0)))} T4eq</span></div>
-                <div class="gauge-track"><div class="gauge-fill {dead_fc}" style="width:{dead_w:.1f}%"></div></div>
-              </div>
             </div>
-            <div class="mrow-kp">{fmt_k(int(row['kill_points']))}</div>
-            <div>{badge}</div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        with st.expander(f"↳ details · {row['username']}", expanded=False):
+            # Detail panel
             t5d = int(row.get("t5_deaths",0))
             t4d = int(row.get("t4_deaths",0))
             t3d = int(row.get("t3_deaths",0))
@@ -677,9 +756,10 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
                              if dead_gap == 0
                              else f'<div class="mdet-gap warn">⚠ {fmt_k(dead_gap)} T4eq missing</div>')
 
+            accent = '#1f8f5f' if cls=='ok' else '#b8790f' if cls=='wa' else '#c0463f'
             st.markdown(f"""
             <div class="mdet">
-              <div class="mdet-accent-bar" style="background:{'#1f8f5f' if cls=='ok' else '#b8790f' if cls=='wa' else '#c0463f'}"></div>
+              <div class="mdet-accent-bar" style="background:{accent}"></div>
               <div class="mdet-grid">
                 <div>
                   <div class="mdet-block-label">Kill Points</div>
@@ -717,7 +797,8 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
             dc1, dc2 = st.columns(2)
             with dc1:
                 t5k = int(row.get("t5_kills",0)); t4k = int(row.get("t4_kills",0))
-                t3k = int(row.get("t3_kills",0)); t2k = int(row.get("t2_kills",0)); t1k = int(row.get("t1_kills",0))
+                t3k = int(row.get("t3_kills",0)); t2k = int(row.get("t2_kills",0))
+                t1k = int(row.get("t1_kills",0))
                 st.markdown(f"""
                 <div class="mdet-block-label" style="margin-top:0">Kills by Tier</div>
                 <table class="tier-table">
@@ -748,11 +829,13 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
 
             st.markdown("</div>", unsafe_allow_html=True)
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — KvK
 # ══════════════════════════════════════════════════════════════════════════════
 
-def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) -> None:
+def show_kvk(storage, imports: pd.DataFrame, group_power: int,
+             *, is_admin: bool, admin_enabled: bool) -> None:
     st.markdown('''
     <div class="rok-header" style="border-left-color:#5271ac">
       <div class="rok-header-emblem" style="background:linear-gradient(135deg,#5271ac,#3d5685)">🛡</div>
@@ -767,7 +850,8 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
         with st.expander("➕ Create new KvK event", expanded=False):
             c1, c2, c3 = st.columns([3,2,2])
             with c1:
-                kvk_name = st.text_input("Event name", placeholder="e.g. KvK Heroic Anthem", key="kvk_new_name")
+                kvk_name = st.text_input("Event name", placeholder="e.g. KvK Heroic Anthem",
+                                          key="kvk_new_name")
             with c2:
                 kvk_start = st.date_input("Start date", key="kvk_new_start")
             with c3:
@@ -803,8 +887,23 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
     events["label"] = events["name"] + "  (" + events["start_date"] + " → " + events["end_date"] + ")"
 
     st.markdown('<div class="sec-label">Select event</div>', unsafe_allow_html=True)
-    chosen_label = st.selectbox("Event", events["label"].tolist(), key="kvk_select", label_visibility="collapsed")
+    chosen_label = st.selectbox("Event", events["label"].tolist(), key="kvk_select",
+                                 label_visibility="collapsed")
     event_row = events.loc[events["label"].eq(chosen_label)].iloc[0]
+
+    start_d = pd.to_datetime(event_row["start_date"]).date()
+    end_d   = pd.to_datetime(event_row["end_date"]).date()
+
+    today = date.today()
+    is_active  = start_d <= today <= end_d
+    is_future  = start_d > today
+    is_past    = end_d < today
+
+    status_label = (
+        "🟢 Active" if is_active else
+        "🔵 Upcoming" if is_future else
+        "⚫ Ended"
+    )
 
     st.markdown(f'''
     <div class="kvk-event-card">
@@ -812,7 +911,10 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
         <div class="kvk-event-name">{event_row["name"]}</div>
         <div class="kvk-event-dates">{event_row["start_date"]} → {event_row["end_date"]}</div>
       </div>
-      <div class="kvk-event-badge">KvK Window</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:.72rem;color:#7b8499">{status_label}</span>
+        <div class="kvk-event-badge">KvK Window</div>
+      </div>
     </div>
     ''', unsafe_allow_html=True)
 
@@ -825,55 +927,30 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
                 else:
                     st.error("Not found.")
 
-    all_imports = storage.list_imports()
-    if all_imports.empty:
-        st.info("No reports available yet.")
-        return
-    all_imports = prepare_imports(all_imports)
-    all_imports["_d"] = pd.to_datetime(all_imports["report_date"]).dt.date
-
-    start_d = pd.to_datetime(event_row["start_date"]).date()
-    end_d   = pd.to_datetime(event_row["end_date"]).date()
-    in_window = all_imports[(all_imports["_d"] >= start_d) & (all_imports["_d"] <= end_d)].sort_values("_d")
+    # Find reports in window
+    imports_cp = imports.copy()
+    imports_cp["_d"] = pd.to_datetime(imports_cp["report_date"]).dt.date
+    in_window = imports_cp[(imports_cp["_d"] >= start_d) & (imports_cp["_d"] <= end_d)].sort_values("_d")
 
     if in_window.empty:
-        st.warning("No reports fall within this event's date range yet.")
+        if is_future:
+            st.info(f"⏳ This KvK starts on **{event_row['start_date']}**. Reports uploaded from that date onwards will appear here automatically.")
+        else:
+            st.warning("No reports fall within this event's date range yet.")
         return
 
-    first_id = in_window.iloc[0]["id"]
-    last_id  = in_window.iloc[-1]["id"]
+    ranked_window = compute_kvk_accumulated(storage, imports, group_power, start_d, end_d)
 
-    st.caption(f"📊 Calculated from **{len(in_window)}** report(s) between **{in_window.iloc[0]['report_date']}** and **{in_window.iloc[-1]['report_date']}**")
+    n_reports = len(in_window)
+    st.caption(
+        f"📊 **{n_reports}** report(s) in window · "
+        f"**{in_window.iloc[0]['report_date']}** → **{in_window.iloc[-1]['report_date']}** · "
+        f"Accumulated delta (last − first)"
+    )
 
-    if len(in_window) == 1:
-        stats_window = storage.load_stats(first_id)
-        basis_note = "totals (only 1 report in window)"
-    else:
-        stats_first = storage.load_stats(first_id)
-        stats_last  = storage.load_stats(last_id)
-        stats_window = compute_period_deltas(stats_last, stats_first)
-        basis_note = "delta between first and last report in window"
-
-    metrics_window = calculate_metrics(stats_window, group_power=group_power)
-    ranked_window  = apply_goals(add_rank(metrics_window, "kill_points"))
-
-    with st.expander("🔎 Narrow by date within this event", expanded=False):
-        wc1, wc2 = st.columns(2)
-        with wc1:
-            sub_from = st.date_input("From", value=start_d, min_value=start_d, max_value=end_d, key="kvk_sub_from")
-        with wc2:
-            sub_to   = st.date_input("To", value=end_d, min_value=start_d, max_value=end_d, key="kvk_sub_to")
-        if (sub_from != start_d) or (sub_to != end_d):
-            sub_window = all_imports[(all_imports["_d"] >= sub_from) & (all_imports["_d"] <= sub_to)].sort_values("_d")
-            if not sub_window.empty:
-                sf_id, sl_id = sub_window.iloc[0]["id"], sub_window.iloc[-1]["id"]
-                if len(sub_window) == 1:
-                    stats_window = storage.load_stats(sf_id)
-                else:
-                    stats_window = compute_period_deltas(storage.load_stats(sl_id), storage.load_stats(sf_id))
-                metrics_window = calculate_metrics(stats_window, group_power=group_power)
-                ranked_window  = apply_goals(add_rank(metrics_window, "kill_points"))
-                st.caption(f"Narrowed to {len(sub_window)} report(s): {sub_window.iloc[0]['report_date']} → {sub_window.iloc[-1]['report_date']}")
+    if ranked_window.empty:
+        st.info("No player data available for this window yet.")
+        return
 
     total    = len(ranked_window)
     approved = int((ranked_window["status"]=="Aprovado").sum())
@@ -915,19 +992,19 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
 
     if not ranked_window.empty:
         top3 = ranked_window.sort_values("kill_points", ascending=False).head(3)
-        discord_text = f"""**🛡️ {event_row['name']} · Resumo do KvK 🛡️**
+        discord_text = f"""**🛡️ {event_row['name']} · KvK Summary 🛡️**
 
-**Performance do Reino (K1602)**
-⚔️ **Total KP Ganhos:** {fmt_k(kp_total)}
-✅ **Aprovação:** {aprov_pct:.1f}% ({approved}/{total} aprovados)
-⚠️ **Abaixo da meta:** {below} governadores
+**Kingdom Performance (K1602)**
+⚔️ **Total KP Earned:** {fmt_k(kp_total)}
+✅ **Approval Rate:** {aprov_pct:.1f}% ({approved}/{total} approved)
+⚠️ **Below Goal:** {below} governors
 
-**🏆 Top 3 Matadores (KP):**
+**🏆 Top 3 Killers (KP):**
 🥇 {top3.iloc[0]['username'] if len(top3)>0 else '-'} : {fmt_k(top3.iloc[0]['kill_points']) if len(top3)>0 else 0} KP
 🥈 {top3.iloc[1]['username'] if len(top3)>1 else '-'} : {fmt_k(top3.iloc[1]['kill_points']) if len(top3)>1 else 0} KP
 🥉 {top3.iloc[2]['username'] if len(top3)>2 else '-'} : {fmt_k(top3.iloc[2]['kill_points']) if len(top3)>2 else 0} KP"""
 
-        with st.expander("💬 Gerar Resumo para o Discord"):
+        with st.expander("💬 Generate Discord Summary"):
             st.code(discord_text, language="markdown")
 
     if px is not None and not ranked_window.empty:
@@ -940,13 +1017,159 @@ def show_kvk(storage, group_power: int, *, is_admin: bool, admin_enabled: bool) 
         fig.update_layout(showlegend=False, margin=dict(t=10,b=0,l=0,r=0),
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#475066", family="Inter"),
-            yaxis=dict(tickfont=dict(size=11,color="#475066"), gridcolor="rgba(82,113,172,0.10)"),
-            xaxis=dict(tickfont=dict(size=10), gridcolor="rgba(82,113,172,0.10)"))
+            yaxis=dict(tickfont=dict(size=11,color="#475066"),gridcolor="rgba(82,113,172,0.10)"),
+            xaxis=dict(tickfont=dict(size=10),gridcolor="rgba(82,113,172,0.10)"))
         fig.update_traces(marker_line_width=0)
         st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('<div class="sec-label">Individual ranking — this event</div>', unsafe_allow_html=True)
     show_ranking(ranked_window, key_prefix=f"kvk_{event_row['id']}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Tab — Hall of Fame  (dynamic — reads KvK events, computes live)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def show_hof(storage, imports: pd.DataFrame, group_power: int,
+             *, is_admin: bool, admin_enabled: bool) -> None:
+    st.markdown('''
+    <div class="rok-header" style="border-left-color:#c8821f">
+      <div class="rok-header-emblem" style="background:linear-gradient(135deg,#c8821f,#a8691a)">🏆</div>
+      <div>
+        <div class="rok-header-title">Hall of Fame — K1602</div>
+        <div class="rok-header-sub">Top 10 KP · Top 10 Deaths · By KvK Event</div>
+      </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    events = storage.list_kvk_events()
+    if events.empty:
+        st.markdown('''
+        <div class="empty-state">
+          <div class="empty-state-icon">🏆</div>
+          <div class="empty-state-title">No KvK events created yet</div>
+          <div class="empty-state-sub">An admin must create a KvK event in the 🛡 KvK tab first.</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        return
+
+    events = events.copy()
+    events["start_date"] = pd.to_datetime(events["start_date"]).dt.date.astype(str)
+    events["end_date"]   = pd.to_datetime(events["end_date"]).dt.date.astype(str)
+    events["label"]      = events["name"] + "  (" + events["start_date"] + " → " + events["end_date"] + ")"
+
+    col_sel, col_info = st.columns([3, 3])
+    with col_sel:
+        chosen_label = st.selectbox("KvK Event", events["label"].tolist(),
+                                     key="hof_kvk", label_visibility="collapsed")
+    with col_info:
+        st.markdown(
+            f'<div style="font-size:.68rem;color:#7b8499;padding-top:8px">'
+            f'<span style="color:#5271ac;font-weight:700">{len(events)}</span> KvK event(s) available'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    event_row = events.loc[events["label"].eq(chosen_label)].iloc[0]
+    start_d   = pd.to_datetime(event_row["start_date"]).date()
+    end_d     = pd.to_datetime(event_row["end_date"]).date()
+
+    # Find imports in window
+    imports_cp = imports.copy()
+    imports_cp["_d"] = pd.to_datetime(imports_cp["report_date"]).dt.date
+    in_window = imports_cp[(imports_cp["_d"] >= start_d) & (imports_cp["_d"] <= end_d)]
+
+    if in_window.empty:
+        today = date.today()
+        if start_d > today:
+            st.info(f"⏳ This KvK hasn't started yet. It begins on **{event_row['start_date']}**.")
+        else:
+            st.warning("No reports uploaded within this KvK's date range yet.")
+        return
+
+    # Compute accumulated ranking for this KvK
+    ranked = compute_kvk_accumulated(storage, imports, group_power, start_d, end_d)
+
+    if ranked.empty:
+        st.info("No player data available for this KvK yet.")
+        return
+
+    n_reports = len(in_window)
+    st.markdown(f"""
+    <div class="rok-caption">
+      <div class="rok-caption-item">Event <span class="rok-caption-val">{event_row['name']}</span></div>
+      <div class="rok-caption-sep">·</div>
+      <div class="rok-caption-item">Window <span class="rok-caption-val">{event_row['start_date']} → {event_row['end_date']}</span></div>
+      <div class="rok-caption-sep">·</div>
+      <div class="rok-caption-item">Reports <span class="rok-caption-val">{n_reports}</span></div>
+      <div class="rok-caption-sep">·</div>
+      <div class="rok-caption-item">Based on <span class="rok-caption-val">accumulated delta</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f'<div class="sec-label">{event_row["name"]}</div>', unsafe_allow_html=True)
+
+    # Ensure dead_equiv exists
+    if "dead_equiv" not in ranked.columns:
+        ranked["dead_equiv"] = (
+            ranked.get("t4_deaths", 0) + ranked.get("t5_deaths", 0) * 2
+        ).fillna(0).astype(int)
+
+    top10_kp   = ranked.sort_values("kill_points", ascending=False).head(10).reset_index(drop=True)
+    top10_dead = ranked.sort_values("dead_equiv",   ascending=False).head(10).reset_index(drop=True)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown(
+            '<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;'
+            'letter-spacing:.14em;color:#c8821f;margin-bottom:10px">⚔ Top 10 Kill Points</div>',
+            unsafe_allow_html=True,
+        )
+        _render_hof_list(top10_kp, "kp")
+
+    with c2:
+        st.markdown(
+            '<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;'
+            'letter-spacing:.14em;color:#5271ac;margin-bottom:10px">💀 Top 10 Deaths</div>',
+            unsafe_allow_html=True,
+        )
+        _render_hof_list(top10_dead, "deaths")
+
+
+def _render_hof_list(df: pd.DataFrame, category: str) -> None:
+    if df.empty:
+        st.caption("No data for this KvK.")
+        return
+    medals = {1:"🥇", 2:"🥈", 3:"🥉"}
+    color  = "#c8821f" if category == "kp" else "#5271ac"
+    unit   = "KP" if category == "kp" else "T4eq"
+    val_col = "kill_points" if category == "kp" else "dead_equiv"
+
+    for pos, (_, row) in enumerate(df.iterrows(), start=1):
+        medal  = medals.get(pos, f"#{pos}")
+        is_top = pos <= 3
+        value  = int(row.get(val_col, 0))
+        power  = int(row.get("power", 0))
+
+        st.markdown(f'''
+        <div style="display:flex;align-items:center;gap:10px;
+                    padding:{"12px 14px" if is_top else "9px 14px"};
+                    background:{"rgba(82,113,172,0.05)" if is_top else "transparent"};
+                    border:1px solid {"rgba(82,113,172,0.18)" if is_top else "rgba(82,113,172,0.08)"};
+                    border-radius:8px;margin-bottom:5px;">
+          <div style="font-size:{"1.2rem" if is_top else ".85rem"};min-width:28px;text-align:center">{medal}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:{"0.88rem" if is_top else "0.82rem"};font-weight:{"700" if is_top else "500"};color:#1b2436;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              {row["username"]}
+            </div>
+            <div style="font-size:.62rem;color:#7b8499;margin-top:1px">{fmt_m(power)}M power</div>
+          </div>
+          <div style="font-family:"JetBrains Mono",monospace;font-size:{"1rem" if is_top else "0.85rem"};font-weight:600;color:{color};white-space:nowrap">
+            {fmt_k(value)} {unit}
+          </div>
+        </div>
+        ''', unsafe_allow_html=True)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — Kingdom
@@ -1037,7 +1260,6 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
                     '</table>', unsafe_allow_html=True)
 
     st.markdown('<div class="sec-label">Need attention & Mailing List</div>', unsafe_allow_html=True)
-
     col_att, col_mail = st.columns([2, 1])
 
     att = ranked[ranked["status"]!="Aprovado"].sort_values("kp_pct").head(8)
@@ -1059,13 +1281,18 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
                 """, unsafe_allow_html=True)
 
     with col_mail:
-        st.markdown("<div style='font-size:0.75rem; color:#7b8499; margin-bottom:10px;'>Lista de IDs de jogadores pendentes ou abaixo da meta para enviar Mails no jogo:</div>", unsafe_allow_html=True)
-        abaixo_da_meta = ranked[ranked['status'] != 'Aprovado']
-        if not abaixo_da_meta.empty:
-            ids_correio = ",".join(abaixo_da_meta['character_id'].astype(str).tolist())
+        st.markdown(
+            "<div style='font-size:0.75rem;color:#7b8499;margin-bottom:10px;'>"
+            "Player IDs pending or below goal — paste in-game Mail:</div>",
+            unsafe_allow_html=True,
+        )
+        abaixo = ranked[ranked['status'] != 'Aprovado']
+        if not abaixo.empty:
+            ids_correio = ",".join(abaixo['character_id'].astype(str).tolist())
             st.code(ids_correio, language="text")
         else:
-            st.success("Nenhum mail necessário.")
+            st.success("No mails needed.")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — Profile (Tracker)
@@ -1073,126 +1300,100 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
 
 def show_profile(storage, imports, gp):
     st.markdown('<div class="sec-label">Player Tracker</div>', unsafe_allow_html=True)
-    st.caption("Busque o histórico completo de desempenho de um jogador.")
+    st.caption("Full performance history for any governor across all imported reports.")
 
-    hist_df = get_all_history_metrics(storage, imports, gp)
-    if hist_df.empty:
-        st.info("Importe mais relatórios para rastrear a evolução.")
+    if imports.empty:
+        st.info("Import more reports to track evolution.")
         return
 
-    player_list = hist_df['username'].unique().tolist()
-    selected_player = st.selectbox("Selecione ou busque o Governador:", player_list)
+    ordered = imports.sort_values(["report_date","imported_at"]).reset_index(drop=True)
 
-    if selected_player and px is not None:
-        player_data = hist_df[hist_df['username'] == selected_player].sort_values('report_date')
+    # Collect all player names from all imports (lazy — only load once)
+    @st.cache_data(ttl=300)
+    def _all_player_names(storage_label, import_ids_key):
+        all_names = set()
+        storage = get_storage()
+        for imp_id in import_ids_key:
+            try:
+                df = storage.load_stats(imp_id)
+                all_names.update(df["username"].dropna().tolist())
+            except Exception:
+                pass
+        return sorted(all_names)
 
-        c1, c2, c3 = st.columns(3)
-        with c1: st.metric("Power Atual", f"{fmt_m(int(player_data.iloc[-1]['power']))}M")
-        with c2: st.metric("Kill Points (Último)", fmt_k(int(player_data.iloc[-1]['kill_points'])))
-        with c3: st.metric("Status Atual", player_data.iloc[-1]['status'])
+    import_ids_tuple = tuple(ordered["id"].tolist())
+    player_list = _all_player_names(storage.label, import_ids_tuple)
 
+    if not player_list:
+        st.info("No players found.")
+        return
+
+    selected_player = st.selectbox("Select or search Governor:", player_list, key="profile_player")
+
+    if not selected_player:
+        return
+
+    # Load history for selected player only
+    history_rows = []
+    for _, imp_row in ordered.iterrows():
+        try:
+            stats = storage.load_stats(imp_row["id"])
+            player_stats = stats[stats["username"] == selected_player]
+            if player_stats.empty:
+                continue
+            metrics = calculate_metrics(player_stats, group_power=gp)
+            ranked  = apply_goals(add_rank(metrics, "kill_points"))
+            ranked["report_date"] = imp_row["report_date"]
+            history_rows.append(ranked)
+        except Exception:
+            continue
+
+    if not history_rows:
+        st.warning(f"No data found for **{selected_player}**.")
+        return
+
+    player_data = pd.concat(history_rows, ignore_index=True).sort_values("report_date")
+
+    latest = player_data.iloc[-1]
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: st.metric("Current Power",    f"{fmt_m(int(latest['power']))}M")
+    with c2: st.metric("KP (Latest)",       fmt_k(int(latest['kill_points'])))
+    with c3: st.metric("Deaths T4eq (Latest)", fmt_k(int(latest.get('dead_equiv', 0))))
+    with c4: st.metric("Current Status",    STATUS_LABEL.get(latest['status'], latest['status']))
+
+    if px is not None:
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['kill_points'],
-                                 mode='lines+markers', name='Kill Points', line=dict(color='#c8821f')))
-        fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['dead_equiv'],
-                                 mode='lines+markers', name='Deaths (T4eq)', line=dict(color='#5271ac')))
-
+        fig.add_trace(go.Scatter(
+            x=player_data['report_date'], y=player_data['kill_points'],
+            mode='lines+markers', name='Kill Points (cumulative)',
+            line=dict(color='#c8821f'),
+        ))
+        fig.add_trace(go.Scatter(
+            x=player_data['report_date'], y=player_data.get('dead_equiv', 0),
+            mode='lines+markers', name='Deaths T4eq (cumulative)',
+            line=dict(color='#5271ac'),
+        ))
         fig.update_layout(
-            title=f"Evolução de {selected_player}",
+            title=f"Cumulative stats — {selected_player}",
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#475066", family="Inter"),
             yaxis=dict(gridcolor="rgba(82,113,172,0.10)"),
-            xaxis=dict(gridcolor="rgba(82,113,172,0.10)")
+            xaxis=dict(gridcolor="rgba(82,113,172,0.10)"),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Tab — Hall of Fame
-# ══════════════════════════════════════════════════════════════════════════════
-
-def show_hof(storage, *, is_admin: bool, admin_enabled: bool) -> None:
-    st.markdown('''
-    <div class="rok-header" style="border-left-color:#c8821f">
-      <div class="rok-header-emblem" style="background:linear-gradient(135deg,#c8821f,#a8691a)">🏆</div>
-      <div>
-        <div class="rok-header-title">Hall of Fame — K1602</div>
-        <div class="rok-header-sub">Top 10 KP · Top 10 Deaths · By KvK</div>
-      </div>
-    </div>
-    ''', unsafe_allow_html=True)
-
-    hof = load_hall(storage)
-
-    if hof.empty:
-        st.markdown('''
-        <div class="empty-state">
-          <div class="empty-state-icon">🏆</div>
-          <div class="empty-state-title">No KvK archived yet</div>
-          <div class="empty-state-sub">The Hall of Fame fills automatically when a report is imported.</div>
-        </div>
-        ''', unsafe_allow_html=True)
-        return
-
-    kvks = list_kvks(hof)
-    col_sel, col_info = st.columns([3,3])
-    with col_sel:
-        selected_kvk = st.selectbox("KVK", kvks, key="hof_kvk", label_visibility="collapsed")
-    with col_info:
-        total_kvks = len(kvks)
-        st.markdown(
-            f'<div style="font-size:.68rem;color:#7b8499;padding-top:8px">' f'<span style="color:#5271ac;font-weight:700">{total_kvks}</span> KVK(s) archived' f'</div>',
-            unsafe_allow_html=True,
+    # Full history table
+    with st.expander("Full history table", expanded=False):
+        cols = {
+            "report_date":"Date","kill_points":"KP","dead_equiv":"Deaths T4eq",
+            "power":"Power","status":"Status",
+        }
+        avail = {k:v for k,v in cols.items() if k in player_data.columns}
+        st.dataframe(
+            player_data[list(avail.keys())].rename(columns=avail),
+            use_container_width=True, hide_index=True,
         )
-
-    kvk_data = hof[hof["kvk_name"] == selected_kvk]
-    kp_df    = kvk_data[kvk_data["category"] == "kp"   ].sort_values("position")
-    dead_df  = kvk_data[kvk_data["category"] == "deaths"].sort_values("position")
-
-    st.markdown(f'<div class="sec-label">{selected_kvk}</div>', unsafe_allow_html=True)
-
-    c1, c2 = st.columns(2)
-
-    with c1:
-        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#c8821f;margin-bottom:10px">⚔ Top 10 Kill Points</div>',
-                    unsafe_allow_html=True)
-        _render_hof_list(kp_df, "kp")
-
-    with c2:
-        st.markdown('<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;' 'letter-spacing:.14em;color:#5271ac;margin-bottom:10px">💀 Top 10 Deaths</div>',
-                    unsafe_allow_html=True)
-        _render_hof_list(dead_df, "deaths")
-
-def _render_hof_list(df: pd.DataFrame, category: str) -> None:
-    if df.empty:
-        st.caption("No data for this KVK.")
-        return
-    medals = {1:"🥇", 2:"🥈", 3:"🥉"}
-    color  = "#c8821f" if category == "kp" else "#5271ac"
-    unit   = "KP" if category == "kp" else "T4eq"
-
-    for _, row in df.iterrows():
-        pos    = int(row["position"])
-        medal  = medals.get(pos, f"#{pos}")
-        is_top = pos <= 3
-
-        st.markdown(f'''
-        <div style="display:flex;align-items:center;gap:10px;
-                    padding:{'12px 14px' if is_top else '9px 14px'};
-                    background:{"rgba(82,113,172,0.05)" if is_top else "transparent"};
-                    border:1px solid {"rgba(82,113,172,0.18)" if is_top else "rgba(82,113,172,0.08)"};
-                    border-radius:8px;margin-bottom:5px;">
-          <div style="font-size:{'1.2rem' if is_top else '.85rem'};min-width:28px;text-align:center">{medal}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:{'0.88rem' if is_top else '0.82rem'}; font-weight:{'700' if is_top else '500'}; color:#1b2436;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              {row["username"]}
-            </div>
-            <div style="font-size:.62rem;color:#7b8499;margin-top:1px">{fmt_m(int(row["power"]))}M power</div>
-          </div>
-          <div style="font-family:'JetBrains Mono',monospace; font-size:{'1rem' if is_top else '0.85rem'}; font-weight:600;color:{color};white-space:nowrap">
-            {fmt_k(int(row["value"]))} {unit}
-          </div>
-        </div>
-        ''', unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1208,11 +1409,11 @@ def show_history(storage, imports, group_power):
     ordered = imports.sort_values(["report_date","imported_at"]).reset_index(drop=True)
     labels  = ordered["label"].tolist()
     ca, cb  = st.columns(2)
-    with ca: la = st.selectbox("Base",      labels, index=0,                   key="ha")
-    with cb: lb = st.selectbox("Compare to", labels, index=min(1,len(labels)-1),key="hb")
+    with ca: la = st.selectbox("Base",       labels, index=0,                    key="ha")
+    with cb: lb = st.selectbox("Compare to", labels, index=min(1,len(labels)-1), key="hb")
     if la != lb:
-        id_a = ordered.loc[ordered["label"].eq(la),"id"].iloc[0]
-        id_b = ordered.loc[ordered["label"].eq(lb),"id"].iloc[0]
+        id_a  = ordered.loc[ordered["label"].eq(la),"id"].iloc[0]
+        id_b  = ordered.loc[ordered["label"].eq(lb),"id"].iloc[0]
         delta = compute_period_deltas(storage.load_stats(id_b), storage.load_stats(id_a))
         met   = calculate_metrics(delta, group_power=group_power)
         top   = met.sort_values("kill_points",ascending=False).head(15)
@@ -1232,20 +1433,36 @@ def show_history(storage, imports, group_power):
             fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
 
-    # NOVO: Deadweight Tracker
-    st.markdown('<div class="sec-label">Rastreador de "Deadweight" (Peso Morto)</div>', unsafe_allow_html=True)
-    st.caption("Jogadores que ficaram 'Abaixo da meta' em 2 ou mais relatórios importados.")
+    st.markdown('<div class="sec-label">Deadweight Tracker</div>', unsafe_allow_html=True)
+    st.caption("Players who were 'Below goal' in 2 or more imported reports.")
 
-    hist_df = get_all_history_metrics(storage, imports, group_power)
-    if not hist_df.empty:
+    all_rows = []
+    ordered2 = imports.sort_values(["report_date","imported_at"]).reset_index(drop=True)
+    for _, imp_row in ordered2.iterrows():
+        try:
+            stats   = storage.load_stats(imp_row["id"])
+            metrics = calculate_metrics(stats, group_power=group_power)
+            ranked  = apply_goals(add_rank(metrics, "kill_points"))
+            ranked["report_date"] = imp_row["report_date"]
+            all_rows.append(ranked)
+        except Exception:
+            continue
+
+    if all_rows:
+        hist_df = pd.concat(all_rows, ignore_index=True)
         deadweight_df = hist_df[hist_df['status'] == 'Abaixo da meta']
-        infratores = deadweight_df.groupby(['character_id', 'username']).size().reset_index(name='Falhas na Meta')
-        infratores_frequentes = infratores[infratores['Falhas na Meta'] >= 2].sort_values('Falhas na Meta', ascending=False)
-
-        if not infratores_frequentes.empty:
-            st.dataframe(infratores_frequentes, use_container_width=True, hide_index=True)
+        infratores = (
+            deadweight_df
+            .groupby(['character_id','username'])
+            .size()
+            .reset_index(name='Goal Failures')
+        )
+        infratores_freq = infratores[infratores['Goal Failures'] >= 2].sort_values('Goal Failures', ascending=False)
+        if not infratores_freq.empty:
+            st.dataframe(infratores_freq, use_container_width=True, hide_index=True)
         else:
-            st.success("Nenhum peso morto repetido detectado! Seu reino está saudável.")
+            st.success("No repeated deadweight detected. Your kingdom is healthy.")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — Imports (admin only)
@@ -1268,7 +1485,9 @@ def show_imports(imports, storage, *, is_admin, admin_enabled):
             if st.button("Confirm delete", type="secondary"):
                 if storage.delete_import(row["id"]):
                     st.success("Deleted."); st.rerun()
-                else: st.error("Not found.")
+                else:
+                    st.error("Not found.")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — Help
@@ -1282,14 +1501,24 @@ def show_help():
 **Death equivalence:** 1 T5 death = 2 T4 deaths.
 The system converts automatically: `equiv = (T5deaths × 2) + T4deaths`
 
+**Main Ranking (⚔ Ranking tab):**
+Uses the **accumulated delta** between the first and last report in the selected date range.
+Select a narrower range with the date pickers at the top to focus on a specific period.
+
 **Status:**
 - ✅ Approved — reached both KP and death goals
 - 🟡 Pending — ≥75% on both goals
 - ❌ Below goal — <75% on either goal
 
 **Gamification:**
-- 🛡️ Top 5% Mortes  |  🔥 2x Meta de KP  |  🐋 Mais de 100M Poder
+- 🛡️ Top 5% Deaths  |  🔥 2× KP Goal  |  🐋 100M+ Power
+
+**Hall of Fame:**
+Automatically computed from the KvK events created in the 🛡 KvK tab.
+Each KvK shows the top 10 KP and top 10 Deaths as an accumulated delta
+between the first and last report within the event's date window.
 """)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Formatters
