@@ -167,27 +167,32 @@ hr {{ border-color: {border_color} !important; margin: 1.2rem 0 !important; }}
 .sbadge-er {{ color:{red_alert}; border-color:{red_alert}; background: rgba(201, 90, 78, 0.15); }}
 
 /* ─── MEMBER ROWS (RANKING) ────────────────────────────── */
-.mrow {{ background: {bg_surface}; border: 1px solid {border_color}; border-radius: 6px; margin-bottom: 4px; overflow: hidden; transition: border-color .2s, background .2s; }}
+.mrow {{ background: {bg_surface}; border: 1px solid {border_color}; border-radius: 6px; margin-bottom: 6px; overflow: hidden; transition: border-color .2s, background .2s; }}
 .mrow:hover {{ border-color: {gold}; background: {bg_surface_alt}; }}
 .mrow.ok {{ border-left: 3px solid {green_ok}; }}
 .mrow.wa {{ border-left: 3px solid {yellow_pend}; }}
 .mrow.er {{ border-left: 3px solid {red_alert}; }}
 
-.mrow-sum {{ display: grid; grid-template-columns: 36px 1fr 90px 80px auto; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; }}
-.mrow-rank {{ font-family: 'JetBrains Mono', monospace; font-size: .85rem; font-weight: 600; color: {text_muted}; text-align: right; }}
+.mrow-sum {{ 
+  display: grid; 
+  grid-template-columns: 40px 1fr 200px 160px 90px; 
+  align-items: center; 
+  gap: 12px; 
+  padding: 14px 18px !important; 
+  cursor: pointer; 
+}}
+.mrow-rank {{ font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 600; color: {text_muted}; text-align: right; min-width: 40px; }}
 .mrow-info {{ min-width: 0; }}
-.mrow-name {{ font-size: .88rem; font-weight: 700; color: {text_main}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+.mrow-name {{ font-size: .95rem; font-weight: 700; color: {text_main}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
 .mrow-meta {{ font-size: .64rem; color: {text_sub}; margin-top: 2px; }}
 
-.mrow-gauges {{ display: flex; flex-direction: column; gap: 5px; }}
+.mrow-gauges {{ display: flex; flex-direction: column; gap: 5px; min-width: 180px; flex: 1; }}
 .gauge-head {{ display: flex; justify-content: space-between; font-size: .58rem; color: {text_sub}; margin-bottom: 2px; }}
 .gauge-track {{ height: 5px; background: {bg_main}; border-radius: 99px; overflow: hidden; border: 1px solid {border_color}; }}
 .gauge-fill {{ height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1); }}
 .gauge-fill.kp {{ background: {gold}; }}
 .gauge-fill.dead {{ background: {blue_accent}; }}
 .gauge-fill.full {{ background: {green_ok}; }}
-
-.mrow-kp {{ font-family: 'JetBrains Mono', monospace; font-size: .9rem; font-weight: 600; color: {gold}; text-align: right; white-space: nowrap; }}
 
 /* ─── MEMBER DETAILS (EXPANDED) ────────────────────────── */
 .mdet {{ border-top: 1px solid {border_color}; background: {bg_main}; padding: 16px 20px 20px; border-radius: 0 0 6px 6px; }}
@@ -207,9 +212,9 @@ hr {{ border-color: {border_color} !important; margin: 1.2rem 0 !important; }}
 
 /* ─── TIER TABLES ───────────────────────────────────────── */
 .tier-table {{ width: 100%; border-collapse: collapse; margin-top: 4px; }}
-.tier-table th {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {text_sub}; padding: 5px 8px; text-align: right; border-bottom: 1px solid {border_color}; }}
+.tier-table th {{ font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: {text_sub}; padding: 6px 10px; text-align: right; border-bottom: 1px solid {border_color}; }}
 .tier-table th:first-child {{ text-align: left; }}
-.tier-table td {{ font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: {text_main}; padding: 5px 8px; text-align: right; border-bottom: 1px solid {bg_surface_alt}; }}
+.tier-table td {{ font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: {text_main}; padding: 6px 10px; text-align: right; border-bottom: 1px solid {bg_surface_alt}; }}
 .tier-table td:first-child {{ text-align: left; color: {text_sub}; font-weight: 600; }}
 .tier-table tr:last-child td {{ border-bottom: none; }}
 .tier-table td.amber {{ color: {gold}; }}
@@ -829,19 +834,24 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
         badge = (f'<span class="sbadge {badge_cls}">'
                  f'{STATUS_ICON.get(row["status"],"○")} {STATUS_LABEL.get(row["status"],"—")}</span>')
 
+        # Calcular valores para exibição lateral
+        total_kp = int(row['kill_points'])
+        total_dead = int(row.get('dead_equiv', 0))
+
         with st.expander(
             label=f"#{int(row['rank'])}  {row['username']}",
             expanded=False,
         ):
             st.markdown(f"""
-            <div class="mrow {cls}" style="margin-bottom:10px">
-              <div class="mrow-sum" style="cursor:default">
-                <div class="mrow-rank">#{int(row['rank'])}</div>
+            <div class="mrow {cls}" style="margin-bottom:8px">
+              <div class="mrow-sum" style="cursor:default; padding: 14px 18px;">
+                <div class="mrow-rank" style="font-size: 1rem; min-width: 40px;">#{int(row['rank'])}</div>
                 <div class="mrow-info">
-                  <div class="mrow-name">{row['username']} {row.get('emblems', '')}</div>
+                  <div class="mrow-name" style="font-size: 0.95rem;">{row['username']} {row.get('emblems', '')}</div>
                   <div class="mrow-meta">{fmt_m(int(row['power']))}M power · {row.get('power_band','—')} · ID {row.get('character_id','—')}</div>
                 </div>
-                <div class="mrow-gauges">
+                
+                <div class="mrow-gauges" style="min-width: 180px; flex: 1;">
                   <div>
                     <div class="gauge-head"><span>KP {kp_w:.0f}%</span><span>{fmt_k(int(row['kill_points']))}</span></div>
                     <div class="gauge-track"><div class="gauge-fill {kp_fc}" style="width:{kp_w:.1f}%"></div></div>
@@ -851,8 +861,19 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
                     <div class="gauge-track"><div class="gauge-fill {dead_fc}" style="width:{dead_w:.1f}%"></div></div>
                   </div>
                 </div>
-                <div class="mrow-kp">{fmt_k(int(row['kill_points']))}</div>
-                <div>{badge}</div>
+
+                <div style="display: flex; gap: 20px; align-items: center; padding-left: 10px; border-left: 1px solid #2a3f5e;">
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.55rem; color: #9ab0cc; text-transform: uppercase; font-weight: 700;">Total KP</div>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700; color: #d4a847; line-height: 1.2;">{fmt_k(total_kp)}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.55rem; color: #9ab0cc; text-transform: uppercase; font-weight: 700;">Mortos (T4)</div>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700; color: #4a7cba; line-height: 1.2;">{fmt_k(total_dead)}</div>
+                    </div>
+                </div>
+                
+                <div style="margin-left: 10px;">{badge}</div>
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -1480,20 +1501,22 @@ def show_profile(storage, imports, gp):
         fig.add_trace(go.Scatter(
             x=player_data['report_date'], y=player_data['kill_points'],
             mode='lines+markers', name='Kill Points (cumulative)',
-            line=dict(color='#d4a847'),
+            line=dict(color='#d4a847', width=2),
+            marker=dict(size=6, color='#d4a847')
         ))
         fig.add_trace(go.Scatter(
             x=player_data['report_date'], y=player_data.get('dead_equiv', 0),
             mode='lines+markers', name='Deaths T4eq (cumulative)',
-            line=dict(color='#4a7cba'),
+            line=dict(color='#4a7cba', width=2),
+            marker=dict(size=6, color='#4a7cba')
         ))
         fig.update_layout(
             title=f"Cumulative stats — {selected_player}",
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#9ab0cc", family="Inter"),
-            yaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)"),
-            xaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            font=dict(color="#9ab0cc", family="Inter", size=12),
+            yaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False),
+            xaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
         )
         st.plotly_chart(fig, use_container_width=True)
 
