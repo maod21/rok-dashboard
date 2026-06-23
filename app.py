@@ -810,11 +810,96 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
                             key=f"{key_prefix}_dl_csv")
 
 
+def _render_member_chart(storage, imports, username, character_id):
+    """Helper to fetch historical data and render a Plotly line chart for a specific member."""
+    if px is None or go is None:
+        st.caption("Plotly não está disponível para gerar gráficos.")
+        return
+
+    ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
+    
+    history_rows = []
+    for _, imp_row in ordered.iterrows():
+        try:
+            stats = storage.load_stats(imp_row["id"])
+            # Busca pelo username OU character_id, para garantir robustez
+            player_stats = stats[
+                (stats["username"] == username) | 
+                (stats["character_id"].astype(str) == str(character_id))
+            ]
+            if player_stats.empty:
+                continue
+            
+            # Recalcula métricas pontuais para aquele relatório
+            # (usando o grupo power padrão, importante para consistência)
+            metrics = calculate_metrics(player_stats, group_power=100_000_000) # Usa um placeholder, o cálculo é interno
+            ranked  = apply_goals(add_rank(metrics, "kill_points"))
+            ranked["report_date"] = imp_row["report_date"]
+            
+            # Garante que as colunas existam
+            if "dead_equiv" not in ranked.columns:
+                ranked["dead_equiv"] = 0
+                
+            history_rows.append(ranked)
+        except Exception:
+            continue
+
+    if not history_rows:
+        st.caption("⚠️ Dados históricos insuficientes para gerar gráfico deste jogador.")
+        return
+
+    player_data = pd.concat(history_rows, ignore_index=True).sort_values("report_date")
+    
+    if player_data.empty or len(player_data) < 1:
+        st.caption("Dados insuficientes para gráfico.")
+        return
+
+    fig = go.Figure()
+    
+    # Linha de KP (Ouro)
+    fig.add_trace(go.Scatter(
+        x=player_data['report_date'], 
+        y=player_data['kill_points'],
+        mode='lines+markers', 
+        name='Kill Points',
+        line=dict(color='#d4a847', width=2),
+        marker=dict(size=6, color='#d4a847')
+    ))
+    
+    # Linha de Mortes T4eq (Azul)
+    fig.add_trace(go.Scatter(
+        x=player_data['report_date'], 
+        y=player_data['dead_equiv'],
+        mode='lines+markers', 
+        name='Deaths (T4 Equiv)',
+        line=dict(color='#4a7cba', width=2),
+        marker=dict(size=6, color='#4a7cba')
+    ))
+
+    fig.update_layout(
+        title=f"Evolução de {username}",
+        paper_bgcolor="rgba(0,0,0,0)", 
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#9ab0cc", family="Inter", size=11),
+        yaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False),
+        xaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
+        margin=dict(l=0, r=0, t=40, b=0),
+        height=250
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+
 def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
     """
     Renders each member as a clickable expander.
     Clicking the row label (governor name) opens the detail panel.
     """
+    # Obtém o storage e imports globais para gerar o gráfico individual
+    storage = get_storage()
+    imports = prepare_imports(storage.list_imports())
+
     for i, (_, row) in enumerate(df.iterrows()):
         cls    = STATUS_CLS.get(row["status"], "er")
         kp_w   = min(float(row.get("kp_pct",0))*100, 100)
@@ -856,6 +941,12 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
               </div>
             </div>
             """, unsafe_allow_html=True)
+
+            # ════════════════════════════════════════════════════════════════
+            # 🆕 GRÁFICO DE EVOLUÇÃO DO MEMBRO INSERIDO AQUI
+            # ════════════════════════════════════════════════════════════════
+            _render_member_chart(storage, imports, row['username'], row.get('character_id', ''))
+            # ════════════════════════════════════════════════════════════════
 
             t5d = int(row.get("t5_deaths",0))
             t4d = int(row.get("t4_deaths",0))
