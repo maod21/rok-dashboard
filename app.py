@@ -427,7 +427,7 @@ def main() -> None:
         st.markdown(f'<div style="font-size:.68rem;color:#8398b5;margin-bottom:12px">Storage: <span style="color:#4a7cba;font-weight:bold;">{storage.label}</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="sb-sec">Reports</div>', unsafe_allow_html=True)
         
-        # 🆕 Upload com contexto de KvK
+        # Upload com contexto de KvK
         _upload_section(storage)
 
     imports = storage.list_imports()
@@ -572,7 +572,7 @@ def main() -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# NOVA FUNÇÃO DE UPLOAD COM HIERARQUIA KvK → ACAMPAMENTO → REINO
+# FUNÇÃO DE UPLOAD COM HIERARQUIA KvK → ACAMPAMENTO → REINO
 # ═══════════════════════════════════════════════════════════════════
 
 def _upload_section(storage):
@@ -751,7 +751,249 @@ def _upload_section(storage):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# ABA KVK - NOVA VERSÃO COM HIERARQUIA COMPLETA
+# ABA RANKING - CORRIGIDA
+# ═══════════════════════════════════════════════════════════════════
+
+def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
+    fc1, fc2, fc3 = st.columns([5, 2, 2])
+    with fc1:
+        search = st.text_input("search", placeholder="Search member or Character ID…",
+                                key=f"{key_prefix}_rank_search", label_visibility="collapsed")
+    with fc2:
+        sf = st.selectbox("status", ["All","Approved","Pending","Below goal"],
+                          key=f"{key_prefix}_rank_sf", label_visibility="collapsed")
+    with fc3:
+        sort_by = st.selectbox("sort",
+                               ["KP ↓","Power ↓","% KP ↓","% Deaths ↓","Name ↑"],
+                               key=f"{key_prefix}_rank_sort", label_visibility="collapsed")
+
+    df = ranked_full.copy()
+
+    if 'dead_equiv' in df.columns:
+        top_5_pct_deaths = df['dead_equiv'].quantile(0.95) if len(df) > 0 else float('inf')
+    else:
+        top_5_pct_deaths = float('inf')
+    
+    df['emblems'] = ""
+    for idx, row in df.iterrows():
+        emb = ""
+        if row.get('dead_equiv', 0) >= top_5_pct_deaths and row.get('dead_equiv', 0) > 0:
+            emb += '<span title="Top 5% Deaths">🛡️</span> '
+        if row.get('kill_points', 0) >= (row.get('kp_goal', 1) * 2) and row.get('kp_goal', 0) > 0:
+            emb += '<span title="2x KP Goal">🔥</span> '
+        if row.get('power', 0) >= 100_000_000:
+            emb += '<span title="Whale (100M+ Power)">🐋</span> '
+        df.at[idx, 'emblems'] = emb
+
+    if search.strip():
+        n = search.strip().lower()
+        df = df[df["username"].astype(str).str.lower().str.contains(n,regex=False,na=False)
+                | df["character_id"].astype(str).str.lower().str.contains(n,regex=False,na=False)]
+
+    status_map_en2pt = {"Approved":"Aprovado","Pending":"Pendente","Below goal":"Abaixo da meta"}
+    if sf != "All":
+        df = df[df["status"] == status_map_en2pt.get(sf, sf)]
+
+    sort_map = {
+        "KP ↓":("kill_points",False),"Power ↓":("power",False),
+        "% KP ↓":("kp_pct",False),"% Deaths ↓":("dead_pct",False),"Name ↑":("username",True),
+    }
+    scol, sasc = sort_map.get(sort_by, ("kill_points",False))
+    df = df.sort_values(scol, ascending=sasc).reset_index(drop=True)
+    df["rank"] = range(1, len(df)+1)
+
+    st.markdown(f'<div class="sec-label">Governors · {len(df):,} of {len(ranked_full):,}</div>', unsafe_allow_html=True)
+
+    page_size = st.selectbox("Per page",[10,25,50,100],index=1, key=f"{key_prefix}_rank_ps",label_visibility="collapsed")
+    total_pg  = max(1,-(-len(df)//page_size))
+    col_pg1, col_pg2 = st.columns([1,5])
+    with col_pg1:
+        page = st.number_input("Page",min_value=1,max_value=total_pg,value=1, key=f"{key_prefix}_rank_pg",label_visibility="collapsed")
+    with col_pg2:
+        st.markdown(f'<div style="font-size:.65rem;color:#9ab0cc;padding-top:8px">Page {page} of {total_pg}</div>', unsafe_allow_html=True)
+
+    start = (page-1)*page_size
+    _render_members(df.iloc[start:start+page_size], key_prefix=key_prefix)
+
+    with st.expander("Export full table →", expanded=False):
+        cols_show = {
+            "rank":"#","username":"Governor","character_id":"ID","power":"Power","power_band":"Band",
+            "kill_points":"KP","kp_goal":"KP Goal","t5_kills":"T5K","t4_kills":"T4K",
+            "t3_kills":"T3K","t2_kills":"T2K","t1_kills":"T1K",
+            "t5_deaths":"T5D","t4_deaths":"T4D","t3_deaths":"T3D","t2_deaths":"T2D","t1_deaths":"T1D",
+            "dead_t4_goal":"Death Goal","dead_equiv":"T4 Equiv.","status":"Status",
+        }
+        avail = {k:v for k,v in cols_show.items() if k in df.columns}
+        out   = df[list(avail.keys())].rename(columns=avail)
+        st.dataframe(out, use_container_width=True, hide_index=True)
+        st.download_button("⬇ Download CSV", data=df.to_csv(index=False).encode(), file_name="ranking.csv", mime="text/csv", key=f"{key_prefix}_dl_csv")
+
+
+def _render_member_chart(storage, imports, username, character_id):
+    if px is None or go is None:
+        st.caption("Plotly not available.")
+        return
+
+    ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
+    
+    history_rows = []
+    for _, imp_row in ordered.iterrows():
+        try:
+            stats = storage.load_stats(imp_row["id"])
+            player_stats = stats[(stats["username"] == username) | (stats["character_id"].astype(str) == str(character_id))]
+            if player_stats.empty: continue
+            metrics = calculate_metrics(player_stats, group_power=100_000_000)
+            ranked  = apply_goals(add_rank(metrics, "kill_points"))
+            ranked["report_date"] = imp_row["report_date"]
+            if "dead_equiv" not in ranked.columns: ranked["dead_equiv"] = 0
+            history_rows.append(ranked)
+        except Exception: continue
+
+    if not history_rows:
+        st.caption("No history data for chart.")
+        return
+
+    player_data = pd.concat(history_rows, ignore_index=True).sort_values("report_date")
+    if player_data.empty or len(player_data) < 1:
+        st.caption("Not enough data.")
+        return
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['kill_points'],
+        mode='lines+markers', name='Kill Points',
+        line=dict(color='#d4a847', width=2, shape='spline'),
+        marker=dict(size=6, color='#d4a847')))
+    fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['dead_equiv'],
+        mode='lines+markers', name='Deaths (T4 Equiv)',
+        line=dict(color='#4a7cba', width=2, shape='spline'),
+        marker=dict(size=6, color='#4a7cba')))
+
+    fig.update_layout(
+        title=f"Evolution - {username}",
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#9ab0cc", family="Inter", size=11),
+        yaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False),
+        xaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
+        margin=dict(l=0, r=0, t=40, b=0), height=250
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
+    storage = get_storage()
+    imports = prepare_imports(storage.list_imports())
+
+    for i, (_, row) in enumerate(df.iterrows()):
+        cls    = STATUS_CLS.get(row["status"], "er")
+        kp_w   = min(float(row.get("kp_pct",0))*100, 100)
+        dead_w = min(float(row.get("dead_pct",0))*100, 100)
+        kp_gap   = int(row.get("kp_gap",0))
+        dead_gap = int(row.get("dead_gap_t4",0))
+
+        kp_fc   = "full" if kp_w >= 100 else "kp"
+        dead_fc = "full" if dead_w >= 100 else "dead"
+
+        badge_cls = f"sbadge-{cls}"
+        badge = (f'<span class="sbadge {badge_cls}">{STATUS_ICON.get(row["status"],"○")} {STATUS_LABEL.get(row["status"],"—")}</span>')
+
+        with st.expander(label=f"#{int(row['rank'])}  {row['username']}", expanded=False):
+            st.markdown(f"""
+            <div class="mrow {cls}" style="margin-bottom:10px">
+              <div class="mrow-sum" style="cursor:default">
+                <div class="mrow-rank">#{int(row['rank'])}</div>
+                <div class="mrow-info">
+                  <div class="mrow-name">{row['username']} {row.get('emblems', '')}</div>
+                  <div class="mrow-meta">{fmt_m(int(row['power']))}M power · {row.get('power_band','—')} · ID {row.get('character_id','—')}</div>
+                </div>
+                <div class="mrow-gauges">
+                  <div>
+                    <div class="gauge-head"><span>KP {kp_w:.0f}%</span><span>{fmt_k(int(row['kill_points']))}</span></div>
+                    <div class="gauge-track"><div class="gauge-fill {kp_fc}" style="width:{kp_w:.1f}%"></div></div>
+                  </div>
+                  <div>
+                    <div class="gauge-head"><span>D {dead_w:.0f}%</span><span>{fmt_k(int(row.get('dead_equiv',0)))} T4eq</span></div>
+                    <div class="gauge-track"><div class="gauge-fill {dead_fc}" style="width:{dead_w:.1f}%"></div></div>
+                  </div>
+                </div>
+                <div class="mrow-kp">{fmt_k(int(row['kill_points']))}</div>
+                <div>{badge}</div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            _render_member_chart(storage, imports, row['username'], row.get('character_id', ''))
+
+            t5d = int(row.get("t5_deaths",0)); t4d = int(row.get("t4_deaths",0))
+            t3d = int(row.get("t3_deaths",0)); t2d = int(row.get("t2_deaths",0)); t1d = int(row.get("t1_deaths",0))
+            dead_equiv = int(row.get("dead_equiv",0))
+
+            kp_gap_html = (f'<div class="mdet-gap ok">✓ KP goal reached</div>' if kp_gap == 0 else f'<div class="mdet-gap warn">⚠ {fmt_k(kp_gap)} KP missing</div>')
+            dead_gap_html = (f'<div class="mdet-gap ok">✓ Death goal reached</div>' if dead_gap == 0 else f'<div class="mdet-gap warn">⚠ {fmt_k(dead_gap)} T4eq missing</div>')
+
+            st.markdown(f"""
+            <div class="mdet">
+              <div class="mdet-grid">
+                <div>
+                  <div class="mdet-block-label">Kill Points</div>
+                  <div class="mdet-block-val">{fmt_int(int(row['kill_points']))}</div>
+                  <div class="mdet-block-sub">Goal: {fmt_int(int(row['kp_goal']))}</div>
+                  <div class="mdet-prog">
+                    <div class="mdet-prog-head"><span>{kp_w:.1f}% reached</span><span>{fmt_int(int(row['kill_points']))} / {fmt_int(int(row['kp_goal']))}</span></div>
+                    <div class="mdet-prog-track"><div class="mdet-prog-fill kp" style="width:{kp_w:.1f}%"></div></div>
+                  </div>
+                  {kp_gap_html}
+                </div>
+                <div>
+                  <div class="mdet-block-label">Deaths (T4 equiv.)</div>
+                  <div class="mdet-block-val">{fmt_int(dead_equiv)}</div>
+                  <div class="mdet-block-sub">Goal: {fmt_int(int(row['dead_t4_goal']))}</div>
+                  <div class="mdet-prog">
+                    <div class="mdet-prog-head"><span>{dead_w:.1f}% reached</span><span>{fmt_int(dead_equiv)} / {fmt_int(int(row['dead_t4_goal']))}</span></div>
+                    <div class="mdet-prog-track"><div class="mdet-prog-fill dead" style="width:{dead_w:.1f}%"></div></div>
+                  </div>
+                  {dead_gap_html}
+                </div>
+              </div>
+            """, unsafe_allow_html=True)
+
+            dc1, dc2 = st.columns(2)
+            with dc1:
+                t5k = int(row.get("t5_kills",0)); t4k = int(row.get("t4_kills",0))
+                t3k = int(row.get("t3_kills",0)); t2k = int(row.get("t2_kills",0)); t1k = int(row.get("t1_kills",0))
+                st.markdown(f"""
+                <div class="mdet-block-label" style="margin-top:0">Kills by Tier</div>
+                <table class="tier-table">
+                  <tr><th>Tier</th><th>Kills</th><th>KP gen.</th></tr>
+                  <tr><td>T5</td><td class="amber">{fmt_k(t5k)}</td><td class="amber">{fmt_k(t5k*20)}</td></tr>
+                  <tr><td>T4</td><td class="amber">{fmt_k(t4k)}</td><td class="amber">{fmt_k(t4k*10)}</td></tr>
+                  <tr><td>T3</td><td>{fmt_k(t3k)}</td><td>{fmt_k(t3k*4)}</td></tr>
+                  <tr><td>T2</td><td>{fmt_k(t2k)}</td><td>{fmt_k(t2k*2)}</td></tr>
+                  <tr><td>T1</td><td>{fmt_k(t1k)}</td><td>{fmt_k(int(t1k*.2))}</td></tr>
+                </table>
+                """, unsafe_allow_html=True)
+            with dc2:
+                st.markdown(f"""
+                <div class="mdet-block-label" style="margin-top:0">Deaths by Tier</div>
+                <table class="tier-table">
+                  <tr><th>Tier</th><th>Deaths</th><th>T4 Equiv.</th></tr>
+                  <tr><td>T5</td><td class="blue">{fmt_k(t5d)}</td><td class="equiv">≡ {fmt_k(t5d*2)}</td></tr>
+                  <tr><td>T4</td><td class="blue">{fmt_k(t4d)}</td><td class="equiv">≡ {fmt_k(t4d)}</td></tr>
+                  <tr><td>T3</td><td>{fmt_k(t3d)}</td><td class="equiv">—</td></tr>
+                  <tr><td>T2</td><td>{fmt_k(t2d)}</td><td class="equiv">—</td></tr>
+                  <tr><td>T1</td><td>{fmt_k(t1d)}</td><td class="equiv">—</td></tr>
+                </table>
+                <div style="font-size:.62rem;color:#9ab0cc;margin-top:8px">
+                  Total equiv: <span style="color:#4a7cba;font-family:monospace">{fmt_int(dead_equiv)}</span>
+                  / Goal: <span style="color:#5a7294;font-family:monospace">{fmt_int(int(row['dead_t4_goal']))}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ABA KVK - REFATORADA COM HIERARQUIA COMPLETA
 # ═══════════════════════════════════════════════════════════════════
 
 def show_kvk(storage, imports, group_power, *, is_admin, admin_enabled):
@@ -969,7 +1211,7 @@ def show_kvk(storage, imports, group_power, *, is_admin, admin_enabled):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# ABA HALL OF FAME - PRESERVADO IGUAL
+# ABA HALL OF FAME - PRESERVADO
 # ═══════════════════════════════════════════════════════════════════
 
 def show_hof(storage, imports, group_power, *, is_admin, admin_enabled):
@@ -1068,7 +1310,7 @@ def _render_hof_list(df, category):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# ABA KINGDOM - PRESERVADO IGUAL
+# ABA KINGDOM - PRESERVADO
 # ═══════════════════════════════════════════════════════════════════
 
 def show_kingdom(ranked, imports, storage, group_power):
@@ -1176,7 +1418,7 @@ def show_kingdom(ranked, imports, storage, group_power):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# ABA PROFILE - PRESERVADO IGUAL
+# ABA PROFILE - PRESERVADO
 # ═══════════════════════════════════════════════════════════════════
 
 def show_profile(storage, imports, gp):
@@ -1259,7 +1501,7 @@ def show_profile(storage, imports, gp):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# ABA HISTORY - PRESERVADO IGUAL
+# ABA HISTORY - PRESERVADO
 # ═══════════════════════════════════════════════════════════════════
 
 def show_history(storage, imports, group_power):
@@ -1312,7 +1554,7 @@ def show_history(storage, imports, group_power):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# ABA IMPORTS - PRESERVADO IGUAL
+# ABA IMPORTS - PRESERVADO
 # ═══════════════════════════════════════════════════════════════════
 
 def show_imports(imports, storage, *, is_admin, admin_enabled):
@@ -1334,7 +1576,7 @@ def show_imports(imports, storage, *, is_admin, admin_enabled):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# ABA HELP - PRESERVADO IGUAL
+# ABA HELP - PRESERVADO
 # ═══════════════════════════════════════════════════════════════════
 
 def show_help():
