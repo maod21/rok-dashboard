@@ -103,92 +103,95 @@ class SQLiteStorage:
     def reset_goal_bands(self) -> None:
         self.save_goal_bands(default_goal_bands())
 
-    def aggregate_imports(self) -> pd.DataFrame:
-        return pd.read_sql_query(
-            """
-            select i.id, i.report_date, i.filename,
-                count(s.character_id) as players,
-                coalesce(sum(s.t5_kills * 10 + s.t4_kills * 5), 0) as kill_points,
-                coalesce(sum(s.t5_deaths * 70 + s.t4_deaths * 30), 0) as death_points
-            from rok_imports i
-            left join rok_stats s on s.import_id = i.id
-            group by i.id, i.report_date, i.filename
-            order by i.report_date asc, i.imported_at asc
-            """,
-            self.connection,
-        )
+    # ── NOVAS FUNÇÕES: KvK Structure ──────────────────────────────────
 
-    # ── Hall of Fame ──────────────────────────────────────────────────
-
-    def save_hof_entries(self, entries: list) -> None:
-        with self.connection:
-            self.connection.executemany(
-                """
-                insert or ignore into rok_hall_of_fame
-                    (id, import_id, kvk_name, category, position,
-                     username, character_id, power, value, created_at)
-                values
-                    (:id, :import_id, :kvk_name, :category, :position,
-                     :username, :character_id, :power, :value, :created_at)
-                """,
-                entries,
-            )
-
-    def load_hof(self, import_id: str | None = None) -> "pd.DataFrame":
-        import pandas as pd
-        if import_id:
-            return pd.read_sql_query(
-                "select * from rok_hall_of_fame where import_id = ? order by category, position",
-                self.connection, params=(import_id,),
-            )
-        return pd.read_sql_query(
-            """
-            select * from rok_hall_of_fame
-            order by
-                created_at desc,
-                kvk_name   desc,
-                category   asc,
-                position   asc
-            """,
-            self.connection,
-        )
-
-    # ── KvK Events ────────────────────────────────────────────────────
-
-    def save_kvk_event(self, *, name: str, start_date: str, end_date: str) -> str:
-        """Create a new KvK event window. Returns event_id."""
-        event_id   = str(uuid.uuid4())
+    def save_kvk_structure(self, *, name: str, story_type: str, start_date: str, end_date: str, camps: list[dict]) -> str:
+        """Cria a estrutura do KvK e suas facções."""
+        kvk_id   = str(uuid.uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
         with self.connection:
             self.connection.execute(
-                """
-                insert into rok_kvk_events (id, name, start_date, end_date, created_at)
-                values (?, ?, ?, ?, ?)
-                """,
-                (event_id, name, start_date, end_date, created_at),
+                "insert into rok_kvk_structure (id, name, story_type, start_date, end_date, created_at) values (?, ?, ?, ?, ?, ?)",
+                (kvk_id, name, story_type, start_date, end_date, created_at),
             )
-        return event_id
+            for camp in camps:
+                camp_id = str(uuid.uuid4())
+                self.connection.execute(
+                    "insert into rok_kvk_camps (id, kvk_id, camp_name, kingdom, sort_order) values (?, ?, ?, ?, ?)",
+                    (camp_id, kvk_id, camp['name'], camp.get('kingdom', ''), camp['sort_order'])
+                )
+        return kvk_id
 
-    def list_kvk_events(self) -> pd.DataFrame:
+    def list_kvk_structures(self) -> pd.DataFrame:
         return pd.read_sql_query(
             """
-            select id, name, start_date, end_date, created_at
-            from rok_kvk_events
+            select id, name, story_type, start_date, end_date, created_at
+            from rok_kvk_structure
             order by start_date desc, created_at desc
             """,
             self.connection,
         )
 
+    def load_kvk_camps(self, kvk_id: str) -> pd.DataFrame:
+        return pd.read_sql_query(
+            "select id, camp_name, kingdom, sort_order from rok_kvk_camps where kvk_id = ? order by sort_order",
+            self.connection,
+            params=(kvk_id,),
+        )
+
+    def update_camp_kingdom(self, camp_id: str, kingdom_name: str) -> None:
+        with self.connection:
+            self.connection.execute(
+                "update rok_kvk_camps set kingdom = ? where id = ?",
+                (kingdom_name, camp_id),
+            )
+
+    # ── NOVAS FUNÇÕES: Dados de Reinos Inimigos ──────────────────────
+
+    def save_kingdom_stats(self, *, kvk_camp_id: str, import_id: str, kingdom_name: str, total_kp: int, total_deaths: int, player_count: int):
+        stats_id = str(uuid.uuid4())
+        with self.connection:
+            self.connection.execute(
+                """
+                insert into rok_kvk_kingdom_stats (id, kvk_camp_id, import_id, kingdom_name, total_kp, total_deaths, player_count)
+                values (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (stats_id, kvk_camp_id, import_id, kingdom_name, total_kp, total_deaths, player_count),
+            )
+
+    def load_kingdom_stats(self, kvk_camp_id: str) -> pd.DataFrame:
+        return pd.read_sql_query(
+            """
+            select id, kingdom_name, total_kp, total_deaths, player_count, uploaded_at
+            from rok_kvk_kingdom_stats
+            where kvk_camp_id = ?
+            order by uploaded_at desc
+            """,
+            self.connection,
+            params=(kvk_camp_id,),
+        )
+
+    # ── KvK Events (Legado) ────────────────────────────────────────────
+
+    def save_kvk_event(self, *, name: str, start_date: str, end_date: str) -> str:
+        """Legacy support for old KvK events."""
+        return self.save_kvk_structure(
+            name=name, story_type="Legacy", start_date=start_date, end_date=end_date, camps=[]
+        )
+
+    def list_kvk_events(self) -> pd.DataFrame:
+        return self.list_kvk_structures()
+
     def load_kvk_event(self, event_id: str) -> dict | None:
         row = self.connection.execute(
-            "select id, name, start_date, end_date, created_at from rok_kvk_events where id = ?",
+            "select id, name, story_type, start_date, end_date, created_at from rok_kvk_structure where id = ?",
             (event_id,),
         ).fetchone()
         return dict(row) if row else None
 
     def delete_kvk_event(self, event_id: str) -> bool:
         with self.connection:
-            cursor = self.connection.execute("delete from rok_kvk_events where id = ?", (event_id,))
+            cursor = self.connection.execute("delete from rok_kvk_structure where id = ?", (event_id,))
         return cursor.rowcount > 0
 
     def close(self) -> None:
@@ -223,21 +226,27 @@ class SQLiteStorage:
                 )
             """)
             self.connection.execute("""
-                create table if not exists rok_hall_of_fame (
-                    id text primary key, import_id text not null, kvk_name text,
-                    category text not null, position integer not null,
-                    username text not null, character_id text not null,
-                    power integer not null, value integer not null, created_at text not null
+                create table if not exists rok_kvk_structure (
+                    id text primary key, name text not null, story_type text not null,
+                    start_date text not null, end_date text not null, created_at text not null
                 )
             """)
             self.connection.execute("""
-                create table if not exists rok_kvk_events (
-                    id text primary key, name text not null,
-                    start_date text not null, end_date text not null,
-                    created_at text not null
+                create table if not exists rok_kvk_camps (
+                    id text primary key, kvk_id text not null references rok_kvk_structure(id) on delete cascade,
+                    camp_name text not null, kingdom text, sort_order integer not null
                 )
             """)
-            self.connection.execute("create index if not exists rok_kvk_events_date_idx on rok_kvk_events (start_date desc)")
+            self.connection.execute("""
+                create table if not exists rok_kvk_kingdom_stats (
+                    id text primary key, kvk_camp_id text not null references rok_kvk_camps(id) on delete cascade,
+                    import_id text not null references rok_imports(id) on delete cascade,
+                    kingdom_name text not null, total_kp integer not null, total_deaths integer not null,
+                    player_count integer not null, uploaded_at text not null
+                )
+            """)
+            self.connection.execute("create index if not exists rok_kvk_camps_kvk_idx on rok_kvk_camps (kvk_id)")
+            self.connection.execute("create index if not exists rok_kvk_kingdom_stats_camp_idx on rok_kvk_kingdom_stats (kvk_camp_id)")
 
 
 class SupabaseStorage:
@@ -297,61 +306,62 @@ class SupabaseStorage:
     def reset_goal_bands(self) -> None:
         self.save_goal_bands(default_goal_bands())
 
-    # ── Hall of Fame ──────────────────────────────────────────────────
+    # ── NOVAS FUNÇÕES: KvK Structure (Supabase) ──────────────────────
 
-    def save_hof_entries(self, entries: list) -> None:
-        for start in range(0, len(entries), 500):
-            self.client.table("rok_hall_of_fame").upsert(
-                entries[start: start + 500], on_conflict="id"
-            ).execute()
+    def save_kvk_structure(self, *, name: str, story_type: str, start_date: str, end_date: str, camps: list[dict]) -> str:
+        kvk_id   = str(uuid.uuid4())
+        created_at = datetime.now(timezone.utc).isoformat()
+        self.client.table("rok_kvk_structure").insert({
+            "id": kvk_id, "name": name, "story_type": story_type,
+            "start_date": start_date, "end_date": end_date, "created_at": created_at
+        }).execute()
 
-    def load_hof(self, import_id: str | None = None) -> "pd.DataFrame":
-        import pandas as pd
-        filters = {"import_id": import_id} if import_id else None
-        data = self._select_all(
-            "rok_hall_of_fame", "*",
-            filters=filters,
-            order=("created_at", True),
-        )
-        if not data:
-            from hall_of_fame import HOF_COLUMNS
-            return pd.DataFrame(columns=HOF_COLUMNS)
-        df = pd.DataFrame(data)
-        if not df.empty:
-            df = df.sort_values(["kvk_name","category","position"],
-                                ascending=[False, True, True]).reset_index(drop=True)
-        return df
+        for camp in camps:
+            camp_id = str(uuid.uuid4())
+            self.client.table("rok_kvk_camps").insert({
+                "id": camp_id, "kvk_id": kvk_id,
+                "camp_name": camp['name'], "kingdom": camp.get('kingdom', ''),
+                "sort_order": camp['sort_order']
+            }).execute()
+        return kvk_id
 
-    # ── KvK Events ────────────────────────────────────────────────────
+    def list_kvk_structures(self) -> pd.DataFrame:
+        data = self._select_all("rok_kvk_structure", "id, name, story_type, start_date, end_date, created_at", order=("start_date", True))
+        return pd.DataFrame(data) if data else pd.DataFrame()
+
+    def load_kvk_camps(self, kvk_id: str) -> pd.DataFrame:
+        data = self._select_all("rok_kvk_camps", "id, camp_name, kingdom, sort_order", filters={"kvk_id": kvk_id}, order=("sort_order", False))
+        return pd.DataFrame(data) if data else pd.DataFrame()
+
+    def update_camp_kingdom(self, camp_id: str, kingdom_name: str) -> None:
+        self.client.table("rok_kvk_camps").update({"kingdom": kingdom_name}).eq("id", camp_id).execute()
+
+    def save_kingdom_stats(self, *, kvk_camp_id: str, import_id: str, kingdom_name: str, total_kp: int, total_deaths: int, player_count: int):
+        stats_id = str(uuid.uuid4())
+        self.client.table("rok_kvk_kingdom_stats").insert({
+            "id": stats_id, "kvk_camp_id": kvk_camp_id, "import_id": import_id,
+            "kingdom_name": kingdom_name, "total_kp": total_kp,
+            "total_deaths": total_deaths, "player_count": player_count
+        }).execute()
+
+    def load_kingdom_stats(self, kvk_camp_id: str) -> pd.DataFrame:
+        data = self._select_all("rok_kvk_kingdom_stats", "id, kingdom_name, total_kp, total_deaths, player_count, uploaded_at", filters={"kvk_camp_id": kvk_camp_id}, order=("uploaded_at", True))
+        return pd.DataFrame(data) if data else pd.DataFrame()
+
+    # ── KvK Events (Legacy) ────────────────────────────────────────────
 
     def save_kvk_event(self, *, name: str, start_date: str, end_date: str) -> str:
-        event_id   = str(uuid.uuid4())
-        created_at = datetime.now(timezone.utc).isoformat()
-        self.client.table("rok_kvk_events").insert({
-            "id": event_id, "name": name,
-            "start_date": start_date, "end_date": end_date,
-            "created_at": created_at,
-        }).execute()
-        return event_id
+        return self.save_kvk_structure(name=name, story_type="Legacy", start_date=start_date, end_date=end_date, camps=[])
 
     def list_kvk_events(self) -> pd.DataFrame:
-        data = self._select_all(
-            "rok_kvk_events", "id, name, start_date, end_date, created_at",
-            order=("start_date", True),
-        )
-        cols = ["id", "name", "start_date", "end_date", "created_at"]
-        frame = pd.DataFrame(data)
-        for c in cols:
-            if c not in frame:
-                frame[c] = pd.Series(dtype="object")
-        return frame[cols] if not frame.empty else frame.reindex(columns=cols)
+        return self.list_kvk_structures()
 
     def load_kvk_event(self, event_id: str) -> dict | None:
-        data = self.client.table("rok_kvk_events").select("*").eq("id", event_id).limit(1).execute().data
+        data = self.client.table("rok_kvk_structure").select("*").eq("id", event_id).limit(1).execute().data
         return data[0] if data else None
 
     def delete_kvk_event(self, event_id: str) -> bool:
-        result = self.client.table("rok_kvk_events").delete().eq("id", event_id).execute()
+        result = self.client.table("rok_kvk_structure").delete().eq("id", event_id).execute()
         return bool(result.data)
 
     def _select_all(self, table, columns, *, filters=None, order=None):
