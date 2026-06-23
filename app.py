@@ -443,6 +443,39 @@ def main() -> None:
         return
 
     imports = prepare_imports(imports)
+    
+    # ══════════════════════════════════════════════════════════════════════════
+    # 🆕 SUGESTÃO 5: BANNER DE ÚLTIMA ATUALIZAÇÃO NO TOPO
+    # ══════════════════════════════════════════════════════════════════════════
+    latest_import = imports.sort_values("imported_at", ascending=False).iloc[0]
+    st.markdown(f"""
+    <div style="
+        background: linear-gradient(135deg, #162233, #1c2a3f);
+        border: 1px solid #3ba37a;
+        border-radius: 8px; 
+        padding: 12px 20px; 
+        margin-bottom: 20px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    ">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 1.5rem;">🟢</span>
+            <div>
+                <div style="font-weight: 700; color: #f0f4fa; font-size: 1rem;">Dados Atualizados</div>
+                <div style="font-size: 0.85rem; color: #9ab0cc;">
+                    {latest_import['report_date']} — {latest_import['filename']}
+                </div>
+            </div>
+        </div>
+        <div style="font-size: 0.8rem; color: #9ab0cc; background: #0e1a2b; padding: 4px 12px; border-radius: 20px; border: 1px solid #2a3f5e;">
+            📊 {len(imports)} relatórios importados
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    # ══════════════════════════════════════════════════════════════════════════
 
     with st.sidebar:
         st.markdown('<div class="sb-sec">Settings</div>', unsafe_allow_html=True)
@@ -831,12 +864,10 @@ def _render_member_chart(storage, imports, username, character_id):
                 continue
             
             # Recalcula métricas pontuais para aquele relatório
-            # (usando o grupo power padrão, importante para consistência)
-            metrics = calculate_metrics(player_stats, group_power=100_000_000) # Usa um placeholder, o cálculo é interno
+            metrics = calculate_metrics(player_stats, group_power=100_000_000) 
             ranked  = apply_goals(add_rank(metrics, "kill_points"))
             ranked["report_date"] = imp_row["report_date"]
             
-            # Garante que as colunas existam
             if "dead_equiv" not in ranked.columns:
                 ranked["dead_equiv"] = 0
                 
@@ -856,23 +887,23 @@ def _render_member_chart(storage, imports, username, character_id):
 
     fig = go.Figure()
     
-    # Linha de KP (Ouro)
+    # Linha de KP (Ouro) - AGORA COM CURVA SPLINE (linha suave)
     fig.add_trace(go.Scatter(
         x=player_data['report_date'], 
         y=player_data['kill_points'],
         mode='lines+markers', 
         name='Kill Points',
-        line=dict(color='#d4a847', width=2),
+        line=dict(color='#d4a847', width=2, shape='spline'), 
         marker=dict(size=6, color='#d4a847')
     ))
     
-    # Linha de Mortes T4eq (Azul)
+    # Linha de Mortes T4eq (Azul) - AGORA COM CURVA SPLINE (linha suave)
     fig.add_trace(go.Scatter(
         x=player_data['report_date'], 
         y=player_data['dead_equiv'],
         mode='lines+markers', 
         name='Deaths (T4 Equiv)',
-        line=dict(color='#4a7cba', width=2),
+        line=dict(color='#4a7cba', width=2, shape='spline'), 
         marker=dict(size=6, color='#4a7cba')
     ))
 
@@ -896,7 +927,6 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
     Renders each member as a clickable expander.
     Clicking the row label (governor name) opens the detail panel.
     """
-    # Obtém o storage e imports globais para gerar o gráfico individual
     storage = get_storage()
     imports = prepare_imports(storage.list_imports())
 
@@ -942,11 +972,8 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
             </div>
             """, unsafe_allow_html=True)
 
-            # ════════════════════════════════════════════════════════════════
-            # 🆕 GRÁFICO DE EVOLUÇÃO DO MEMBRO INSERIDO AQUI
-            # ════════════════════════════════════════════════════════════════
+            # GRÁFICO DE EVOLUÇÃO DO MEMBRO (CURVA SUAVE)
             _render_member_chart(storage, imports, row['username'], row.get('character_id', ''))
-            # ════════════════════════════════════════════════════════════════
 
             t5d = int(row.get("t5_deaths",0))
             t4d = int(row.get("t4_deaths",0))
@@ -1500,6 +1527,78 @@ def show_kingdom(ranked: pd.DataFrame, imports, storage, group_power: int) -> No
         else:
             st.success("No mails needed.")
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # 🆕 SUGESTÃO 1: GRÁFICO DE ÁREA DA EVOLUÇÃO DA ALIANÇA (HISTÓRICO COMPLETO)
+    # ══════════════════════════════════════════════════════════════════════════
+    st.markdown('<div class="sec-label">📈 Evolução do Reino (Histórico)</div>', unsafe_allow_html=True)
+    
+    with st.spinner("Carregando histórico da aliança..."):
+        # Pega os dados históricos de TODOS os imports para gerar a linha do tempo
+        ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
+        
+        full_history = []
+        for _, imp_row in ordered.iterrows():
+            try:
+                stats = storage.load_stats(imp_row["id"])
+                total_power = int(pd.to_numeric(stats["power"], errors="coerce").fillna(0).sum())
+                
+                # Calcula métricas e KP total para aquele relatório
+                metrics = calculate_metrics(stats, group_power=group_power)
+                total_kp = int(metrics["kill_points"].sum())
+                
+                full_history.append({
+                    "report_date": imp_row["report_date"],
+                    "Poder Total": total_power,
+                    "KP Total": total_kp
+                })
+            except Exception:
+                continue
+        
+        if len(full_history) >= 2 and px is not None and go is not None:
+            df_evolution = pd.DataFrame(full_history).sort_values("report_date")
+            
+            # Cria um gráfico de área empilhada (Stacked Area) ou simples
+            fig = go.Figure()
+            
+            # Área de Poder
+            fig.add_trace(go.Scatter(
+                x=df_evolution['report_date'], 
+                y=df_evolution['Poder Total'],
+                mode='lines+markers',
+                name='Poder Total',
+                fill='tozeroy', # Transforma em gráfico de área
+                line=dict(color='#4a7cba', width=2),
+                marker=dict(size=6)
+            ))
+            
+            # Área de KP (sobreposta, com transparência, para visualização dupla)
+            fig.add_trace(go.Scatter(
+                x=df_evolution['report_date'], 
+                y=df_evolution['KP Total'],
+                mode='lines+markers',
+                name='KP Total',
+                line=dict(color='#d4a847', width=2),
+                marker=dict(size=6)
+            ))
+
+            fig.update_layout(
+                title="Crescimento do Reino ao Longo do Tempo",
+                paper_bgcolor="rgba(0,0,0,0)", 
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#9ab0cc", family="Inter", size=12),
+                yaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False),
+                xaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
+                hovermode="x unified"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Nota sobre dados
+            st.caption(f"🔄 Baseado em {len(df_evolution)} relatórios importados desde {df_evolution.iloc[0]['report_date']}.")
+        else:
+            st.info("📉 Importe mais relatórios para ver a evolução do Reino em gráfico de área.")
+    # ══════════════════════════════════════════════════════════════════════════
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab — Profile (Tracker)
@@ -1568,15 +1667,16 @@ def show_profile(storage, imports, gp):
 
     if px is not None:
         fig = go.Figure()
+        # Gráfico do perfil também alterado para curva spline
         fig.add_trace(go.Scatter(
             x=player_data['report_date'], y=player_data['kill_points'],
             mode='lines+markers', name='Kill Points (cumulative)',
-            line=dict(color='#d4a847'),
+            line=dict(color='#d4a847', shape='spline'),
         ))
         fig.add_trace(go.Scatter(
             x=player_data['report_date'], y=player_data.get('dead_equiv', 0),
             mode='lines+markers', name='Deaths T4eq (cumulative)',
-            line=dict(color='#4a7cba'),
+            line=dict(color='#4a7cba', shape='spline'),
         ))
         fig.update_layout(
             title=f"Cumulative stats — {selected_player}",
