@@ -637,7 +637,8 @@ def existing_kingdoms(storage, active_kvk_id: str | None = None, active_camps: p
         
         kingdom_name = st.text_input("Número do Reino (ex: 1501):", placeholder="1501", max_chars=4)
         
-        existing_kingdoms_df = storage.get_kingdoms_by_camp(camp_id)
+        # 🔴 CORREÇÃO AQUI: Usando load_kingdom_stats para bater com seu storage.py
+        existing_kingdoms_df = storage.load_kingdom_stats(camp_id)
         if not existing_kingdoms_df.empty:
             st.caption(f"Reinos já cadastrados: {', '.join(existing_kingdoms_df['kingdom_name'].tolist())}")
         
@@ -987,7 +988,7 @@ def show_kvk(storage, imports, group_power, *, is_admin, admin_enabled):
             st.markdown(f'<div class="sec-label">Acampamento: {camp_name}</div>', unsafe_allow_html=True)
             
             # pega reinos
-            kingdoms_df = storage.get_kingdoms_by_camp(camp_id)
+            kingdoms_df = storage.load_kingdom_stats(camp_id)
             
             if kingdoms_df.empty:
                 st.info(f"Nenhum reino cadastrado ainda.")
@@ -1031,7 +1032,7 @@ def show_kvk(storage, imports, group_power, *, is_admin, admin_enabled):
                         kingdom_clean = re.sub(r'^[Kk]', '', new_kingdom.strip())
                         if kingdom_clean.isdigit() and len(kingdom_clean) >= 3:
                             # verifica se ja existe
-                            existing = storage.get_kingdoms_by_camp(camp_id)
+                            existing = storage.load_kingdom_stats(camp_id)
                             if not existing.empty and kingdom_clean in existing['kingdom_name'].values:
                                 st.error(f"Reino {kingdom_clean} já cadastrado!")
                             else:
