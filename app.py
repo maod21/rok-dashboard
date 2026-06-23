@@ -1656,21 +1656,21 @@ def show_imports(imports, storage, *, is_admin, admin_enabled):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab — Help
+# Tab — Help 
 # ══════════════════════════════════════════════════════════════════════════════
 
 def show_help():
-    st.markdown('<div class="sec-label">Quick reference</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Quick Reference</div>', unsafe_allow_html=True)
     st.markdown("""
-**Kill Points formula:** `KP = T5×20 + T4×10 + T3×4 + T2×2 + T1×0.2`
+**Kill Points (KP) Formula:** `KP = T5×20 + T4×10 + T3×4 + T2×2 + T1×0.2`
 
-**Death equivalence:** 1 T5 death = 2 T4 deaths.
-The system converts automatically: `equiv = (T5deaths × 2) + T4deaths`
+**Death Equivalence:** 1 T5 death = 2 T4 deaths.
+The system converts automatically: `equiv = (T5_deaths × 2) + T4_deaths`
 
 **Main Ranking (⚔ Ranking tab):**
-Uses **sum of all reports** in the selected date range.
+Uses the **sum of all reports** in the selected date range.
 All KP and deaths are summed across every report in the period.
-Use the date pickers and sidebar filters to narrow down your analysis.
+Use the date pickers and sidebar filters to refine your analysis.
 
 **Sidebar Filters:**
 - **Power Min:** Minimum power to include (in millions)
@@ -1686,15 +1686,12 @@ Use the date pickers and sidebar filters to narrow down your analysis.
 **Gamification:**
 - 🛡️ Top 5% Deaths  |  🔥 2× KP Goal  |  🐋 100M+ Power
 
-**Hall of Fame:**
+**Hall of Fame (🏆 Hall of Fame tab):**
 Automatically computed from the KvK events created in the 🛡 KvK tab.
-Each KvK shows the top 10 KP and top 10 Deaths as a sum of all reports
-within the event's date window.
-
-**Nova Senha de Upload:** A senha para importar planilhas é: `UXUI1602!`
-**KvK:** Administradores podem criar campanhas. Escolha a história para gerar os acampamentos automaticamente.
-**Upload Multi-Reino:** Ao importar uma planilha dentro de uma campanha ativa, o sistema perguntará a qual acampamento ela pertence.
+Each KvK shows the Top 10 KP and Top 10 Deaths as a sum of all reports within the event's date window.
 """)
+
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
