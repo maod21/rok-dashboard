@@ -35,7 +35,7 @@ class SQLiteStorage:
         self._init_schema()
 
     # =================================================================
-    # SISTEMA DE IMPORTS (Base para todo o resto - Mantido 100%)
+    # SISTEMA DE IMPORTS (Base para todo o resto)
     # =================================================================
 
     def list_imports(self) -> pd.DataFrame:
@@ -107,10 +107,9 @@ class SQLiteStorage:
         self.save_goal_bands(default_goal_bands())
 
     # =================================================================
-    # NOVA ARQUITETURA: KvK CAMPAIGNS, REALMS, UPLOADS
+    # NOVA ARQUITETURA: KvK CAMPAIGNS, REALMS, UPLOADS (SQLite)
     # =================================================================
 
-    # 1. Campanhas (KvK)
     def create_campaign(self, name: str, story_type: str, start_date: str, end_date: str) -> str:
         campaign_id = str(uuid.uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
@@ -143,9 +142,7 @@ class SQLiteStorage:
             cursor = self.connection.execute("delete from rok_kvk_campaigns where id = ?", (campaign_id,))
         return cursor.rowcount > 0
 
-    # 2. Acampamentos e Reinos
     def add_realm(self, campaign_id: str, camp_name: str, kingdom_name: str) -> str:
-        # Verifica se o reino já existe na campanha para não duplicar
         existing = self.connection.execute(
             "select id from rok_kvk_realms where campaign_id = ? and kingdom_name = ?",
             (campaign_id, kingdom_name)
@@ -160,7 +157,6 @@ class SQLiteStorage:
                 "insert into rok_kvk_realms (id, campaign_id, camp_name, kingdom_name, created_at) values (?, ?, ?, ?, ?)",
                 (realm_id, campaign_id, camp_name, kingdom_name, created_at)
             )
-            # Inicializa os agregados do reino com 0
             self.connection.execute(
                 "insert into rok_kvk_aggregates (id, realm_id) values (?, ?)",
                 (str(uuid.uuid4()), realm_id)
@@ -202,9 +198,8 @@ class SQLiteStorage:
         ).fetchone()
         return dict(row) if row else None
 
-    # 3. Uploads de Reinos e Atualização de Agregados
     def add_upload_to_realm(self, realm_id: str, import_id: str, filename: str, report_date: str, 
-                             total_kp: int, total_deaths: int, player_count: int) -> str:
+                            total_kp: int, total_deaths: int, player_count: int) -> str:
         upload_id = str(uuid.uuid4())
         uploaded_at = datetime.now(timezone.utc).isoformat()
         with self.connection:
@@ -216,7 +211,6 @@ class SQLiteStorage:
                 """,
                 (upload_id, realm_id, import_id, filename, report_date, uploaded_at, total_kp, total_deaths, player_count)
             )
-            # Atualiza os agregados do reino (soma acumulada)
             self.connection.execute(
                 """
                 update rok_kvk_aggregates 
@@ -243,7 +237,6 @@ class SQLiteStorage:
         )
 
     def delete_upload(self, upload_id: str) -> bool:
-        # Antes de deletar, precisamos subtrair dos agregados
         upload = self.connection.execute(
             "select realm_id, total_kp, total_deaths from rok_kvk_uploads where id = ?",
             (upload_id,)
@@ -252,16 +245,13 @@ class SQLiteStorage:
             return False
         
         with self.connection:
-            # Atualiza agregados (subtrai)
             self.connection.execute(
                 "update rok_kvk_aggregates set total_kp = total_kp - ?, total_deaths = total_deaths - ? where realm_id = ?",
                 (upload["total_kp"], upload["total_deaths"], upload["realm_id"])
             )
-            # Deleta registro de upload
             self.connection.execute("delete from rok_kvk_uploads where id = ?", (upload_id,))
         return True
 
-    # 4. Métricas e Dashboards
     def get_realm_dashboard(self, realm_id: str) -> dict:
         realm = self.get_realm(realm_id)
         if not realm:
@@ -280,10 +270,103 @@ class SQLiteStorage:
             }
         }
 
-    # 5. Inicialização do Schema (Compatibilidade Total)
+    # =================================================================
+    # ADAPTADORES DE COMPATIBILIDADE (SQLite)
+    # =================================================================
+
+    def list_kvk_events(self) -> pd.DataFrame:
+        return self.list_campaigns()
+
+    def delete_kvk_event(self, kvk_id: str) -> bool:
+        return self.delete_campaign(kvk_id)
+
+    def save_kvk_structure(self, name: str, story_type: str, start_date: str, end_date: str, camps: list) -> str:
+        campaign_id = self.create_campaign(name, story_type, start_date, end_date)
+        for camp in camps:
+            if camp.get("kingdom"):
+                self.add_realm(campaign_id, camp["name"], camp["kingdom"])
+        return campaign_id
+
+    def load_kvk_camps(self, kvk_id: str) -> pd.DataFrame:
+        campaign = self.get_campaign(kvk_id)
+        if not campaign:
+            return pd.DataFrame()
+        
+        KVK_STORIES = {
+            "Heroic Anthem": ["Fire", "Water", "Earth", "Wind"],
+            "Heroic Anthem: Power Up": ["Fire", "Water", "Earth", "Wind"],
+            "Desert Conquest": ["Fire", "Water", "Earth", "Wind"],
+            "Orleans Campaign": ["Fire", "Water", "Earth", "Wind"],
+            "Nile": ["Fire", "Water", "Earth", "Wind"],
+            "Warriors Unbound": ["Fire", "Water", "Earth", "Wind"],
+            "Kingdom of Aurics": ["Aurics", "Glaciers", "Storms", "Embers", "Tides", "Verdure"],
+            "Strife of the Eight": ["Dragon", "Tiger", "Lion", "Bear", "Wolf", "Raven", "Lotus", "Viper"],
+        }
+        
+        camps = KVK_STORIES.get(campaign["story_type"], [])
+        data = [{"id": f"{kvk_id}||{c}", "camp_name": c} for c in camps]
+        return pd.DataFrame(data)
+
+    def load_kingdom_stats(self, camp_id: str) -> pd.DataFrame:
+        if "||" not in camp_id: return pd.DataFrame()
+        kvk_id, camp_name = camp_id.split("||")
+        
+        realms_df = self.list_realms(kvk_id)
+        if realms_df.empty: return pd.DataFrame()
+        
+        # Garante contagem de uploads se requisitada pela interface
+        if "upload_count" not in realms_df.columns:
+            realms_df["upload_count"] = 0
+            for idx, row in realms_df.iterrows():
+                ups = self.get_uploads_by_realm(row["id"])
+                realms_df.at[idx, "upload_count"] = len(ups)
+
+        return realms_df[realms_df["camp_name"] == camp_name].copy()
+
+    def add_empty_kingdom(self, camp_id: str, kingdom_name: str) -> None:
+        if "||" not in camp_id: return
+        kvk_id, camp_name = camp_id.split("||")
+        self.add_realm(kvk_id, camp_name, kingdom_name)
+
+    def save_kingdom_stats(self, kvk_camp_id: str, import_id: str, kingdom_name: str, total_kp: int, total_deaths: int, player_count: int) -> None:
+        if "||" not in kvk_camp_id: return
+        campaign_id, camp_name = kvk_camp_id.split("||")
+        
+        realms = self.list_realms(campaign_id)
+        realm_id = None
+        if not realms.empty:
+            matches = realms[(realms["camp_name"] == camp_name) & (realms["kingdom_name"] == str(kingdom_name))]
+            if not matches.empty:
+                realm_id = matches.iloc[0]["id"]
+                
+        if not realm_id:
+            realm_id = self.add_realm(campaign_id, camp_name, str(kingdom_name))
+            
+        imports = self.list_imports()
+        imp_row = imports[imports["id"] == import_id]
+        if imp_row.empty: return
+        
+        filename = imp_row.iloc[0]["filename"]
+        report_date = imp_row.iloc[0]["report_date"]
+        
+        self.add_upload_to_realm(realm_id, import_id, filename, report_date, total_kp, total_deaths, player_count)
+
+    def delete_kingdom_from_camp(self, camp_id: str, kingdom_name: str) -> None:
+        if "||" not in camp_id: return
+        campaign_id, camp_name = camp_id.split("||")
+        
+        realms = self.list_realms(campaign_id)
+        if not realms.empty:
+            matches = realms[(realms["camp_name"] == camp_name) & (realms["kingdom_name"] == str(kingdom_name))]
+            if not matches.empty:
+                self.remove_realm(matches.iloc[0]["id"])
+
+    # =================================================================
+    # Inicialização do Schema
+    # =================================================================
+
     def _init_schema(self) -> None:
         with self.connection:
-            # Tabelas Antigas (Mantidas)
             self.connection.execute("""
                 create table if not exists rok_imports (
                     id text primary key, filename text not null, report_date text not null,
@@ -311,7 +394,6 @@ class SQLiteStorage:
                 )
             """)
 
-            # TABELAS NOVAS (Centro de Comando)
             self.connection.execute("""
                 create table if not exists rok_kvk_campaigns (
                     id text primary key, name text not null, story_type text not null,
@@ -347,7 +429,7 @@ class SQLiteStorage:
 
 
 # =================================================================
-# SupabaseStorage (Nuvem - Estrutura Idêntica)
+# SupabaseStorage (Nuvem)
 # =================================================================
 
 class SupabaseStorage:
@@ -359,7 +441,6 @@ class SupabaseStorage:
         self._url = url
         self._key = key
 
-    # 1. Importações (Mantidas)
     def list_imports(self) -> pd.DataFrame:
         data = self._select_all("rok_imports", "id, filename, report_date, imported_at, file_hash, row_count", order=("report_date", True))
         return _ensure_import_columns(pd.DataFrame(data))
@@ -408,10 +489,6 @@ class SupabaseStorage:
     def reset_goal_bands(self) -> None:
         self.save_goal_bands(default_goal_bands())
 
-    # =================================================================
-    # NOVA ARQUITETURA: KvK (Supabase)
-    # =================================================================
-
     def create_campaign(self, name: str, story_type: str, start_date: str, end_date: str) -> str:
         campaign_id = str(uuid.uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
@@ -444,7 +521,6 @@ class SupabaseStorage:
             "id": realm_id, "campaign_id": campaign_id,
             "camp_name": camp_name, "kingdom_name": kingdom_name, "created_at": created_at
         }).execute()
-        # Cria agregados
         self.client.table("rok_kvk_aggregates").insert({"id": str(uuid.uuid4()), "realm_id": realm_id}).execute()
         return realm_id
 
@@ -461,7 +537,6 @@ class SupabaseStorage:
         if not data:
             return pd.DataFrame()
         
-        # Busca agregados para cada reino
         realms_list = []
         for realm in data:
             agg = self.client.table("rok_kvk_aggregates").select("total_kp, total_deaths, player_count, last_upload_at").eq("realm_id", realm["id"]).execute().data
@@ -476,7 +551,7 @@ class SupabaseStorage:
         return data[0] if data else None
 
     def add_upload_to_realm(self, realm_id: str, import_id: str, filename: str, report_date: str, 
-                             total_kp: int, total_deaths: int, player_count: int) -> str:
+                            total_kp: int, total_deaths: int, player_count: int) -> str:
         upload_id = str(uuid.uuid4())
         uploaded_at = datetime.now(timezone.utc).isoformat()
         self.client.table("rok_kvk_uploads").insert({
@@ -485,7 +560,6 @@ class SupabaseStorage:
             "total_kp": total_kp, "total_deaths": total_deaths, "player_count": player_count
         }).execute()
         
-        # Atualiza Agregados
         agg = self.client.table("rok_kvk_aggregates").select("total_kp, total_deaths").eq("realm_id", realm_id).execute().data
         if agg:
             new_kp = agg[0]["total_kp"] + total_kp
@@ -530,6 +604,100 @@ class SupabaseStorage:
                 "death_growth": int(uploads["total_deaths"].max() - uploads["total_deaths"].min()) if len(uploads) > 1 else 0,
             }
         }
+
+    # =================================================================
+    # ADAPTADORES DE COMPATIBILIDADE (Supabase)
+    # =================================================================
+
+    def list_kvk_events(self) -> pd.DataFrame:
+        return self.list_campaigns()
+
+    def delete_kvk_event(self, kvk_id: str) -> bool:
+        return self.delete_campaign(kvk_id)
+
+    def save_kvk_structure(self, name: str, story_type: str, start_date: str, end_date: str, camps: list) -> str:
+        campaign_id = self.create_campaign(name, story_type, start_date, end_date)
+        for camp in camps:
+            if camp.get("kingdom"):
+                self.add_realm(campaign_id, camp["name"], camp["kingdom"])
+        return campaign_id
+
+    def load_kvk_camps(self, kvk_id: str) -> pd.DataFrame:
+        campaign = self.get_campaign(kvk_id)
+        if not campaign:
+            return pd.DataFrame()
+        
+        KVK_STORIES = {
+            "Heroic Anthem": ["Fire", "Water", "Earth", "Wind"],
+            "Heroic Anthem: Power Up": ["Fire", "Water", "Earth", "Wind"],
+            "Desert Conquest": ["Fire", "Water", "Earth", "Wind"],
+            "Orleans Campaign": ["Fire", "Water", "Earth", "Wind"],
+            "Nile": ["Fire", "Water", "Earth", "Wind"],
+            "Warriors Unbound": ["Fire", "Water", "Earth", "Wind"],
+            "Kingdom of Aurics": ["Aurics", "Glaciers", "Storms", "Embers", "Tides", "Verdure"],
+            "Strife of the Eight": ["Dragon", "Tiger", "Lion", "Bear", "Wolf", "Raven", "Lotus", "Viper"],
+        }
+        
+        camps = KVK_STORIES.get(campaign["story_type"], [])
+        data = [{"id": f"{kvk_id}||{c}", "camp_name": c} for c in camps]
+        return pd.DataFrame(data)
+
+    def load_kingdom_stats(self, camp_id: str) -> pd.DataFrame:
+        if "||" not in camp_id: return pd.DataFrame()
+        kvk_id, camp_name = camp_id.split("||")
+        
+        realms_df = self.list_realms(kvk_id)
+        if realms_df.empty: return pd.DataFrame()
+        
+        if "upload_count" not in realms_df.columns:
+            realms_df["upload_count"] = 0
+            for idx, row in realms_df.iterrows():
+                ups = self.get_uploads_by_realm(row["id"])
+                realms_df.at[idx, "upload_count"] = len(ups)
+
+        return realms_df[realms_df["camp_name"] == camp_name].copy()
+
+    def add_empty_kingdom(self, camp_id: str, kingdom_name: str) -> None:
+        if "||" not in camp_id: return
+        kvk_id, camp_name = camp_id.split("||")
+        self.add_realm(kvk_id, camp_name, kingdom_name)
+
+    def save_kingdom_stats(self, kvk_camp_id: str, import_id: str, kingdom_name: str, total_kp: int, total_deaths: int, player_count: int) -> None:
+        if "||" not in kvk_camp_id: return
+        campaign_id, camp_name = kvk_camp_id.split("||")
+        
+        realms = self.list_realms(campaign_id)
+        realm_id = None
+        if not realms.empty:
+            matches = realms[(realms["camp_name"] == camp_name) & (realms["kingdom_name"] == str(kingdom_name))]
+            if not matches.empty:
+                realm_id = matches.iloc[0]["id"]
+                
+        if not realm_id:
+            realm_id = self.add_realm(campaign_id, camp_name, str(kingdom_name))
+            
+        imports = self.list_imports()
+        imp_row = imports[imports["id"] == import_id]
+        if imp_row.empty: return
+        
+        filename = imp_row.iloc[0]["filename"]
+        report_date = imp_row.iloc[0]["report_date"]
+        
+        self.add_upload_to_realm(realm_id, import_id, filename, report_date, total_kp, total_deaths, player_count)
+
+    def delete_kingdom_from_camp(self, camp_id: str, kingdom_name: str) -> None:
+        if "||" not in camp_id: return
+        campaign_id, camp_name = camp_id.split("||")
+        
+        realms = self.list_realms(campaign_id)
+        if not realms.empty:
+            matches = realms[(realms["camp_name"] == camp_name) & (realms["kingdom_name"] == str(kingdom_name))]
+            if not matches.empty:
+                self.remove_realm(matches.iloc[0]["id"])
+
+    # =================================================================
+    # Utilitários Internos
+    # =================================================================
 
     def _select_all(self, table, columns, *, filters=None, order=None):
         rows  = []
