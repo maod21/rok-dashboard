@@ -664,7 +664,7 @@ def main() -> None:
 # Sidebar helpers
 # ══════════════════════════════════════════════════════════════════════════════
 
-# 🆕 NOVO HANDLE_UPLOAD COM DUPLA SENHA E MULTI-REINO
+# 🆕 NOVO HANDLE_UPLOAD COM DUPLA SENHA, MULTI-REINO E 4 DÍGITOS
 def handle_upload(storage, active_kvk_id: str | None = None, active_camps: pd.DataFrame | None = None):
     upload_pwd = get_secret("UPLOAD_PASSWORD")
     admin_pwd  = get_secret("ADMIN_PASSWORD")
@@ -710,15 +710,28 @@ def handle_upload(storage, active_kvk_id: str | None = None, active_camps: pd.Da
         selected_camp = st.selectbox("Selecione o Acampamento deste Reino:", camp_options)
         
         camp_row = active_camps[active_camps["camp_name"] == selected_camp].iloc[0]
-        existing_kingdom = camp_row.get("kingdom", "")
-        if existing_kingdom:
-            st.info(f"Reino já cadastrado neste acampamento: **{existing_kingdom}**")
-            kingdom_name = existing_kingdom
-        else:
-            kingdom_name = st.text_input("Digite o nome do Reino (ex: K1501):", placeholder="K1501")
+        camp_id = camp_row["id"]
         
-        if kingdom_name:
-            camp_id = camp_row["id"]
+        # Permite digitar o número do reino (apenas 4 números) sem o "K"
+        kingdom_name = st.text_input(
+            "Digite o número do Reino (ex: 1501):",
+            placeholder="1501",
+            max_chars=4,
+            help="Digite apenas os 4 números do reino (ex: 1602, 1501)"
+        )
+        
+        # Se o usuário já tiver digitado um reino antes, mostra ele
+        existing_kingdoms = storage.get_kingdoms_by_camp(camp_id)
+        if existing_kingdoms:
+            st.caption(f"Reinos já cadastrados neste acampamento: {', '.join(existing_kingdoms)}")
+        
+        if kingdom_name and len(kingdom_name) == 4 and kingdom_name.isdigit():
+            # Salva apenas o número de 4 dígitos (sem o K)
+            kingdom_name = kingdom_name.strip()
+        else:
+            if kingdom_name:
+                st.warning("Por favor, digite apenas os 4 números do reino (ex: 1602).")
+            kingdom_name = None
 
     if not st.button("💾 Salvar relatório", type="primary", use_container_width=True): return
 
@@ -1656,7 +1669,7 @@ def show_imports(imports, storage, *, is_admin, admin_enabled):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab — Help 
+# Tab — Help (CLEAN ENGLISH VERSION)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def show_help():
@@ -1689,10 +1702,13 @@ Use the date pickers and sidebar filters to refine your analysis.
 **Hall of Fame (🏆 Hall of Fame tab):**
 Automatically computed from the KvK events created in the 🛡 KvK tab.
 Each KvK shows the Top 10 KP and Top 10 Deaths as a sum of all reports within the event's date window.
+
+---
+**🆕 New Features:**
+- **Upload Password:** The password to import enemy kingdom spreadsheets is: `UXUI1602!`
+- **KvK:** Administrators can create campaigns. Choose the story to generate the camps automatically.
+- **Multi-Kingdom Upload:** When importing a spreadsheet within an active campaign, the system will ask which camp it belongs to.
 """)
-
-
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Formatters
