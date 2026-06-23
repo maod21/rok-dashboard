@@ -16,7 +16,6 @@ from rok_metrics import OUTPUT_COLUMNS
 
 SQLITE_PATH = Path(os.getenv("ROK_SQLITE_PATH", "data/rok_dashboard.sqlite"))
 STATS_TABLE_COLUMNS = ["import_id", *OUTPUT_COLUMNS]
-
 SUPABASE_BATCH_SIZE = 500
 
 
@@ -103,10 +102,9 @@ class SQLiteStorage:
     def reset_goal_bands(self) -> None:
         self.save_goal_bands(default_goal_bands())
 
-    # ── NOVAS FUNÇÕES: KvK Structure ──────────────────────────────────
+    # KvK Structure
 
     def save_kvk_structure(self, *, name: str, story_type: str, start_date: str, end_date: str, camps: list[dict]) -> str:
-        """Cria a estrutura do KvK e suas facções."""
         kvk_id   = str(uuid.uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
         with self.connection:
@@ -146,35 +144,118 @@ class SQLiteStorage:
                 (kingdom_name, camp_id),
             )
 
-    # ── NOVAS FUNÇÕES: Dados de Reinos Inimigos ──────────────────────
+    # Gerenciamento de Reinos (novo)
 
-    def save_kingdom_stats(self, *, kvk_camp_id: str, import_id: str, kingdom_name: str, total_kp: int, total_deaths: int, player_count: int):
+    def add_empty_kingdom(self, camp_id: str, kingdom_name: str) -> bool:
+        # ve se ja existe
+        existing = self.connection.execute(
+            "select id from rok_kvk_kingdom_stats where kvk_camp_id = ? and kingdom_name = ?",
+            (camp_id, kingdom_name)
+        ).fetchone()
+        
+        if existing:
+            return False
+        
         stats_id = str(uuid.uuid4())
+        uploaded_at = datetime.now(timezone.utc).isoformat()
+        
         with self.connection:
             self.connection.execute(
                 """
-                insert into rok_kvk_kingdom_stats (id, kvk_camp_id, import_id, kingdom_name, total_kp, total_deaths, player_count)
-                values (?, ?, ?, ?, ?, ?, ?)
+                insert into rok_kvk_kingdom_stats (id, kvk_camp_id, import_id, kingdom_name, total_kp, total_deaths, player_count, uploaded_at)
+                values (?, ?, ?, ?, 0, 0, 0, ?)
                 """,
-                (stats_id, kvk_camp_id, import_id, kingdom_name, total_kp, total_deaths, player_count),
+                (stats_id, camp_id, "", kingdom_name, uploaded_at),
             )
+        return True
 
-    def load_kingdom_stats(self, kvk_camp_id: str) -> pd.DataFrame:
+    def save_kingdom_stats(self, *, kvk_camp_id: str, import_id: str, kingdom_name: str, total_kp: int, total_deaths: int, player_count: int):
+        # salva um upload de stats de reino (acumula historico)
+        stats_id = str(uuid.uuid4())
+        uploaded_at = datetime.now(timezone.utc).isoformat()
+        
+        with self.connection:
+            self.connection.execute(
+                """
+                insert into rok_kvk_kingdom_stats (id, kvk_camp_id, import_id, kingdom_name, total_kp, total_deaths, player_count, uploaded_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (stats_id, kvk_camp_id, import_id, kingdom_name, total_kp, total_deaths, player_count, uploaded_at),
+            )
+        return stats_id
+
+    def get_kingdoms_by_camp(self, camp_id: str) -> pd.DataFrame:
+        # retorna reinos do acampamento com stats agregados (soma kp/mortes)
         return pd.read_sql_query(
             """
-            select id, kingdom_name, total_kp, total_deaths, player_count, uploaded_at
+            select 
+                kingdom_name,
+                sum(total_kp) as total_kp,
+                sum(total_deaths) as total_deaths,
+                max(player_count) as player_count,
+                max(uploaded_at) as uploaded_at,
+                count(*) as total_uploads
             from rok_kvk_kingdom_stats
             where kvk_camp_id = ?
+            group by kingdom_name
+            order by total_kp desc
+            """,
+            self.connection,
+            params=(camp_id,),
+        )
+
+    def get_kingdom_history(self, camp_id: str, kingdom_name: str) -> pd.DataFrame:
+        # historico de uploads de um reino especifico
+        return pd.read_sql_query(
+            """
+            select 
+                id, import_id, kingdom_name, total_kp, total_deaths, 
+                player_count, uploaded_at
+            from rok_kvk_kingdom_stats
+            where kvk_camp_id = ? and kingdom_name = ?
             order by uploaded_at desc
             """,
             self.connection,
-            params=(kvk_camp_id,),
+            params=(camp_id, kingdom_name),
         )
 
-    # ── KvK Events (Legado) ────────────────────────────────────────────
+    def delete_kingdom_from_camp(self, camp_id: str, kingdom_name: str) -> bool:
+        # remove um reino e todos os uploads dele do acampamento
+        with self.connection:
+            cursor = self.connection.execute(
+                "delete from rok_kvk_kingdom_stats where kvk_camp_id = ? and kingdom_name = ?",
+                (camp_id, kingdom_name),
+            )
+        return cursor.rowcount > 0
+
+    def load_kingdom_stats(self, kvk_camp_id: str) -> pd.DataFrame:
+        # mantido pra compatibilidade
+        return self.get_kingdoms_by_camp(kvk_camp_id)
+
+    def get_all_kingdoms_in_kvk(self, kvk_id: str) -> pd.DataFrame:
+        # todos os reinos de todos acampamentos de um kvk
+        return pd.read_sql_query(
+            """
+            select 
+                c.camp_name,
+                ks.kingdom_name,
+                sum(ks.total_kp) as total_kp,
+                sum(ks.total_deaths) as total_deaths,
+                max(ks.player_count) as player_count,
+                max(ks.uploaded_at) as uploaded_at
+            from rok_kvk_camps c
+            left join rok_kvk_kingdom_stats ks on c.id = ks.kvk_camp_id
+            where c.kvk_id = ?
+            group by c.camp_name, ks.kingdom_name
+            order by c.sort_order, total_kp desc
+            """,
+            self.connection,
+            params=(kvk_id,),
+        )
+
+    # KvK Events (Legado)
 
     def save_kvk_event(self, *, name: str, start_date: str, end_date: str) -> str:
-        """Legacy support for old KvK events."""
         return self.save_kvk_structure(
             name=name, story_type="Legacy", start_date=start_date, end_date=end_date, camps=[]
         )
@@ -306,7 +387,7 @@ class SupabaseStorage:
     def reset_goal_bands(self) -> None:
         self.save_goal_bands(default_goal_bands())
 
-    # ── NOVAS FUNÇÕES: KvK Structure (Supabase) ──────────────────────
+    # KvK Structure (Supabase)
 
     def save_kvk_structure(self, *, name: str, story_type: str, start_date: str, end_date: str, camps: list[dict]) -> str:
         kvk_id   = str(uuid.uuid4())
@@ -336,19 +417,76 @@ class SupabaseStorage:
     def update_camp_kingdom(self, camp_id: str, kingdom_name: str) -> None:
         self.client.table("rok_kvk_camps").update({"kingdom": kingdom_name}).eq("id", camp_id).execute()
 
+    # Gerenciamento de Reinos (Supabase)
+
+    def add_empty_kingdom(self, camp_id: str, kingdom_name: str) -> bool:
+        existing = self.client.table("rok_kvk_kingdom_stats").select("id").eq("kvk_camp_id", camp_id).eq("kingdom_name", kingdom_name).limit(1).execute().data
+        if existing:
+            return False
+        
+        stats_id = str(uuid.uuid4())
+        uploaded_at = datetime.now(timezone.utc).isoformat()
+        self.client.table("rok_kvk_kingdom_stats").insert({
+            "id": stats_id, "kvk_camp_id": camp_id, "import_id": "",
+            "kingdom_name": kingdom_name, "total_kp": 0, "total_deaths": 0,
+            "player_count": 0, "uploaded_at": uploaded_at
+        }).execute()
+        return True
+
     def save_kingdom_stats(self, *, kvk_camp_id: str, import_id: str, kingdom_name: str, total_kp: int, total_deaths: int, player_count: int):
         stats_id = str(uuid.uuid4())
+        uploaded_at = datetime.now(timezone.utc).isoformat()
         self.client.table("rok_kvk_kingdom_stats").insert({
             "id": stats_id, "kvk_camp_id": kvk_camp_id, "import_id": import_id,
             "kingdom_name": kingdom_name, "total_kp": total_kp,
-            "total_deaths": total_deaths, "player_count": player_count
+            "total_deaths": total_deaths, "player_count": player_count,
+            "uploaded_at": uploaded_at
         }).execute()
+        return stats_id
 
-    def load_kingdom_stats(self, kvk_camp_id: str) -> pd.DataFrame:
-        data = self._select_all("rok_kvk_kingdom_stats", "id, kingdom_name, total_kp, total_deaths, player_count, uploaded_at", filters={"kvk_camp_id": kvk_camp_id}, order=("uploaded_at", True))
+    def get_kingdoms_by_camp(self, camp_id: str) -> pd.DataFrame:
+        data = self._select_all("rok_kvk_kingdom_stats", "kingdom_name, total_kp, total_deaths, player_count, uploaded_at", filters={"kvk_camp_id": camp_id}, order=("total_kp", True))
+        if not data:
+            return pd.DataFrame()
+        df = pd.DataFrame(data)
+        # agrupa igual sqlite
+        if not df.empty:
+            df = df.groupby('kingdom_name').agg({
+                'total_kp': 'sum', 'total_deaths': 'sum',
+                'player_count': 'max', 'uploaded_at': 'max'
+            }).reset_index()
+            df['total_uploads'] = 1  # simplificado
+            df = df.sort_values('total_kp', ascending=False)
+        return df
+
+    def get_kingdom_history(self, camp_id: str, kingdom_name: str) -> pd.DataFrame:
+        data = self._select_all("rok_kvk_kingdom_stats", "*", filters={"kvk_camp_id": camp_id, "kingdom_name": kingdom_name}, order=("uploaded_at", True))
         return pd.DataFrame(data) if data else pd.DataFrame()
 
-    # ── KvK Events (Legacy) ────────────────────────────────────────────
+    def delete_kingdom_from_camp(self, camp_id: str, kingdom_name: str) -> bool:
+        result = self.client.table("rok_kvk_kingdom_stats").delete().eq("kvk_camp_id", camp_id).eq("kingdom_name", kingdom_name).execute()
+        return bool(result.data)
+
+    def load_kingdom_stats(self, kvk_camp_id: str) -> pd.DataFrame:
+        return self.get_kingdoms_by_camp(kvk_camp_id)
+
+    def get_all_kingdoms_in_kvk(self, kvk_id: str) -> pd.DataFrame:
+        camps_data = self._select_all("rok_kvk_camps", "id, camp_name", filters={"kvk_id": kvk_id})
+        if not camps_data:
+            return pd.DataFrame()
+        
+        all_kingdoms = []
+        for camp in camps_data:
+            kingdoms = self.get_kingdoms_by_camp(camp['id'])
+            if not kingdoms.empty:
+                kingdoms['camp_name'] = camp['camp_name']
+                all_kingdoms.append(kingdoms)
+        
+        if not all_kingdoms:
+            return pd.DataFrame()
+        return pd.concat(all_kingdoms, ignore_index=True)
+
+    # KvK Events (Legacy)
 
     def save_kvk_event(self, *, name: str, start_date: str, end_date: str) -> str:
         return self.save_kvk_structure(name=name, story_type="Legacy", start_date=start_date, end_date=end_date, camps=[])
