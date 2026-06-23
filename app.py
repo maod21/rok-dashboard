@@ -1704,10 +1704,7 @@ Automatically computed from the KvK events created in the 🛡 KvK tab.
 Each KvK shows the Top 10 KP and Top 10 Deaths as a sum of all reports within the event's date window.
 
 ---
-**🆕 New Features:**
-- **Upload Password:** The password to import enemy kingdom spreadsheets is: `UXUI1602!`
-- **KvK:** Administrators can create campaigns. Choose the story to generate the camps automatically.
-- **Multi-Kingdom Upload:** When importing a spreadsheet within an active campaign, the system will ask which camp it belongs to.
+
 """)
 
 # ══════════════════════════════════════════════════════════════════════════════
