@@ -1627,7 +1627,7 @@ Each KvK shows the Top 10 KP and Top 10 Deaths as a sum of all reports within th
 3. Faça upload de planilhas na barra lateral selecionando campanha, acampamento e reino
 4. Acompanhe o desempenho por reino e acampamento
 
-**Upload Password:** `UXUI1602!`
+
 """)
 
 if __name__ == "__main__":
