@@ -608,25 +608,25 @@ def _upload_section(storage):
         st.rerun()
 
     # 1. Selecionar a KvK ativa
-    structures = storage.list_kvk_structures()
-    if structures.empty:
+    events = storage.list_kvk_events()   # <--- ALTERADO: usa list_kvk_events
+    if events.empty:
         st.warning("Nenhuma campanha ativa. Crie uma na aba 🏰 KvK.")
         return
     
     # Mostrar apenas campanhas ativas ou futuras
     today = date.today()
-    active_structures = structures[
-        (pd.to_datetime(structures["start_date"]).dt.date <= today) &
-        (pd.to_datetime(structures["end_date"]).dt.date >= today)
+    active_events = events[
+        (pd.to_datetime(events["start_date"]).dt.date <= today) &
+        (pd.to_datetime(events["end_date"]).dt.date >= today)
     ]
     
-    if active_structures.empty:
+    if active_events.empty:
         st.warning("Nenhuma campanha ativa no momento.")
         return
     
-    structures["label"] = structures["name"] + " (" + structures["start_date"] + " → " + structures["end_date"] + ")"
-    kvk_label = st.selectbox("Campanha Ativa", structures["label"].tolist(), key="upload_kvk")
-    kvk_row = structures.loc[structures["label"].eq(kvk_label)].iloc[0]
+    events["label"] = events["name"] + " (" + events["start_date"] + " → " + events["end_date"] + ")"
+    kvk_label = st.selectbox("Campanha Ativa", events["label"].tolist(), key="upload_kvk")
+    kvk_row = events.loc[events["label"].eq(kvk_label)].iloc[0]
     kvk_id = kvk_row["id"]
     
     # 2. Selecionar Acampamento
@@ -1034,6 +1034,7 @@ def show_kvk(storage, imports, group_power, *, is_admin, admin_enabled):
                 elif kvk_end < kvk_start:
                     st.error("Data fim deve ser após início.")
                 else:
+                    # ALTERADO: usa save_kvk_structure (ou create_kvk_event) conforme sua implementação
                     storage.save_kvk_structure(
                         name=kvk_name.strip(),
                         story_type=story_type,
@@ -1045,8 +1046,8 @@ def show_kvk(storage, imports, group_power, *, is_admin, admin_enabled):
                     st.rerun()
 
     # ─── LISTAR CAMPANHAS ───
-    structures = storage.list_kvk_structures()
-    if structures.empty:
+    events = storage.list_kvk_events()   # <--- ALTERADO: usa list_kvk_events
+    if events.empty:
         st.markdown('''
         <div class="empty-state">
           <div class="empty-state-icon">🏰</div>
@@ -1056,9 +1057,9 @@ def show_kvk(storage, imports, group_power, *, is_admin, admin_enabled):
         ''', unsafe_allow_html=True)
         return
 
-    structures["label"] = structures["name"] + "  (" + structures["start_date"] + " → " + structures["end_date"] + ")"
-    chosen_label = st.selectbox("Selecionar Campanha", structures["label"].tolist(), key="kvk_select", label_visibility="collapsed")
-    kvk_row = structures.loc[structures["label"].eq(chosen_label)].iloc[0]
+    events["label"] = events["name"] + "  (" + events["start_date"] + " → " + events["end_date"] + ")"
+    chosen_label = st.selectbox("Selecionar Campanha", events["label"].tolist(), key="kvk_select", label_visibility="collapsed")
+    kvk_row = events.loc[events["label"].eq(chosen_label)].iloc[0]
     kvk_id = kvk_row["id"]
 
     # ─── DASHBOARD DA CAMPANHA ───
