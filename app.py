@@ -426,7 +426,23 @@ def main() -> None:
         st.markdown('<div class="sb-sec">System</div>', unsafe_allow_html=True)
         st.markdown(f'<div style="font-size:.68rem;color:#8398b5;margin-bottom:12px">Storage: <span style="color:#4a7cba;font-weight:bold;">{storage.label}</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="sb-sec">Reports</div>', unsafe_allow_html=True)
-        handle_upload(storage)
+        
+        # 🆕 Carrega a campanha ativa para o upload inteligente
+        active_kvk_id = None
+        active_camps = None
+        structures = storage.list_kvk_structures()
+        if not structures.empty:
+            latest = structures.iloc[0]
+            today = date.today()
+            start = pd.to_datetime(latest["start_date"]).date()
+            end   = pd.to_datetime(latest["end_date"]).date()
+            # Se a campanha estiver ativa, usamos como contexto
+            if start <= today <= end:
+                active_kvk_id = latest["id"]
+                active_camps = storage.load_kvk_camps(active_kvk_id)
+
+        # Chama a função de upload com os parâmetros corretos
+        existing_kingdoms(storage, active_kvk_id, active_camps)
 
     imports = storage.list_imports()
     if imports.empty:
@@ -573,10 +589,10 @@ def main() -> None:
 # HANDLE UPLOAD
 # ═══════════════════════════════════════════════════════════════════
 
-def handle_upload(storage, active_kvk_id: str | None = None, active_camps: pd.DataFrame | None = None):
+def existing_kingdoms(storage, active_kvk_id: str | None = None, active_camps: pd.DataFrame | None = None):
     upload_pwd = get_secret("UPLOAD_PASSWORD")
     admin_pwd  = get_secret("ADMIN_PASSWORD")
-    
+        
     if "upload_auth" not in st.session_state:
         st.session_state.upload_auth = False
 
@@ -621,9 +637,9 @@ def handle_upload(storage, active_kvk_id: str | None = None, active_camps: pd.Da
         
         kingdom_name = st.text_input("Número do Reino (ex: 1501):", placeholder="1501", max_chars=4)
         
-        existing_kingdoms = storage.get_kingdoms_by_camp(camp_id)
-        if not existing_kingdoms.empty:
-            st.caption(f"Reinos já cadastrados: {', '.join(existing_kingdoms['kingdom_name'].tolist())}")
+        existing_kingdoms_df = storage.get_kingdoms_by_camp(camp_id)
+        if not existing_kingdoms_df.empty:
+            st.caption(f"Reinos já cadastrados: {', '.join(existing_kingdoms_df['kingdom_name'].tolist())}")
         
         if kingdom_name and len(kingdom_name) == 4 and kingdom_name.isdigit():
             kingdom_name = kingdom_name.strip()
@@ -656,7 +672,9 @@ def handle_upload(storage, active_kvk_id: str | None = None, active_camps: pd.Da
         except Exception as e:
             st.error(f"Erro: {e}")
     st.rerun()
-    # ═══════════════════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════════════════
 # ABA RANKING
 # ═══════════════════════════════════════════════════════════════════
 
@@ -675,7 +693,6 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
 
     df = ranked_full.copy()
 
-    # emblemas
     if 'dead_equiv' in df.columns:
         top_5_pct_deaths = df['dead_equiv'].quantile(0.95) if len(df) > 0 else float('inf')
     else:
@@ -1408,23 +1425,36 @@ def show_help():
 **Kill Points (KP) Formula:** `KP = T5×20 + T4×10 + T3×4 + T2×2 + T1×0.2`
 
 **Death Equivalence:** 1 T5 death = 2 T4 deaths.
+The system converts automatically: `equiv = (T5_deaths × 2) + T4_deaths`
 
-**Main Ranking:** Uses the sum of all reports in the selected date range.
+**Main Ranking (⚔ Ranking tab):**
+Uses the **sum of all reports** in the selected date range.
+All KP and deaths are summed across every report in the period.
+Use the date pickers and sidebar filters to refine your analysis.
 
 **Sidebar Filters:**
-- Power Min, KP Min, % KP Min, % Deaths Min
+- **Power Min:** Minimum power to include (in millions)
+- **KP Min:** Minimum kill points to include
+- **% KP Min:** Minimum percentage of KP goal reached
+- **% Deaths Min:** Minimum percentage of death goal reached
 
 **Status:**
-- ✅ Approved — reached both goals
-- 🟡 Pending — ≥75% on both
-- ❌ Below goal — <75% on either
+- ✅ Approved — reached both KP and death goals
+- 🟡 Pending — ≥75% on both goals
+- ❌ Below goal — <75% on either goal
 
 **Gamification:**
-- 🛡️ Top 5% Deaths | 🔥 2× KP Goal | 🐋 100M+ Power
+- 🛡️ Top 5% Deaths  |  🔥 2× KP Goal  |  🐋 100M+ Power
 
-**KvK Tab:**
-- Create campaigns, manage camps and enemy kingdoms
-- Upload enemy spreadsheets via sidebar when campaign is active
+**Hall of Fame (🏆 Hall of Fame tab):**
+Automatically computed from the KvK events created in the 🛡 KvK tab.
+Each KvK shows the Top 10 KP and Top 10 Deaths as a sum of all reports within the event's date window.
+
+---
+**🆕 New Features:**
+- **Upload Password:** The password to import enemy kingdom spreadsheets is: `UXUI1602!`
+- **KvK:** Administrators can create campaigns. Choose the story to generate the camps automatically.
+- **Multi-Kingdom Upload:** When importing a spreadsheet within an active campaign, the system will ask which camp it belongs to.
 """)
 
 if __name__ == "__main__":
