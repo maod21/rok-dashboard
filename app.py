@@ -341,7 +341,6 @@ def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, da
     metrics = calculate_metrics(result_df, group_power=group_power)
     ranked  = apply_goals(add_rank(metrics, "kill_points"))
 
-    # Translation to English for the UI
     status_map = {"Aprovado": "Goal Reached", "Pendente": "Pending", "Abaixo da meta": "Goal Missed"}
     if "status" in ranked.columns:
         ranked["status"] = ranked["status"].map(status_map).fillna(ranked["status"])
@@ -998,6 +997,26 @@ def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_
                 fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#9ab0cc"), margin=dict(l=0,r=0,t=10,b=0), height=300)
                 st.plotly_chart(fig2, use_container_width=True)
 
+    # Adicionado: Lista de jogadores no mesmo KvK
+    st.markdown('<div class="sec-label">⚔️ Governors Performance in this KvK</div>', unsafe_allow_html=True)
+    if not ranked_kvk.empty:
+        kvk_display = ranked_kvk.copy()
+        kvk_display["power_m"] = kvk_display["power"] / 1_000_000
+        st.dataframe(
+            kvk_display[["rank", "username", "character_id", "power_m", "kill_points", "dead_equiv", "status"]],
+            column_config={
+                "rank": st.column_config.NumberColumn("#"),
+                "username": st.column_config.TextColumn("Governor"),
+                "character_id": st.column_config.TextColumn("ID"),
+                "power_m": st.column_config.NumberColumn("Initial Power (M)", format="%d M"),
+                "kill_points": st.column_config.NumberColumn("KvK KP", format="%d"),
+                "dead_equiv": st.column_config.NumberColumn("KvK Deaths (T4eq)", format="%d"),
+                "status": st.column_config.TextColumn("Goal Status"),
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+
 # ═══════════════════════════════════════════════════════════════════
 # REMAINING TABS
 # ═══════════════════════════════════════════════════════════════════
@@ -1153,7 +1172,7 @@ def show_history(storage, imports, group_power):
     labels = ordered["label"].tolist()
     ca, cb = st.columns(2)
     with ca: la = st.selectbox("Base", labels, index=0, key="ha")
-    with cb: lb = st.selectbox("Compare to", labels, index=min(1,len(labels)-1), key="hb")
+    with cb: lb = st.selectbox("Compare to", labels, index=min(1,len(imports)-1), key="hb")
     if la != lb:
         id_a, id_b = ordered.loc[ordered["label"].eq(la),"id"].iloc[0], ordered.loc[ordered["label"].eq(lb),"id"].iloc[0]
         delta = compute_period_deltas(storage.load_stats(id_b), storage.load_stats(id_a))
