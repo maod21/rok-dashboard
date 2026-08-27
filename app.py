@@ -21,7 +21,6 @@ try:
 except Exception:
     px = None; go = None
 
-# Configuração de histórias e acampamentos de KvK
 KVK_STORIES = {
     "Heroic Anthem": {"camps": ["Fire", "Water", "Earth", "Wind"]},
     "Heroic Anthem: Power Up": {"camps": ["Fire", "Water", "Earth", "Wind"]},
@@ -33,7 +32,6 @@ KVK_STORIES = {
     "Strife of the Eight": {"camps": ["Dragon", "Tiger", "Lion", "Bear", "Wolf", "Raven", "Lotus", "Viper"]},
 }
 
-# Configurações de layout da página
 st.set_page_config(
     page_title="K1602 · KP Dashboard",
     page_icon="⚔️",
@@ -43,7 +41,6 @@ st.set_page_config(
 
 @st.cache_resource
 def _css() -> str:
-    """Retorna os estilos CSS customizados para tema escuro do dashboard."""
     bg_main        = "#0e1a2b"
     bg_surface     = "#162233"
     bg_surface_alt = "#1c2a3f"
@@ -269,10 +266,6 @@ def get_secret(name: str) -> str | None:
     return str(v) if v else None
 
 def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, date_from: date | None = None, date_to: date | None = None) -> tuple[pd.DataFrame, str, str]:
-    """
-    Soma cumulativa das estatísticas em um intervalo de datas.
-    O Poder do jogador é fixado com base no primeiro relatório do período selecionado.
-    """
     ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
     ordered["_d"] = pd.to_datetime(ordered["report_date"]).dt.date
 
@@ -327,9 +320,7 @@ def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, da
 
     result_df = pd.DataFrame(list(accumulated.values()))
     
-    # -----------------------------------------------------------------------
-    # REGRA 1: Poder Base fixado no PRIMEIRO relatório do período filtrado
-    # -----------------------------------------------------------------------
+    # REGRA: Poder Base fixado estritamente no PRIMEIRO relatório do período filtrado
     first_import_id = ordered.iloc[0]["id"]
     first_stats = storage.load_stats(first_import_id)
     initial_power_map = {}
@@ -349,7 +340,6 @@ def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, da
 
     result_df = result_df.drop(columns=["_report_count"], errors="ignore")
     
-    # Aplica o cálculo das métricas de KP e mortes equivalentes com base no poder inicial
     metrics = calculate_metrics(result_df, group_power=group_power)
     ranked  = apply_goals(add_rank(metrics, "kill_points"))
     
@@ -404,20 +394,20 @@ def _latest_realm_player_stats(storage, realm_id: str) -> pd.DataFrame:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# TABELA DE JOGADORES ABAIXO OU PENDENTES DA META
+# NOVA TABELA: JOGADORES ABAIXO DA META
 # ═══════════════════════════════════════════════════════════════════
 
 def _render_below_goals_table(df: pd.DataFrame) -> None:
-    """Renderiza a tabela de governadores que não atingiram 100% de ambas as metas."""
+    """Filtra e renderiza a tabela de governadores que não atingiram 100% de ambas as metas."""
     below_df = df[df["status"] != "Aprovado"].copy()
     
     st.markdown('<div class="sec-label">⚠️ Jogadores Abaixo ou Pendentes da Meta</div>', unsafe_allow_html=True)
     
     if below_df.empty:
-        st.success("🎉 Todos os governadores atingiram 100% das metas no período!")
+        st.success("🎉 Todos os governadores atingiram 100% das metas no período selecionado!")
         return
 
-    # Cálculo seguro do percentual faltante com proteção contra divisão por zero
+    # Cálculo seguro das porcentagens faltantes sem divisão por zero
     below_df["kp_missing_pct"] = below_df.apply(
         lambda r: max(0.0, (1.0 - (float(r.get("kill_points", 0)) / float(r["kp_goal"])))) * 100
         if pd.notna(r.get("kp_goal")) and float(r.get("kp_goal", 0)) > 0 else 0.0,
@@ -445,8 +435,180 @@ def _render_below_goals_table(df: pd.DataFrame) -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# ABA RANKING
+# MAIN & ABA RANKING
 # ═══════════════════════════════════════════════════════════════════
+
+def main() -> None:
+    st.html(_css())
+    storage = get_storage()
+
+    st.markdown("""
+    <div class="rok-header">
+      <div class="rok-header-emblem">⚔️</div>
+      <div>
+        <div class="rok-header-title">K1602 · KP Dashboard</div>
+        <div class="rok-header-sub">Kill Points Operations Center · Rise of Kingdoms</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="tier-pills">
+      <span class="tier-pill tp-t5">T5 ×20</span>
+      <span class="tier-pill tp-t4">T4 ×10</span>
+      <span class="tier-pill tp-t3">T3 ×4</span>
+      <span class="tier-pill tp-t2">T2 ×2</span>
+      <span class="tier-pill tp-t1">T1 ×0.2</span>
+      <span class="tier-pill tp-eq">1 T5 death = 2 T4</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.sidebar:
+        st.markdown('<div class="sb-sec">System</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:.68rem;color:#8398b5;margin-bottom:12px">Storage: <span style="color:#4a7cba;font-weight:bold;">{storage.label}</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sb-sec">Reports</div>', unsafe_allow_html=True)
+        _upload_section(storage)
+
+    imports = storage.list_imports()
+    if imports.empty:
+        st.markdown("""
+        <div class="empty-state">
+          <div class="empty-state-icon">⚔️</div>
+          <div class="empty-state-title">No reports imported yet</div>
+          <div class="empty-state-sub">Upload a statsExport file in the sidebar to get started.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+
+    imports = prepare_imports(imports)
+
+    with st.sidebar:
+        st.markdown('<div class="sb-sec">Settings</div>', unsafe_allow_html=True)
+        
+        min_power = st.number_input("Power Min (Millions)", min_value=0, value=0, step=1, format="%d")
+        min_power_value = min_power * 1_000_000
+        
+        min_kp = st.number_input("KP Min", min_value=0, value=0, step=1000, format="%d")
+        min_kp_pct = st.slider("% KP Min", min_value=0, max_value=100, value=0, step=5)
+        min_dead_pct = st.slider("% Deaths Min", min_value=0, max_value=100, value=0, step=5)
+        
+        if st.button("🔄 Reset Filters", use_container_width=True, type="secondary"):
+            st.rerun()
+        
+        st.markdown('<div class="sb-sec">Admin</div>', unsafe_allow_html=True)
+        admin_enabled, is_admin = admin_panel()
+
+    gp = default_group_power(storage, imports)
+
+    all_dates = sorted(imports["report_date"].unique())
+    min_d = pd.to_datetime(all_dates[0]).date()
+    max_d = pd.to_datetime(all_dates[-1]).date()
+
+    st.markdown('<div class="sec-label" style="margin-top:0">Analysis Period</div>', unsafe_allow_html=True)
+    
+    with st.container():
+        dcol1, dcol2, dcol3, dcol4, dcol5 = st.columns([1.5, 1.5, 1, 1, 3])
+        
+        with dcol1:
+            date_from = st.date_input("Start Date", value=min_d, min_value=min_d, max_value=max_d, key="main_date_from")
+        with dcol2:
+            date_to = st.date_input("End Date", value=max_d, min_value=min_d, max_value=max_d, key="main_date_to")
+        with dcol3:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🔄 This Month", key="btn_this_month", use_container_width=True):
+                today = date.today()
+                st.session_state.main_date_from = today.replace(day=1)
+                st.session_state.main_date_to = today
+                st.rerun()
+        with dcol4:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("📅 All Time", key="btn_all_time", use_container_width=True):
+                st.session_state.main_date_from = min_d
+                st.session_state.main_date_to = max_d
+                st.rerun()
+        with dcol5:
+            n_imports_in_range = len(imports[(pd.to_datetime(imports["report_date"]).dt.date >= date_from) & (pd.to_datetime(imports["report_date"]).dt.date <= date_to)])
+            st.markdown(f"""
+            <div style="padding-top:8px;font-size:.72rem;color:#9ab0cc">
+                <span style="color:#d4a847;font-weight:600">{n_imports_in_range}</span> reports in period
+                <br><span style="font-size:.62rem">Initial power fixed on 1st day of period</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    if date_from > date_to:
+        st.error("⚠️ Start date must be before end date.")
+        return
+
+    ranked, first_date, last_date = compute_accumulated_sum(storage, imports, gp, date_from=date_from, date_to=date_to)
+
+    if ranked.empty:
+        st.warning("No reports found in the selected date range.")
+        return
+
+    filter_conditions = pd.Series(True, index=ranked.index)
+    
+    if min_power_value > 0:
+        filter_conditions &= pd.to_numeric(ranked["power"], errors="coerce").fillna(0) >= min_power_value
+    
+    if min_kp > 0:
+        filter_conditions &= pd.to_numeric(ranked["kill_points"], errors="coerce").fillna(0) >= min_kp
+    
+    if min_kp_pct > 0:
+        filter_conditions &= (pd.to_numeric(ranked["kp_pct"], errors="coerce").fillna(0) * 100) >= min_kp_pct
+    
+    if min_dead_pct > 0:
+        filter_conditions &= (pd.to_numeric(ranked["dead_pct"], errors="coerce").fillna(0) * 100) >= min_dead_pct
+    
+    ranked = ranked[filter_conditions]
+    
+    if ranked.empty:
+        st.warning("No governors match the selected filters.")
+        return
+
+    active_filters = []
+    if min_power_value > 0: active_filters.append(f"Power ≥ {min_power}M")
+    if min_kp > 0: active_filters.append(f"KP ≥ {fmt_k(min_kp)}")
+    if min_kp_pct > 0: active_filters.append(f"KP ≥ {min_kp_pct}%")
+    if min_dead_pct > 0: active_filters.append(f"Deaths ≥ {min_dead_pct}%")
+    
+    if active_filters:
+        st.markdown(f"""
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <span style="font-size:.62rem;color:#9ab0cc;font-weight:600">Active filters:</span>
+            {''.join(f'<span class="filter-tag">{f}</span>' for f in active_filters)}
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="rok-caption">
+      <div class="rok-caption-item">From <span class="rok-caption-val">{first_date}</span></div>
+      <div class="rok-caption-sep">→</div>
+      <div class="rok-caption-item"><span class="rok-caption-val">{last_date}</span></div>
+      <div class="rok-caption-sep">·</div>
+      <div class="rok-caption-item">Members <span class="rok-caption-val">{len(ranked):,}</span></div>
+      <div class="rok-caption-sep">·</div>
+      <div class="rok-caption-item">Reports in range <span class="rok-caption-val">{n_imports_in_range}</span></div>
+      <div class="rok-caption-sep">·</div>
+      <div class="rok-caption-item">Base Power <span class="rok-caption-val">{first_date}</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    tab_labels = ["⚔ Ranking", "🏰 KvK", "🏆 Hall of Fame", "👑 Kingdom", "👤 Profile", "❓ Help"]
+    if admin_enabled and is_admin:
+        tab_labels.append("📈 History")
+        tab_labels.append("📁 Imports")
+
+    tabs = st.tabs(tab_labels)
+    with tabs[0]: show_ranking(ranked, key_prefix="main")
+    with tabs[1]: show_kvk(storage, imports, gp, ranked, is_admin=is_admin, admin_enabled=admin_enabled)
+    with tabs[2]: show_hof(storage, imports, gp, is_admin=is_admin, admin_enabled=admin_enabled)
+    with tabs[3]: show_kingdom(ranked, imports, storage, gp)
+    with tabs[4]: show_profile(storage, imports, gp)
+    with tabs[5]: show_help()
+    if admin_enabled and is_admin:
+        with tabs[6]: show_history(storage, imports, gp)
+        with tabs[7]: show_imports(imports, storage, is_admin=is_admin, admin_enabled=admin_enabled)
+
 
 def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
     fc1, fc2, fc3 = st.columns([5, 2, 2])
@@ -496,7 +658,7 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
     df = df.sort_values(scol, ascending=sasc).reset_index(drop=True)
     df["rank"] = range(1, len(df)+1)
 
-    # Inclusão da tabela de metas não atingidas no topo do ranking
+    # Nova Tabela: Jogadores Abaixo da Meta no topo da aba Ranking
     _render_below_goals_table(ranked_full)
 
     st.markdown(f'<div class="sec-label">Governors · {len(df):,} of {len(ranked_full):,}</div>', unsafe_allow_html=True)
@@ -688,10 +850,6 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
 
             st.markdown("</div>", unsafe_allow_html=True)
 
-
-# ═══════════════════════════════════════════════════════════════════
-# ABA KVK
-# ═══════════════════════════════════════════════════════════════════
 
 def show_kvk(storage, imports: pd.DataFrame, group_power: int, ranked_alliance: pd.DataFrame, *, is_admin: bool, admin_enabled: bool) -> None:
     st.markdown('''
@@ -988,10 +1146,6 @@ def show_kvk(storage, imports: pd.DataFrame, group_power: int, ranked_alliance: 
                     st.rerun()
 
 
-# ═══════════════════════════════════════════════════════════════════
-# ABA HALL OF FAME
-# ═══════════════════════════════════════════════════════════════════
-
 def show_hof(storage, imports: pd.DataFrame, group_power: int, *, is_admin: bool, admin_enabled: bool) -> None:
     st.markdown('''
     <div class="rok-header" style="border-left-color:#d4a847">
@@ -1086,10 +1240,6 @@ def _render_hof_list(df: pd.DataFrame, category: str) -> None:
         </div>
         ''', unsafe_allow_html=True)
 
-
-# ═══════════════════════════════════════════════════════════════════
-# ABA KINGDOM
-# ═══════════════════════════════════════════════════════════════════
 
 def show_kingdom(ranked: pd.DataFrame, imports: pd.DataFrame, storage, group_power: int) -> None:
     total    = len(ranked)
@@ -1195,10 +1345,6 @@ def show_kingdom(ranked: pd.DataFrame, imports: pd.DataFrame, storage, group_pow
             st.success("No mails needed.")
 
 
-# ═══════════════════════════════════════════════════════════════════
-# ABA PROFILE
-# ═══════════════════════════════════════════════════════════════════
-
 def show_profile(storage, imports: pd.DataFrame, gp: int) -> None:
     st.markdown('<div class="sec-label">Player Tracker</div>', unsafe_allow_html=True)
     st.caption("Full performance history for any governor across all imported reports.")
@@ -1278,10 +1424,6 @@ def show_profile(storage, imports: pd.DataFrame, gp: int) -> None:
         st.dataframe(player_data[list(avail.keys())].rename(columns=avail), use_container_width=True, hide_index=True)
 
 
-# ═══════════════════════════════════════════════════════════════════
-# ABA HISTORY
-# ═══════════════════════════════════════════════════════════════════
-
 def show_history(storage, imports: pd.DataFrame, group_power: int) -> None:
     st.markdown('<div class="sec-label">Compare two reports</div>', unsafe_allow_html=True)
     if len(imports) < 2:
@@ -1331,10 +1473,6 @@ def show_history(storage, imports: pd.DataFrame, group_power: int) -> None:
             st.success("No repeated deadweight detected.")
 
 
-# ═══════════════════════════════════════════════════════════════════
-# ABA IMPORTS
-# ═══════════════════════════════════════════════════════════════════
-
 def show_imports(imports: pd.DataFrame, storage, *, is_admin: bool, admin_enabled: bool) -> None:
     st.markdown('<div class="sec-label">Imported reports</div>', unsafe_allow_html=True)
     st.dataframe(imports[["report_date","filename","row_count","imported_at"]].rename(columns={"report_date":"Date","filename":"File","row_count":"Members","imported_at":"Imported at"}), use_container_width=True, hide_index=True)
@@ -1353,10 +1491,6 @@ def show_imports(imports: pd.DataFrame, storage, *, is_admin: bool, admin_enable
                     st.error("Not found.")
 
 
-# ═══════════════════════════════════════════════════════════════════
-# ABA HELP
-# ═══════════════════════════════════════════════════════════════════
-
 def show_help() -> None:
     st.markdown('<div class="sec-label">Quick Reference</div>', unsafe_allow_html=True)
     st.markdown("""
@@ -1372,6 +1506,158 @@ The player's power and goal bands are fixed on the **first report date** within 
 Uses the **sum of all reports** in the selected date range.
 All KP and deaths are summed across every report in the period.
 """)
+
+
+def _upload_section(storage):
+    upload_pwd = get_secret("UPLOAD_PASSWORD")
+    admin_pwd  = get_secret("ADMIN_PASSWORD")
+        
+    if "upload_auth" not in st.session_state:
+        st.session_state.upload_auth = False
+
+    if not st.session_state.upload_auth:
+        st.markdown("""
+        <div class="upload-lock">
+          <div class="upload-lock-icon">🔒</div>
+          <div class="upload-lock-text">Upload restrito à liderança</div>
+        </div>
+        """, unsafe_allow_html=True)
+        up_pwd = st.text_input("Senha de Upload", type="password", key="up_pwd", label_visibility="collapsed", placeholder="Digite a senha de upload...")
+        if st.button("Desbloquear Upload", use_container_width=True):
+            is_admin = admin_pwd and is_admin_authenticated(admin_pwd, up_pwd)
+            is_uploader = upload_pwd and up_pwd == upload_pwd
+            if is_admin or is_uploader:
+                st.session_state.upload_auth = True
+                st.rerun()
+            else:
+                st.error("Senha incorreta")
+        return
+
+    st.success("✓ Acesso de upload liberado")
+    if st.button("🔒 Bloquear", use_container_width=True, type="secondary"):
+        st.session_state.upload_auth = False
+        st.rerun()
+
+    events = storage.list_kvk_events()
+    if events.empty:
+        st.warning("Nenhuma campanha ativa. Crie uma na aba 🏰 KvK.")
+        return
+    
+    today = date.today()
+    events["label"] = events["name"] + " (" + events["start_date"] + " → " + events["end_date"] + ")"
+    kvk_label = st.selectbox("Campanha Ativa", events["label"].tolist(), key="upload_kvk")
+    kvk_row = events.loc[events["label"].eq(kvk_label)].iloc[0]
+    kvk_id = kvk_row["id"]
+    
+    camps_df = storage.load_kvk_camps(kvk_id)
+    if camps_df.empty:
+        st.warning("Esta campanha não possui acampamentos.")
+        return
+    
+    camp_names = camps_df["camp_name"].tolist()
+    camp_icons = {
+        "Fire": "🔥", "Water": "💧", "Earth": "🌍", "Wind": "🌪️",
+        "Aurics": "✨", "Glaciers": "❄️", "Storms": "⚡", "Embers": "🔥",
+        "Tides": "🌊", "Verdure": "🌿", "Dragon": "🐉", "Tiger": "🐅",
+        "Lion": "🦁", "Bear": "🐻", "Wolf": "🐺", "Raven": "🐦‍⬛",
+        "Lotus": "🪷", "Viper": "🐍"
+    }
+    
+    camp_display = [f"{camp_icons.get(c, '🏕️')} {c}" for c in camp_names]
+    selected_camp_display = st.selectbox("Acampamento", camp_display, key="upload_camp")
+    selected_camp = camp_names[camp_display.index(selected_camp_display)]
+    
+    camp_row = camps_df[camps_df["camp_name"] == selected_camp].iloc[0]
+    camp_id = camp_row["id"]
+    
+    kingdoms_df = storage.load_kingdom_stats(camp_id)
+    
+    st.markdown("#### 👑 Reino")
+    
+    if not kingdoms_df.empty:
+        existing_kingdoms = kingdoms_df["kingdom_name"].tolist()
+        st.caption(f"Reinos cadastrados: {', '.join(existing_kingdoms)}")
+        use_existing = st.radio("", ["Selecionar existente", "Criar novo"], key="kingdom_choice", horizontal=True)
+        
+        if use_existing == "Selecionar existente":
+            kingdom_name = st.selectbox("Reino", existing_kingdoms, key="existing_kingdom")
+        else:
+            new_kingdom = st.text_input("Número do Reino", placeholder="1501", key="new_kingdom", max_chars=4)
+            if new_kingdom and new_kingdom.isdigit() and len(new_kingdom) >= 3:
+                kingdom_name = new_kingdom.strip()
+                if kingdom_name in existing_kingdoms:
+                    st.warning(f"Reino {kingdom_name} já existe. Use 'Selecionar existente'.")
+                    kingdom_name = None
+            else:
+                if new_kingdom:
+                    st.warning("Digite apenas números (ex: 1501)")
+                kingdom_name = None
+    else:
+        st.caption("Nenhum reino cadastrado ainda.")
+        new_kingdom = st.text_input("Número do Reino", placeholder="1501", key="new_kingdom_first", max_chars=4)
+        if new_kingdom and new_kingdom.isdigit() and len(new_kingdom) >= 3:
+            kingdom_name = new_kingdom.strip()
+        else:
+            if new_kingdom:
+                st.warning("Digite apenas números (ex: 1501)")
+            kingdom_name = None
+    
+    uploaded = st.file_uploader("statsExport (.xlsx)", type=["xlsx","xls"])
+    if not uploaded:
+        return
+    
+    safe_name = re.sub(r"[^\w.\-]", "_", uploaded.name)
+    report_date = st.date_input("Data do relatório", value=extract_report_date_from_name(safe_name) or date.today())
+    
+    if not st.button("💾 Salvar relatório", type="primary", use_container_width=True):
+        return
+
+    if not kingdom_name:
+        st.error("Selecione ou crie um reino válido.")
+        return
+
+    with st.spinner("Processando..."):
+        try:
+            fb = uploaded.getvalue()
+            if len(fb) > 50*1024*1024:
+                st.error("Arquivo muito grande (máx 50 MB).")
+                return
+            
+            stats = load_stats_file(BytesIO(fb), filename=safe_name)
+            import_id, created = storage.save_import(
+                filename=safe_name,
+                report_date=report_date.isoformat(),
+                file_hash=file_sha256(fb),
+                stats=stats
+            )
+            
+            if created:
+                metrics = calculate_metrics(stats, group_power=100_000_000)
+                total_kp = int(metrics["kill_points"].sum())
+                total_deaths = int(metrics["death_points"].sum())
+                player_count = len(metrics)
+                
+                existing = storage.load_kingdom_stats(camp_id)
+                if existing.empty or kingdom_name not in existing["kingdom_name"].values:
+                    storage.add_empty_kingdom(camp_id, kingdom_name)
+                
+                storage.save_kingdom_stats(
+                    kvk_camp_id=camp_id,
+                    import_id=import_id,
+                    kingdom_name=kingdom_name,
+                    total_kp=total_kp,
+                    total_deaths=total_deaths,
+                    player_count=player_count
+                )
+                
+                st.success(f"✅ Reino **{kingdom_name}** importado com sucesso!")
+                st.rerun()
+            else:
+                st.warning("Arquivo já foi importado anteriormente.")
+                
+        except Exception as e:
+            st.error(f"Erro no upload: {e}")
+
 
 if __name__ == "__main__":
     main()
