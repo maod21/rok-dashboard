@@ -387,6 +387,7 @@ def fmt_k(v: int | float) -> str:
     return str(int(v))
 def fmt_m(v: int | float) -> str: return f"{float(v)/1_000_000:.0f}"
 
+
 # ═══════════════════════════════════════════════════════════════════
 # BELOW GOALS TABLE (NATIVE UI)
 # ═══════════════════════════════════════════════════════════════════
@@ -431,6 +432,7 @@ def _render_below_goals_table(df: pd.DataFrame) -> None:
         },
         use_container_width=True, hide_index=True
     )
+
 
 # ═══════════════════════════════════════════════════════════════════
 # MAIN INTERFACE & SIDEBAR
@@ -997,25 +999,37 @@ def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_
                 fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#9ab0cc"), margin=dict(l=0,r=0,t=10,b=0), height=300)
                 st.plotly_chart(fig2, use_container_width=True)
 
-    # Adicionado: Lista de jogadores no mesmo KvK
+    # ---------------------------------------------------------
+    # NEW FEATURE: Governors Performance in this KvK
+    # ---------------------------------------------------------
     st.markdown('<div class="sec-label">⚔️ Governors Performance in this KvK</div>', unsafe_allow_html=True)
+
     if not ranked_kvk.empty:
-        kvk_display = ranked_kvk.copy()
-        kvk_display["power_m"] = kvk_display["power"] / 1_000_000
-        st.dataframe(
-            kvk_display[["rank", "username", "character_id", "power_m", "kill_points", "dead_equiv", "status"]],
-            column_config={
-                "rank": st.column_config.NumberColumn("#"),
-                "username": st.column_config.TextColumn("Governor"),
-                "character_id": st.column_config.TextColumn("ID"),
-                "power_m": st.column_config.NumberColumn("Initial Power (M)", format="%d M"),
-                "kill_points": st.column_config.NumberColumn("KvK KP", format="%d"),
-                "dead_equiv": st.column_config.NumberColumn("KvK Deaths (T4eq)", format="%d"),
-                "status": st.column_config.TextColumn("Goal Status"),
-            },
-            hide_index=True,
-            use_container_width=True
-        )
+        search_kvk = st.text_input("Search member or Character ID...", key="kvk_search", label_visibility="collapsed")
+        
+        df_kvk = ranked_kvk.copy()
+        if search_kvk.strip():
+            n_kvk = search_kvk.strip().lower()
+            df_kvk = df_kvk[
+                df_kvk["username"].astype(str).str.lower().str.contains(n_kvk, regex=False, na=False) |
+                df_kvk["character_id"].astype(str).str.lower().str.contains(n_kvk, regex=False, na=False)
+            ]
+
+        st.markdown(f'<div class="sec-label" style="margin-top: 0;">Governors · {len(df_kvk):,} of {len(ranked_kvk):,}</div>', unsafe_allow_html=True)
+
+        if not df_kvk.empty:
+            page_size_kvk = st.selectbox("Per page", [10, 25, 50, 100], index=1, key="kvk_ps", label_visibility="collapsed")
+            total_pg_kvk  = max(1, -(-len(df_kvk) // page_size_kvk))
+            col_pg1_kvk, col_pg2_kvk = st.columns([1, 5])
+            with col_pg1_kvk:
+                page_kvk = st.number_input("Page", min_value=1, max_value=total_pg_kvk, value=1, key="kvk_pg", label_visibility="collapsed")
+            with col_pg2_kvk:
+                st.markdown(f'<div style="font-size:.65rem;color:#9ab0cc;padding-top:8px">Page {page_kvk} of {total_pg_kvk}</div>', unsafe_allow_html=True)
+
+            start_kvk = (page_kvk - 1) * page_size_kvk
+            _render_members(df_kvk.iloc[start_kvk : start_kvk + page_size_kvk], key_prefix="kvk")
+        else:
+            st.info("No governors found matching your search.")
 
 # ═══════════════════════════════════════════════════════════════════
 # REMAINING TABS
@@ -1172,7 +1186,7 @@ def show_history(storage, imports, group_power):
     labels = ordered["label"].tolist()
     ca, cb = st.columns(2)
     with ca: la = st.selectbox("Base", labels, index=0, key="ha")
-    with cb: lb = st.selectbox("Compare to", labels, index=min(1,len(imports)-1), key="hb")
+    with cb: lb = st.selectbox("Compare to", labels, index=min(1,len(labels)-1), key="hb")
     if la != lb:
         id_a, id_b = ordered.loc[ordered["label"].eq(la),"id"].iloc[0], ordered.loc[ordered["label"].eq(lb),"id"].iloc[0]
         delta = compute_period_deltas(storage.load_stats(id_b), storage.load_stats(id_a))
