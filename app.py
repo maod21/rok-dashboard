@@ -264,7 +264,13 @@ def get_secret(name: str) -> str | None:
     except: v = None
     return str(v) if v else None
 
-def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, date_from: date | None = None, date_to: date | None = None) -> tuple[pd.DataFrame, str, str]:
+# -----------------------------------------------------------------------
+# OTIMIZAÇÃO DE PERFORMANCE (CACHE)
+# Ao colocar o "_storage" com underscore, o Streamlit não tenta hashear a BD.
+# Isto salva o resultado desta função complexa em memória, acelerando a pesquisa.
+# -----------------------------------------------------------------------
+@st.cache_data(show_spinner=False)
+def compute_accumulated_sum(_storage, imports: pd.DataFrame, group_power: int, date_from: date | None = None, date_to: date | None = None) -> tuple[pd.DataFrame, str, str]:
     ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
     ordered["_d"] = pd.to_datetime(ordered["report_date"]).dt.date
 
@@ -290,7 +296,7 @@ def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, da
     accumulated = {}
 
     for _, imp_row in ordered.iterrows():
-        stats = storage.load_stats(imp_row["id"])
+        stats = _storage.load_stats(imp_row["id"])
         for _, player in stats.iterrows():
             cid = str(player["character_id"])
             if cid not in accumulated:
@@ -320,7 +326,7 @@ def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, da
     result_df = pd.DataFrame(list(accumulated.values()))
     
     first_import_id = ordered.iloc[0]["id"]
-    first_stats = storage.load_stats(first_import_id)
+    first_stats = _storage.load_stats(first_import_id)
     initial_power_map = {}
     for _, player in first_stats.iterrows():
         cid = str(player["character_id"])
@@ -347,8 +353,8 @@ def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, da
     
     return ranked, first_date, last_date
 
-def compute_kvk_accumulated(storage, imports, group_power, start_d, end_d):
-    result, _, _ = compute_accumulated_sum(storage, imports, group_power, date_from=start_d, date_to=end_d)
+def compute_kvk_accumulated(_storage, imports, group_power, start_d, end_d):
+    result, _, _ = compute_accumulated_sum(_storage, imports, group_power, date_from=start_d, date_to=end_d)
     return result
 
 def prepare_imports(imports: pd.DataFrame) -> pd.DataFrame:
@@ -386,11 +392,6 @@ def fmt_k(v: int | float) -> str:
     if v >= 1_000:     return f"{v/1_000:.0f}k"
     return str(int(v))
 def fmt_m(v: int | float) -> str: return f"{float(v)/1_000_000:.0f}"
-
-
-# ═══════════════════════════════════════════════════════════════════
-# BELOW GOALS TABLE (NATIVE UI)
-# ═══════════════════════════════════════════════════════════════════
 
 def _render_below_goals_table(df: pd.DataFrame) -> None:
     below_df = df[df["status"] != "Goal Reached"].copy()
@@ -432,11 +433,6 @@ def _render_below_goals_table(df: pd.DataFrame) -> None:
         },
         use_container_width=True, hide_index=True
     )
-
-
-# ═══════════════════════════════════════════════════════════════════
-# MAIN INTERFACE & SIDEBAR
-# ═══════════════════════════════════════════════════════════════════
 
 def main() -> None:
     st.html(_css())
@@ -504,8 +500,8 @@ def main() -> None:
     max_d = pd.to_datetime(all_dates[-1]).date()
 
     # ---------------------------------------------------------
-    # CALLBACKS PARA OS BOTÕES DE DATA
-    # Resolve o erro StreamlitAPIException
+    # CALLBACKS PARA RESOLVER O StreamlitAPIException
+    # Estes callbacks mudam as datas no estado de sessão ANTES da página recarregar
     # ---------------------------------------------------------
     def set_this_month():
         today = date.today()
@@ -527,11 +523,9 @@ def main() -> None:
             date_to = st.date_input("End Date", value=max_d, min_value=min_d, max_value=max_d, key="main_date_to")
         with dcol3:
             st.markdown("<br>", unsafe_allow_html=True)
-            # Usa o 'on_click' para alterar o session_state ANTES de desenhar
             st.button("🔄 This Month", key="btn_this_month", use_container_width=True, on_click=set_this_month)
         with dcol4:
             st.markdown("<br>", unsafe_allow_html=True)
-            # Usa o 'on_click'
             st.button("📅 All Time", key="btn_all_time", use_container_width=True, on_click=set_all_time)
         with dcol5:
             n_imports_in_range = len(imports[(pd.to_datetime(imports["report_date"]).dt.date >= date_from) & (pd.to_datetime(imports["report_date"]).dt.date <= date_to)])
@@ -674,10 +668,6 @@ def _upload_section(storage):
             except Exception as e:
                 st.error(f"Upload error: {e}")
 
-# ═══════════════════════════════════════════════════════════════════
-# RANKING TAB
-# ═══════════════════════════════════════════════════════════════════
-
 def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
     fc1, fc2, fc3 = st.columns([5, 2, 2])
     with fc1:
@@ -709,10 +699,14 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
             emb += '<span title="Whale (100M+ Power)">🐋</span> '
         df.at[idx, 'emblems'] = emb
 
+    # -----------------------------------------------------------------------
+    # OTIMIZAÇÃO: PESQUISA VETORIZADA NO PANDAS (MUITO MAIS RÁPIDA)
+    # -----------------------------------------------------------------------
     if search.strip():
-        n = search.strip().lower()
-        df = df[df["username"].astype(str).str.lower().str.contains(n,regex=False,na=False)
-                | df["character_id"].astype(str).str.lower().str.contains(n,regex=False,na=False)]
+        n = search.strip()
+        mask = df["username"].astype(str).str.contains(n, case=False, na=False) | \
+               df["character_id"].astype(str).str.contains(n, case=False, na=False)
+        df = df[mask]
 
     if sf != "All":
         df = df[df["status"] == sf]
@@ -765,13 +759,17 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
         st.dataframe(out, use_container_width=True, hide_index=True)
         st.download_button("⬇ Download CSV", data=out.to_csv(index=False).encode(), file_name="ranking_simplified.csv", mime="text/csv", key=f"{key_prefix}_dl_csv", use_container_width=True)
 
-def _render_member_chart(storage, imports, username, character_id, key_prefix):
+# -----------------------------------------------------------------------
+# OTIMIZAÇÃO DE PERFORMANCE: Adicionado Cache no carregamento dos gráficos
+# -----------------------------------------------------------------------
+@st.cache_data(show_spinner=False)
+def _render_member_chart(_storage, imports, username, character_id, key_prefix):
     if px is None or go is None: return
     ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
     history_rows = []
     for _, imp_row in ordered.iterrows():
         try:
-            stats = storage.load_stats(imp_row["id"])
+            stats = _storage.load_stats(imp_row["id"])
             player_stats = stats[(stats["username"] == username) | (stats["character_id"].astype(str) == str(character_id))]
             if player_stats.empty: continue
             metrics = calculate_metrics(player_stats, group_power=100_000_000)
@@ -903,10 +901,6 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
                 """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-# ═══════════════════════════════════════════════════════════════════
-# MY KVK TAB (SIMPLIFIED FOR ONE KINGDOM)
-# ═══════════════════════════════════════════════════════════════════
-
 def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_enabled):
     st.markdown('''
     <div class="rok-header" style="border-left-color:#4a7cba">
@@ -1027,12 +1021,12 @@ def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_
                 emb += '<span title="Whale (100M+ Power)">🐋</span> '
             df_kvk.at[idx, 'emblems'] = emb
         
+        # OTIMIZAÇÃO NA PESQUISA KVK
         if search_kvk.strip():
-            n_kvk = search_kvk.strip().lower()
-            df_kvk = df_kvk[
-                df_kvk["username"].astype(str).str.lower().str.contains(n_kvk, regex=False, na=False) |
-                df_kvk["character_id"].astype(str).str.lower().str.contains(n_kvk, regex=False, na=False)
-            ]
+            n_kvk = search_kvk.strip()
+            mask_kvk = df_kvk["username"].astype(str).str.contains(n_kvk, case=False, na=False) | \
+                       df_kvk["character_id"].astype(str).str.contains(n_kvk, case=False, na=False)
+            df_kvk = df_kvk[mask_kvk]
 
         df_kvk = df_kvk.sort_values("kill_points", ascending=False).reset_index(drop=True)
         df_kvk["rank"] = range(1, len(df_kvk) + 1)
@@ -1052,10 +1046,6 @@ def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_
             _render_members(df_kvk.iloc[start_kvk : start_kvk + page_size_kvk], key_prefix="kvk")
         else:
             st.info("No governors found matching your search.")
-
-# ═══════════════════════════════════════════════════════════════════
-# REMAINING TABS
-# ═══════════════════════════════════════════════════════════════════
 
 def show_hof(storage, imports, group_power, *, is_admin, admin_enabled):
     st.markdown('''
