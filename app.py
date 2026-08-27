@@ -503,6 +503,19 @@ def main() -> None:
     min_d = pd.to_datetime(all_dates[0]).date()
     max_d = pd.to_datetime(all_dates[-1]).date()
 
+    # ---------------------------------------------------------
+    # CALLBACKS PARA OS BOTÕES DE DATA
+    # Resolve o erro StreamlitAPIException
+    # ---------------------------------------------------------
+    def set_this_month():
+        today = date.today()
+        st.session_state.main_date_from = today.replace(day=1)
+        st.session_state.main_date_to = today
+
+    def set_all_time():
+        st.session_state.main_date_from = min_d
+        st.session_state.main_date_to = max_d
+
     st.markdown('<div class="sec-label" style="margin-top:0">Analysis Period</div>', unsafe_allow_html=True)
     
     with st.container():
@@ -514,17 +527,12 @@ def main() -> None:
             date_to = st.date_input("End Date", value=max_d, min_value=min_d, max_value=max_d, key="main_date_to")
         with dcol3:
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🔄 This Month", key="btn_this_month", use_container_width=True):
-                today = date.today()
-                st.session_state.main_date_from = today.replace(day=1)
-                st.session_state.main_date_to = today
-                st.rerun()
+            # Usa o 'on_click' para alterar o session_state ANTES de desenhar
+            st.button("🔄 This Month", key="btn_this_month", use_container_width=True, on_click=set_this_month)
         with dcol4:
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("📅 All Time", key="btn_all_time", use_container_width=True):
-                st.session_state.main_date_from = min_d
-                st.session_state.main_date_to = max_d
-                st.rerun()
+            # Usa o 'on_click'
+            st.button("📅 All Time", key="btn_all_time", use_container_width=True, on_click=set_all_time)
         with dcol5:
             n_imports_in_range = len(imports[(pd.to_datetime(imports["report_date"]).dt.date >= date_from) & (pd.to_datetime(imports["report_date"]).dt.date <= date_to)])
             st.markdown(f"""
@@ -783,9 +791,6 @@ def _render_member_chart(storage, imports, username, character_id, key_prefix):
 
     fig.update_layout(title=f"Evolution - {username}", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#9ab0cc", family="Inter", size=11), yaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False), xaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"), margin=dict(l=0, r=0, t=40, b=0), height=250)
     
-    # ---------------------------------------------------------
-    # ADICIONADO A 'KEY' ÚNICA AQUI
-    # ---------------------------------------------------------
     st.plotly_chart(fig, use_container_width=True, key=f"chart_{key_prefix}_{character_id}")
 
 def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
@@ -830,9 +835,6 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
             </div>
             """, unsafe_allow_html=True)
 
-            # ---------------------------------------------------------
-            # PASSANDO O 'KEY_PREFIX' PARA O GRÁFICO
-            # ---------------------------------------------------------
             _render_member_chart(storage, imports, row['username'], row.get('character_id', ''), key_prefix)
 
             t5d = int(row.get("t5_deaths",0)); t4d = int(row.get("t4_deaths",0))
@@ -902,7 +904,7 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
             st.markdown("</div>", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════
-# MY KVK TAB
+# MY KVK TAB (SIMPLIFIED FOR ONE KINGDOM)
 # ═══════════════════════════════════════════════════════════════════
 
 def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_enabled):
