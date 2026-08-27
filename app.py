@@ -21,7 +21,6 @@ try:
 except Exception:
     px = None; go = None
 
-# Fallback in case old storage structures are still expected
 KVK_STORIES = {
     "Heroic Anthem": {"camps": ["Fire", "Water", "Earth", "Wind"]},
     "Desert Conquest": {"camps": ["Fire", "Water", "Earth", "Wind"]},
@@ -342,7 +341,7 @@ def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, da
     metrics = calculate_metrics(result_df, group_power=group_power)
     ranked  = apply_goals(add_rank(metrics, "kill_points"))
 
-    # Translate status output from member_goals.py to English
+    # Translation to English for the UI
     status_map = {"Aprovado": "Goal Reached", "Pendente": "Pending", "Abaixo da meta": "Goal Missed"}
     if "status" in ranked.columns:
         ranked["status"] = ranked["status"].map(status_map).fillna(ranked["status"])
@@ -729,18 +728,30 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
     _render_members(df.iloc[start:start+page_size], key_prefix=key_prefix)
 
     with st.expander("Export full table →", expanded=False):
-        # Mapeamento atualizado para incluir exatamente as colunas solicitadas para exportação
+        export_df = df.copy()
+        
+        # Format the specific requested columns safely avoiding division by zero
+        export_df["KP Goal Status"] = export_df.apply(
+            lambda r: "Goal Reached" if float(r.get("kill_points", 0)) >= float(r.get("kp_goal", 1)) else f"Goal Missed ({min(float(r.get('kp_pct', 0))*100, 100):.1f}%)", axis=1
+        )
+        export_df["Death Goal Status"] = export_df.apply(
+            lambda r: "Goal Reached" if float(r.get("dead_equiv", 0)) >= float(r.get("dead_t4_goal", 1)) else f"Goal Missed ({min(float(r.get('dead_pct', 0))*100, 100):.1f}%)", axis=1
+        )
+
         cols_show = {
-            "rank":"#", "username":"Governor", "character_id":"ID", "power":"Power (1st Day)", "power_band":"Band",
-            "kill_points":"KP", "kp_goal":"KP Goal", "t5_kills":"T5K", "t4_kills":"T4K",
-            "t3_kills":"T3K", "t2_kills":"T2K", "t1_kills":"T1K",
-            "t5_deaths":"T5D", "t4_deaths":"T4D", "t3_deaths":"T3D", "t2_deaths":"T2D", "t1_deaths":"T1D",
-            "dead_t4_goal":"Death Goal", "dead_equiv":"T4 Equiv.", "status":"Goal Status",
+            "username": "Name",
+            "character_id": "ID",
+            "kill_points": "KP",
+            "KP Goal Status": "KP Goal Status",
+            "dead_equiv": "Deaths",
+            "Death Goal Status": "Death Goal Status"
         }
-        avail = {k:v for k,v in cols_show.items() if k in df.columns}
-        out   = df[list(avail.keys())].rename(columns=avail)
+        
+        avail = {k:v for k,v in cols_show.items() if k in export_df.columns}
+        out = export_df[list(avail.keys())].rename(columns=avail)
+        
         st.dataframe(out, use_container_width=True, hide_index=True)
-        st.download_button("⬇ Download CSV", data=df.to_csv(index=False).encode(), file_name="ranking.csv", mime="text/csv", key=f"{key_prefix}_dl_csv")
+        st.download_button("⬇ Download CSV", data=out.to_csv(index=False).encode(), file_name="ranking_simplified.csv", mime="text/csv", key=f"{key_prefix}_dl_csv")
 
 def _render_member_chart(storage, imports, username, character_id):
     if px is None or go is None: return
@@ -1117,7 +1128,7 @@ def show_profile(storage, imports, gp):
     player_data = pd.concat(history_rows, ignore_index=True).sort_values("report_date")
     latest = player_data.iloc[-1]
     
-    # Translate status to English for metrics
+    # Translation to English for the specific Player Tracker card
     status_translation = {"Aprovado": "Goal Reached", "Pendente": "Pending", "Abaixo da meta": "Goal Missed"}
     l_status = status_translation.get(latest['status'], latest['status'])
 
