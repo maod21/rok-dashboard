@@ -348,6 +348,10 @@ def compute_accumulated_sum(storage, imports: pd.DataFrame, group_power: int, da
     
     return ranked, first_date, last_date
 
+def compute_kvk_accumulated(storage, imports, group_power, start_d, end_d):
+    result, _, _ = compute_accumulated_sum(storage, imports, group_power, date_from=start_d, date_to=end_d)
+    return result
+
 def prepare_imports(imports: pd.DataFrame) -> pd.DataFrame:
     out = imports.copy()
     out["report_date"] = pd.to_datetime(out["report_date"]).dt.date.astype(str)
@@ -730,7 +734,6 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
     with st.expander("Export full table →", expanded=False):
         export_df = df.copy()
         
-        # Format the specific requested columns safely avoiding division by zero
         export_df["KP Goal Status"] = export_df.apply(
             lambda r: "Goal Reached" if float(r.get("kill_points", 0)) >= float(r.get("kp_goal", 1)) else f"Goal Missed ({min(float(r.get('kp_pct', 0))*100, 100):.1f}%)", axis=1
         )
@@ -751,7 +754,7 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
         out = export_df[list(avail.keys())].rename(columns=avail)
         
         st.dataframe(out, use_container_width=True, hide_index=True)
-        st.download_button("⬇ Download CSV", data=out.to_csv(index=False).encode(), file_name="ranking_simplified.csv", mime="text/csv", key=f"{key_prefix}_dl_csv")
+        st.download_button("⬇ Download CSV", data=out.to_csv(index=False).encode(), file_name="ranking_simplified.csv", mime="text/csv", key=f"{key_prefix}_dl_csv", use_container_width=True)
 
 def _render_member_chart(storage, imports, username, character_id):
     if px is None or go is None: return
@@ -912,7 +915,7 @@ def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_
             with c2: kvk_start = st.date_input("Start Date")
             with c3: kvk_end = st.date_input("End Date")
             
-            if st.button("🚀 Create KvK Event", type="primary"):
+            if st.button("🚀 Create KvK Event", type="primary", use_container_width=True):
                 if not kvk_name.strip():
                     st.error("Enter a name.")
                 elif kvk_end < kvk_start:
@@ -947,7 +950,7 @@ def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_
     e_end = pd.to_datetime(event_row["end_date"]).date()
 
     if admin_enabled and is_admin:
-        if st.button("🗑️ Delete Selected Event", type="secondary"):
+        if st.button("🗑️ Delete Selected Event", type="secondary", use_container_width=True):
             try: storage.delete_kvk_event(event_row["id"])
             except AttributeError: storage.delete_campaign(event_row["id"])
             st.rerun()
@@ -1128,7 +1131,6 @@ def show_profile(storage, imports, gp):
     player_data = pd.concat(history_rows, ignore_index=True).sort_values("report_date")
     latest = player_data.iloc[-1]
     
-    # Translation to English for the specific Player Tracker card
     status_translation = {"Aprovado": "Goal Reached", "Pendente": "Pending", "Abaixo da meta": "Goal Missed"}
     l_status = status_translation.get(latest['status'], latest['status'])
 
@@ -1167,7 +1169,7 @@ def show_imports(imports, storage, *, is_admin, admin_enabled):
     if admin_enabled and is_admin:
         st.markdown('<div class="sec-label">Delete import</div>', unsafe_allow_html=True)
         to_del = st.selectbox("Select",["— —", *imports["label"].tolist()])
-        if to_del != "— —" and st.button("Confirm delete", type="secondary"):
+        if to_del != "— —" and st.button("Confirm delete", type="secondary", use_container_width=True):
             if storage.delete_import(imports.loc[imports["label"].eq(to_del)].iloc[0]["id"]): st.success("Deleted."); st.rerun()
 
 def show_help():
