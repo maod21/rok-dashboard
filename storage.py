@@ -1,22 +1,16 @@
 from __future__ import annotations
 
-import json
 import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 
-from member_goals import default_goal_bands, normalize_goal_bands, serialize_goal_bands
 from rok_metrics import OUTPUT_COLUMNS
 
 SQLITE_PATH = Path(os.getenv("ROK_SQLITE_PATH", "data/rok_dashboard.sqlite"))
-STATS_TABLE_COLUMNS = ["import_id", *OUTPUT_COLUMNS]
-SUPABASE_BATCH_SIZE = 500
-
 
 class SQLiteStorage:
     label = "SQLite local"
@@ -135,7 +129,7 @@ class SQLiteStorage:
             self.connection.execute("create index if not exists rok_stats_char_idx on rok_stats (character_id)")
             self.connection.execute("create index if not exists rok_imports_date_idx on rok_imports (report_date desc)")
             
-            # Nova Tabela de KvK simplificada
+            # Tabela de KvK simplificada
             self.connection.execute("""
                 create table if not exists rok_kvk_events (
                     id text primary key, name text not null,
