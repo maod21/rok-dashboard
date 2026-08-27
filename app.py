@@ -757,7 +757,7 @@ def show_ranking(ranked_full: pd.DataFrame, key_prefix: str = "main") -> None:
         st.dataframe(out, use_container_width=True, hide_index=True)
         st.download_button("⬇ Download CSV", data=out.to_csv(index=False).encode(), file_name="ranking_simplified.csv", mime="text/csv", key=f"{key_prefix}_dl_csv", use_container_width=True)
 
-def _render_member_chart(storage, imports, username, character_id):
+def _render_member_chart(storage, imports, username, character_id, key_prefix):
     if px is None or go is None: return
     ordered = imports.sort_values(["report_date", "imported_at"]).reset_index(drop=True)
     history_rows = []
@@ -782,7 +782,11 @@ def _render_member_chart(storage, imports, username, character_id):
     fig.add_trace(go.Scatter(x=player_data['report_date'], y=player_data['dead_equiv'], mode='lines+markers', name='Deaths (T4 Equiv)', line=dict(color='#4a7cba', width=2, shape='spline'), marker=dict(size=6, color='#4a7cba')))
 
     fig.update_layout(title=f"Evolution - {username}", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#9ab0cc", family="Inter", size=11), yaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False), xaxis=dict(gridcolor="rgba(42, 63, 94, 0.5)", zeroline=False), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"), margin=dict(l=0, r=0, t=40, b=0), height=250)
-    st.plotly_chart(fig, use_container_width=True)
+    
+    # ---------------------------------------------------------
+    # ADICIONADO A 'KEY' ÚNICA AQUI
+    # ---------------------------------------------------------
+    st.plotly_chart(fig, use_container_width=True, key=f"chart_{key_prefix}_{character_id}")
 
 def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
     storage = get_storage()
@@ -826,7 +830,10 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
             </div>
             """, unsafe_allow_html=True)
 
-            _render_member_chart(storage, imports, row['username'], row.get('character_id', ''))
+            # ---------------------------------------------------------
+            # PASSANDO O 'KEY_PREFIX' PARA O GRÁFICO
+            # ---------------------------------------------------------
+            _render_member_chart(storage, imports, row['username'], row.get('character_id', ''), key_prefix)
 
             t5d = int(row.get("t5_deaths",0)); t4d = int(row.get("t4_deaths",0))
             t3d = int(row.get("t3_deaths",0)); t2d = int(row.get("t2_deaths",0)); t1d = int(row.get("t1_deaths",0))
@@ -895,7 +902,7 @@ def _render_members(df: pd.DataFrame, key_prefix: str = "main") -> None:
             st.markdown("</div>", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════
-# MY KVK TAB (SIMPLIFIED FOR ONE KINGDOM)
+# MY KVK TAB
 # ═══════════════════════════════════════════════════════════════════
 
 def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_enabled):
@@ -999,21 +1006,34 @@ def show_kvk(storage, imports, group_power, ranked_alliance, *, is_admin, admin_
                 fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#9ab0cc"), margin=dict(l=0,r=0,t=10,b=0), height=300)
                 st.plotly_chart(fig2, use_container_width=True)
 
-    # ---------------------------------------------------------
-    # NEW FEATURE: Governors Performance in this KvK
-    # ---------------------------------------------------------
     st.markdown('<div class="sec-label">⚔️ Governors Performance in this KvK</div>', unsafe_allow_html=True)
 
     if not ranked_kvk.empty:
         search_kvk = st.text_input("Search member or Character ID...", key="kvk_search", label_visibility="collapsed")
         
         df_kvk = ranked_kvk.copy()
+        
+        df_kvk['emblems'] = ""
+        top_5_pct_deaths_kvk = df_kvk['dead_equiv'].quantile(0.95) if len(df_kvk) > 0 and 'dead_equiv' in df_kvk.columns else float('inf')
+        for idx, row in df_kvk.iterrows():
+            emb = ""
+            if row.get('dead_equiv', 0) >= top_5_pct_deaths_kvk and row.get('dead_equiv', 0) > 0:
+                emb += '<span title="Top 5% Deaths">🛡️</span> '
+            if row.get('kill_points', 0) >= (row.get('kp_goal', 1) * 2) and row.get('kp_goal', 0) > 0:
+                emb += '<span title="2x KP Goal">🔥</span> '
+            if row.get('power', 0) >= 100_000_000:
+                emb += '<span title="Whale (100M+ Power)">🐋</span> '
+            df_kvk.at[idx, 'emblems'] = emb
+        
         if search_kvk.strip():
             n_kvk = search_kvk.strip().lower()
             df_kvk = df_kvk[
                 df_kvk["username"].astype(str).str.lower().str.contains(n_kvk, regex=False, na=False) |
                 df_kvk["character_id"].astype(str).str.lower().str.contains(n_kvk, regex=False, na=False)
             ]
+
+        df_kvk = df_kvk.sort_values("kill_points", ascending=False).reset_index(drop=True)
+        df_kvk["rank"] = range(1, len(df_kvk) + 1)
 
         st.markdown(f'<div class="sec-label" style="margin-top: 0;">Governors · {len(df_kvk):,} of {len(ranked_kvk):,}</div>', unsafe_allow_html=True)
 
